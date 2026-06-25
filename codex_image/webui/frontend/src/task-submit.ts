@@ -298,7 +298,7 @@ async function runTask() {
   try {
     requireOmniApiKeyBeforeSubmit();
   } catch (error) {
-    setStatus(errorMessage(error, "请先填写 Omni API Key"), "error");
+    setStatus(errorMessage(error, "Omni API Key is required"), "error");
     return;
   }
 

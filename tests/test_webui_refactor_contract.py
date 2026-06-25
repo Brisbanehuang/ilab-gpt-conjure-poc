@@ -382,6 +382,7 @@ class WebUIRefactorContractTests(unittest.TestCase):
                 ("/api/reference-assets/recent", "GET"),
                 ("/api/reference-assets/{asset_id}", "DELETE"),
                 ("/api/reference-assets/{asset_id}/image", "GET"),
+                ("/api/omni/validate", "POST"),
                 ("/api/generate", "POST"),
                 ("/api/edit", "POST"),
             }

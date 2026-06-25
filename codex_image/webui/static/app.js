@@ -37144,7 +37144,7 @@ ${galleryText}`;
     try {
       requireOmniApiKeyBeforeSubmit();
     } catch (error) {
-      setStatus17(errorMessage4(error, "\u8BF7\u5148\u586B\u5199 Omni API Key"), "error");
+      setStatus17(errorMessage4(error, "Omni API Key is required"), "error");
       return;
     }
     const form = new FormData();
