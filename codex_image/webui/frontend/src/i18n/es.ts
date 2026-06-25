@@ -119,7 +119,7 @@ export const ES_DICTIONARY: TranslationDictionary = {
     "footer.archiveCount": "Archivo {count}",
     "footer.historyLibrary": "Historia",
     "historyLibrary.openFull": "Abrir biblioteca de historia completa",
-    "history.documentTitle": "Historia - iLab GPT CONJURE",
+    "history.documentTitle": "Historia - Omni Lens",
     "history.back": "Volver al generador",
     "history.title": "Historia",
     "history.loading": "Cargando",

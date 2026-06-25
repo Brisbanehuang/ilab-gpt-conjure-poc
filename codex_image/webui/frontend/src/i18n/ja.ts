@@ -119,7 +119,7 @@ export const JA_DICTIONARY: TranslationDictionary = {
     "footer.archiveCount": "アーカイブ {count}",
     "footer.historyLibrary": "履歴",
     "historyLibrary.openFull": "履歴ライブラリ全体を開く",
-    "history.documentTitle": "履歴 - iLab GPT CONJURE",
+    "history.documentTitle": "履歴 - Omni Lens",
     "history.back": "ジェネレーターに戻る",
     "history.title": "履歴",
     "history.loading": "読み込み中",

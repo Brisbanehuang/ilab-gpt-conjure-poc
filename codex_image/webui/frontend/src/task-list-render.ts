@@ -800,7 +800,6 @@ function taskHistoryGroups(tasks: any, query: any) {
 
 function historyLibraryGroup(tasks: any[], query: string) {
   if (query) return "";
-  if (!tasks.some((task: any) => !isAlwaysVisibleTask(task))) return "";
   return `
     <a class="task-history-library-card" href="/history">
       <span>${escapeHtml(translate("footer.historyLibrary"))}</span>

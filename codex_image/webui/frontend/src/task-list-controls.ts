@@ -30,6 +30,7 @@ const archiveSelectedTasks = (...args: any[]) => legacyMethod("archiveSelectedTa
 const openBatchDeleteConfirm = (...args: any[]) => legacyMethod("openBatchDeleteConfirm", ...args);
 const handleTaskListPointerDown = (...args: any[]) => legacyMethod("handleTaskListPointerDown", ...args);
 const closeArchiveModal = (...args: any[]) => legacyMethod("closeArchiveModal", ...args);
+const openArchiveModal = (...args: any[]) => legacyMethod("openArchiveModal", ...args);
 
 let taskListControlsInitialized = false;
 let taskListControlEventsBound = false;
@@ -43,6 +44,7 @@ function bindTaskListControlEvents() {
     if (event.target === els.archiveModal) closeArchiveModal();
   });
   els.batchManageButton?.addEventListener("click", () => toggleBatchMode());
+  els.archiveButton?.addEventListener("click", openArchiveModal);
   els.batchArchiveButton?.addEventListener("click", archiveSelectedTasks);
   els.batchDeleteButton?.addEventListener("click", openBatchDeleteConfirm);
   els.batchCancelButton?.addEventListener("click", () => toggleBatchMode(false));

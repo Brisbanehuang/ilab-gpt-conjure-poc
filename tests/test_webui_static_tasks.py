@@ -25,12 +25,29 @@ class WebUIStaticTaskTests(WebUIStaticTestCase):
         self.assertIn("taskHistoryLibrarySlot", render_source)
         self.assertNotIn("olderCount", render_source)
         self.assertIn('href="/history"', render_source)
-        self.assertNotIn('id="archiveButton"', html)
-        self.assertNotIn('data-i18n="footer.historyLibrary"', html)
+        self.assertIn('id="archiveButton"', html)
+        self.assertIn('data-i18n="footer.historyLibrary"', html)
         self.assertIn('id="taskHistoryLibrarySlot"', html)
         self.assertIn('"footer.historyLibrary": "历史库"', i18n_source)
         self.assertIn('"historyLibrary.openFull": "打开完整历史库"', i18n_source)
         self.assertRegex(sidebar_styles, r"\.task-history-library-slot\s*\{[^}]*margin-bottom:\s*12px")
+
+    def test_history_library_entry_is_not_hidden_when_visible_tasks_are_archived(self) -> None:
+        render_source = self._task_list_render_source()
+        html = Path("codex_image/webui/static/index.html").read_text(encoding="utf-8")
+
+        history_group = render_source[
+            render_source.index("function historyLibraryGroup"):
+            render_source.index("function isAlwaysVisibleTask")
+        ]
+        self.assertIn('href="/history"', history_group)
+        self.assertIn('if (query) return "";', history_group)
+        self.assertNotIn("tasks.some", history_group)
+        self.assertNotIn("isAlwaysVisibleTask", history_group)
+        self.assertRegex(
+            html,
+            r'id="batchManageButton"[\s\S]*id="archiveButton"[\s\S]*data-i18n="footer.historyLibrary"',
+        )
 
     def test_history_page_static_contract_exists(self) -> None:
         history_html = Path("codex_image/webui/static/history.html").read_text(encoding="utf-8")
@@ -2054,7 +2071,7 @@ class WebUIStaticTaskTests(WebUIStaticTestCase):
         script = self._frontend_script_source()
         styles = Path("codex_image/webui/static/styles.css").read_text(encoding="utf-8")
 
-        self.assertNotIn('id="archiveButton"', html)
+        self.assertIn('id="archiveButton"', html)
         self.assertIn('id="batchManageButton"', html)
         self.assertIn('id="archiveModal"', html)
         self.assertIn('id="archiveList"', html)
@@ -2070,6 +2087,8 @@ class WebUIStaticTaskTests(WebUIStaticTestCase):
         self.assertIn("migrateLegacyArchivedTasks", script)
         self.assertIn("Boolean(task?.archived_at)", script)
         self.assertIn("batchManageButton: document.querySelector(\"#batchManageButton\")", script)
+        self.assertIn("archiveButton: document.querySelector(\"#archiveButton\")", script)
+        self.assertIn('els.archiveButton?.addEventListener("click", openArchiveModal)', script)
         self.assertIn("openArchiveModal", script)
         self.assertIn("archiveTask", script)
         self.assertIn("restoreArchivedTask", script)

@@ -642,15 +642,15 @@ class WebUIStaticLayoutTests(WebUIStaticTestCase):
         self.assertRegex(styles, r"\.drawer-close-button\s*\{[^}]*min-width:\s*44px")
         self.assertRegex(styles, r"\.drawer-close-button\s*\{[^}]*align-items:\s*center")
         self.assertRegex(styles, r"\.drawer-close-icon\s*\{[^}]*stroke:\s*currentColor")
-    def test_sidebar_brand_uses_ilab_conjure_identity(self) -> None:
+    def test_sidebar_brand_uses_omni_lens_identity(self) -> None:
         html = Path("codex_image/webui/static/index.html").read_text(encoding="utf-8")
         styles = Path("codex_image/webui/static/styles.css").read_text(encoding="utf-8")
 
-        self.assertIn("<title>iLab GPT CONJURE</title>", html)
+        self.assertIn("<title>Omni Lens BYOK Studio</title>", html)
         self.assertIn('<div class="brand-lockup">', html)
-        self.assertIn('<div class="brand-name">iLab GPT</div>', html)
-        self.assertIn('<div class="brand-subtitle">CONJURE</div>', html)
-        self.assertIn('aria-label="iLab GPT CONJURE"', html)
+        self.assertIn('<div class="brand-name">Omni Lens</div>', html)
+        self.assertIn('<div class="brand-subtitle">BYOK STUDIO</div>', html)
+        self.assertIn('aria-label="Omni Lens BYOK Studio"', html)
         self.assertNotIn("GPT-image-2 Studio", html)
 
         self.assertRegex(styles, r"\.brand-mark\s*\{[^}]*width:\s*42px")

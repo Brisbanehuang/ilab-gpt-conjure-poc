@@ -119,7 +119,7 @@ export const ZH_HK_DICTIONARY: TranslationDictionary = {
     "footer.archiveCount": "會話歸檔{count}",
     "footer.historyLibrary": "歷史庫",
     "historyLibrary.openFull": "開啟完整歷史庫",
-    "history.documentTitle": "歷史庫 - iLabGPTCONJURE",
+    "history.documentTitle": "歷史庫 - Omni Lens",
     "history.back": "返回生成頁",
     "history.title": "歷史庫",
     "history.loading": "載入中",
