@@ -29,6 +29,12 @@ def register_settings_routes(app: FastAPI, ctx: WebUIContext) -> None:
             "ok": True,
             "auth_available": auth_available,
             "auth": auth,
+            "omni_poc": {
+                "enabled": bool(getattr(app.state, "omni_poc_config", None) and app.state.omni_poc_config.enabled),
+                "base_url": str(getattr(getattr(app.state, "omni_poc_config", None), "base_url", "")),
+                "image_model": str(getattr(getattr(app.state, "omni_poc_config", None), "image_model", "")),
+                "source_url": str(getattr(getattr(app.state, "omni_poc_config", None), "source_url", "")),
+            },
             "input_root": str(ctx.input_root),
             "output_root": str(ctx.output_root),
             "gallery_root": str(ctx.gallery_root),
