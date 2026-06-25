@@ -36663,7 +36663,7 @@ ${galleryText}`;
   // codex_image/webui/frontend/src/omni-poc-key.ts
   var STORAGE_KEY = "ilab.omniApiKey";
   var enabled = false;
-  var sourceUrl = "https://github.com/brislouise/ilab-gpt-conjure-poc";
+  var sourceUrl = "https://github.com/Brisbanehuang/ilab-gpt-conjure-poc";
   function isOmniPocMode() {
     return enabled || document.documentElement.classList.contains("omni-poc-mode");
   }

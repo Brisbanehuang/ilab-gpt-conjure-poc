@@ -39,7 +39,7 @@ def load_omni_poc_config(output_root: Path, env: Mapping[str, str] | None = None
     image_model = str(payload.get("OMNI_IMAGE_MODEL") or DEFAULT_OMNI_IMAGE_MODEL).strip() or DEFAULT_OMNI_IMAGE_MODEL
     secret_key = str(payload.get("OMNI_POC_SECRET_KEY") or "").strip()
     db_path = Path(payload.get("OMNI_POC_DB_PATH") or (output_root / "source-data" / "omni-poc-secrets.db"))
-    source_url = str(payload.get("OMNI_POC_SOURCE_URL") or "https://github.com/brislouise/ilab-gpt-conjure-poc").strip()
+    source_url = str(payload.get("OMNI_POC_SOURCE_URL") or "https://github.com/Brisbanehuang/ilab-gpt-conjure-poc").strip()
     if enabled and not secret_key:
         raise RuntimeError("OMNI_POC_SECRET_KEY is required when OMNI_POC_MODE is enabled")
     if enabled and base_url != DEFAULT_OMNI_BASE_URL:

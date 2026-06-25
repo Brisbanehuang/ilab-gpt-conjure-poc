@@ -3,7 +3,7 @@ import { getLegacyBridge } from "./state";
 const STORAGE_KEY = "ilab.omniApiKey";
 
 let enabled = false;
-let sourceUrl = "https://github.com/brislouise/ilab-gpt-conjure-poc";
+let sourceUrl = "https://github.com/Brisbanehuang/ilab-gpt-conjure-poc";
 
 export function isOmniPocMode(): boolean {
   return enabled || document.documentElement.classList.contains("omni-poc-mode");
