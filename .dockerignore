@@ -1,0 +1,13 @@
+.git
+.venv
+node_modules
+output
+outputs
+input
+inputs
+data
+.backup
+*.log
+*.tmp
+__pycache__
+*.pyc
