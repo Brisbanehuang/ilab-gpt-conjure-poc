@@ -40,7 +40,7 @@ export function requireOmniApiKeyBeforeSubmit(): void {
   }
 }
 
-function updateLegacyAuthState(): void {
+export function updateOmniLegacyAuthState(): void {
   const bridge = getLegacyBridge();
   bridge.state.authAvailable = true;
   bridge.state.authStatus = {
@@ -54,6 +54,10 @@ function updateLegacyAuthState(): void {
   }
   if (bridge.els.runButton) {
     bridge.els.runButton.disabled = false;
+  }
+  if (bridge.els.authSourceDetail) {
+    bridge.els.authSourceDetail.textContent = "Omni API Key";
+    bridge.els.authSourceDetail.title = "Omni API Key";
   }
 }
 
@@ -91,7 +95,7 @@ function renderKeyControl(): void {
       setOmniApiKey("");
       input.value = "";
       status.textContent = "已清除";
-      updateLegacyAuthState();
+      updateOmniLegacyAuthState();
       return;
     }
     const value = input.value.trim();
@@ -107,7 +111,7 @@ function renderKeyControl(): void {
     });
     if (response.ok) {
       status.textContent = `可用 ${maskOmniApiKey(value)}`;
-      updateLegacyAuthState();
+      updateOmniLegacyAuthState();
     } else {
       const payload = await response.json().catch(() => ({}));
       status.textContent = String(payload.detail || "验证失败");
@@ -124,7 +128,7 @@ export async function initOmniPocKeyControl(): Promise<void> {
     sourceUrl = String(data.omni_poc.source_url || sourceUrl);
     document.documentElement.classList.add("omni-poc-mode");
     renderKeyControl();
-    updateLegacyAuthState();
+    updateOmniLegacyAuthState();
   } catch {
     return;
   }

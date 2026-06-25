@@ -28702,6 +28702,128 @@ ${hint}` : hint;
     updateWebSearchAvailability(authSource);
   }
 
+  // codex_image/webui/frontend/src/omni-poc-key.ts
+  var STORAGE_KEY = "ilab.omniApiKey";
+  var enabled = false;
+  var sourceUrl = "https://github.com/Brisbanehuang/ilab-gpt-conjure-poc";
+  function isOmniPocMode() {
+    return enabled || document.documentElement.classList.contains("omni-poc-mode");
+  }
+  function getOmniApiKey() {
+    return window.localStorage.getItem(STORAGE_KEY)?.trim() || "";
+  }
+  function setOmniApiKey(value) {
+    const clean = value.trim();
+    if (clean) {
+      window.localStorage.setItem(STORAGE_KEY, clean);
+    } else {
+      window.localStorage.removeItem(STORAGE_KEY);
+    }
+  }
+  function maskOmniApiKey(value) {
+    const clean = value.trim();
+    if (!clean) return "";
+    if (clean.length <= 8) return "********";
+    return `${clean.slice(0, 3)}...${clean.slice(-4)}`;
+  }
+  function omniHeaders() {
+    const apiKey = getOmniApiKey();
+    return isOmniPocMode() && apiKey ? { "X-Omni-API-Key": apiKey } : {};
+  }
+  function requireOmniApiKeyBeforeSubmit() {
+    if (isOmniPocMode() && !getOmniApiKey()) {
+      throw new Error("\u8BF7\u5148\u586B\u5199 Omni API Key");
+    }
+  }
+  function updateOmniLegacyAuthState() {
+    const bridge39 = getLegacyBridge();
+    bridge39.state.authAvailable = true;
+    bridge39.state.authStatus = {
+      selected_source: "api",
+      effective_source: "api",
+      auth_available: true,
+      sources: {}
+    };
+    if (bridge39.els.apiStatus) {
+      bridge39.els.apiStatus.className = "status-dot ok";
+    }
+    if (bridge39.els.runButton) {
+      bridge39.els.runButton.disabled = false;
+    }
+    if (bridge39.els.authSourceDetail) {
+      bridge39.els.authSourceDetail.textContent = "Omni API Key";
+      bridge39.els.authSourceDetail.title = "Omni API Key";
+    }
+  }
+  function mountPoint() {
+    const bridge39 = getLegacyBridge();
+    return bridge39.els.authSourceGroup?.parentElement || document.querySelector("header") || document.body;
+  }
+  function renderKeyControl() {
+    if (document.querySelector(".omni-poc-key-control")) return;
+    const root = document.createElement("div");
+    root.className = "omni-poc-key-control";
+    root.innerHTML = `
+    <label class="omni-poc-key-label" for="omni-poc-key-input">Omni API Key</label>
+    <input id="omni-poc-key-input" class="omni-poc-key-input" type="password" autocomplete="off" placeholder="sk-..." />
+    <button class="omni-poc-key-button" type="button" data-action="save">\u4FDD\u5B58</button>
+    <button class="omni-poc-key-button" type="button" data-action="clear">\u6E05\u9664</button>
+    <span class="omni-poc-key-status" aria-live="polite"></span>
+    <span class="omni-poc-key-notice">Key \u4FDD\u5B58\u5728\u672C\u6D4F\u89C8\u5668\uFF0C\u4EC5\u5728\u9A8C\u8BC1\u548C\u63D0\u4EA4\u4EFB\u52A1\u65F6\u53D1\u9001\u5230 POC \u540E\u7AEF\u3002</span>
+    <a class="omni-poc-source-link" href="${sourceUrl}" target="_blank" rel="noreferrer">\u6E90\u7801</a>
+  `;
+    mountPoint().appendChild(root);
+    const input = root.querySelector("#omni-poc-key-input");
+    const status = root.querySelector(".omni-poc-key-status");
+    const current = getOmniApiKey();
+    if (input && current) input.value = current;
+    if (status && current) status.textContent = `\u5DF2\u4FDD\u5B58 ${maskOmniApiKey(current)}`;
+    root.addEventListener("click", async (event) => {
+      const target = event.target;
+      const action = target.dataset.action;
+      if (!action || !input || !status) return;
+      if (action === "clear") {
+        setOmniApiKey("");
+        input.value = "";
+        status.textContent = "\u5DF2\u6E05\u9664";
+        updateOmniLegacyAuthState();
+        return;
+      }
+      const value = input.value.trim();
+      if (!value) {
+        status.textContent = "\u8BF7\u8F93\u5165 Omni API Key";
+        return;
+      }
+      setOmniApiKey(value);
+      status.textContent = "\u9A8C\u8BC1\u4E2D";
+      const response = await fetch("/api/omni/validate", {
+        method: "POST",
+        headers: omniHeaders()
+      });
+      if (response.ok) {
+        status.textContent = `\u53EF\u7528 ${maskOmniApiKey(value)}`;
+        updateOmniLegacyAuthState();
+      } else {
+        const payload2 = await response.json().catch(() => ({}));
+        status.textContent = String(payload2.detail || "\u9A8C\u8BC1\u5931\u8D25");
+      }
+    });
+  }
+  async function initOmniPocKeyControl() {
+    try {
+      const response = await fetch("/api/health");
+      const data = await response.json();
+      if (!data?.omni_poc?.enabled) return;
+      enabled = true;
+      sourceUrl = String(data.omni_poc.source_url || sourceUrl);
+      document.documentElement.classList.add("omni-poc-mode");
+      renderKeyControl();
+      updateOmniLegacyAuthState();
+    } catch {
+      return;
+    }
+  }
+
   // codex_image/webui/frontend/src/auth-source.ts
   var bridge8 = getLegacyBridge();
   var state8 = bridge8.state;
@@ -28735,6 +28857,11 @@ ${hint}` : hint;
     return legacyMethod12("codexModeLabel", mode);
   }
   async function refreshHealth() {
+    if (isOmniPocMode()) {
+      updateOmniLegacyAuthState();
+      updateRequestPreview4();
+      return;
+    }
     try {
       const response = await fetch("/api/health");
       const data = await response.json();
@@ -28790,6 +28917,14 @@ ${hint}` : hint;
     setAuthSource(source);
   }
   function renderAuthSource(auth) {
+    if (isOmniPocMode()) {
+      if (els9.authSourceDetail) {
+        els9.authSourceDetail.textContent = "Omni API Key";
+        els9.authSourceDetail.title = "Omni API Key";
+      }
+      applyAuthSourceSelection("api");
+      return;
+    }
     const selected = state8.pendingAuthSource || auth?.selected_source || "codex";
     applyAuthSourceSelection(selected);
     if (els9.authSourceDetail) {
@@ -28831,6 +28966,7 @@ ${hint}` : hint;
     return translate("auth.notActive");
   }
   function currentAuthSource2() {
+    if (isOmniPocMode()) return "api";
     return state8.pendingAuthSource || state8.authStatus?.selected_source || "codex";
   }
   function isDirectApiMode(authSource = currentAuthSource2()) {
@@ -36660,124 +36796,6 @@ ${galleryText}`;
     });
   }
 
-  // codex_image/webui/frontend/src/omni-poc-key.ts
-  var STORAGE_KEY = "ilab.omniApiKey";
-  var enabled = false;
-  var sourceUrl = "https://github.com/Brisbanehuang/ilab-gpt-conjure-poc";
-  function isOmniPocMode() {
-    return enabled || document.documentElement.classList.contains("omni-poc-mode");
-  }
-  function getOmniApiKey() {
-    return window.localStorage.getItem(STORAGE_KEY)?.trim() || "";
-  }
-  function setOmniApiKey(value) {
-    const clean = value.trim();
-    if (clean) {
-      window.localStorage.setItem(STORAGE_KEY, clean);
-    } else {
-      window.localStorage.removeItem(STORAGE_KEY);
-    }
-  }
-  function maskOmniApiKey(value) {
-    const clean = value.trim();
-    if (!clean) return "";
-    if (clean.length <= 8) return "********";
-    return `${clean.slice(0, 3)}...${clean.slice(-4)}`;
-  }
-  function omniHeaders() {
-    const apiKey = getOmniApiKey();
-    return isOmniPocMode() && apiKey ? { "X-Omni-API-Key": apiKey } : {};
-  }
-  function requireOmniApiKeyBeforeSubmit() {
-    if (isOmniPocMode() && !getOmniApiKey()) {
-      throw new Error("\u8BF7\u5148\u586B\u5199 Omni API Key");
-    }
-  }
-  function updateLegacyAuthState() {
-    const bridge39 = getLegacyBridge();
-    bridge39.state.authAvailable = true;
-    bridge39.state.authStatus = {
-      selected_source: "api",
-      effective_source: "api",
-      auth_available: true,
-      sources: {}
-    };
-    if (bridge39.els.apiStatus) {
-      bridge39.els.apiStatus.className = "status-dot ok";
-    }
-    if (bridge39.els.runButton) {
-      bridge39.els.runButton.disabled = false;
-    }
-  }
-  function mountPoint() {
-    const bridge39 = getLegacyBridge();
-    return bridge39.els.authSourceGroup?.parentElement || document.querySelector("header") || document.body;
-  }
-  function renderKeyControl() {
-    if (document.querySelector(".omni-poc-key-control")) return;
-    const root = document.createElement("div");
-    root.className = "omni-poc-key-control";
-    root.innerHTML = `
-    <label class="omni-poc-key-label" for="omni-poc-key-input">Omni API Key</label>
-    <input id="omni-poc-key-input" class="omni-poc-key-input" type="password" autocomplete="off" placeholder="sk-..." />
-    <button class="omni-poc-key-button" type="button" data-action="save">\u4FDD\u5B58</button>
-    <button class="omni-poc-key-button" type="button" data-action="clear">\u6E05\u9664</button>
-    <span class="omni-poc-key-status" aria-live="polite"></span>
-    <span class="omni-poc-key-notice">Key \u4FDD\u5B58\u5728\u672C\u6D4F\u89C8\u5668\uFF0C\u4EC5\u5728\u9A8C\u8BC1\u548C\u63D0\u4EA4\u4EFB\u52A1\u65F6\u53D1\u9001\u5230 POC \u540E\u7AEF\u3002</span>
-    <a class="omni-poc-source-link" href="${sourceUrl}" target="_blank" rel="noreferrer">\u6E90\u7801</a>
-  `;
-    mountPoint().appendChild(root);
-    const input = root.querySelector("#omni-poc-key-input");
-    const status = root.querySelector(".omni-poc-key-status");
-    const current = getOmniApiKey();
-    if (input && current) input.value = current;
-    if (status && current) status.textContent = `\u5DF2\u4FDD\u5B58 ${maskOmniApiKey(current)}`;
-    root.addEventListener("click", async (event) => {
-      const target = event.target;
-      const action = target.dataset.action;
-      if (!action || !input || !status) return;
-      if (action === "clear") {
-        setOmniApiKey("");
-        input.value = "";
-        status.textContent = "\u5DF2\u6E05\u9664";
-        updateLegacyAuthState();
-        return;
-      }
-      const value = input.value.trim();
-      if (!value) {
-        status.textContent = "\u8BF7\u8F93\u5165 Omni API Key";
-        return;
-      }
-      setOmniApiKey(value);
-      status.textContent = "\u9A8C\u8BC1\u4E2D";
-      const response = await fetch("/api/omni/validate", {
-        method: "POST",
-        headers: omniHeaders()
-      });
-      if (response.ok) {
-        status.textContent = `\u53EF\u7528 ${maskOmniApiKey(value)}`;
-        updateLegacyAuthState();
-      } else {
-        const payload2 = await response.json().catch(() => ({}));
-        status.textContent = String(payload2.detail || "\u9A8C\u8BC1\u5931\u8D25");
-      }
-    });
-  }
-  async function initOmniPocKeyControl() {
-    try {
-      const response = await fetch("/api/health");
-      const data = await response.json();
-      if (!data?.omni_poc?.enabled) return;
-      enabled = true;
-      sourceUrl = String(data.omni_poc.source_url || sourceUrl);
-      document.documentElement.classList.add("omni-poc-mode");
-      renderKeyControl();
-      updateLegacyAuthState();
-    } catch {
-      return;
-    }
-  }
-
   // codex_image/webui/frontend/src/task-submit.ts
   var bridge30 = getLegacyBridge();
   var state24 = bridge30.state;
@@ -37414,7 +37432,9 @@ ${galleryText}`;
       state32.realtimeSnapshotNeedsArchiveMigration = false;
       void refreshQueue();
       void getLegacyBridge().methods.refreshTasks({ migrateLegacyArchives: shouldMigrateArchives });
-      getLegacyBridge().methods.setStatus(translate("queue.realtimeDisconnected"), "error");
+      if (!isOmniPocMode()) {
+        getLegacyBridge().methods.setStatus(translate("queue.realtimeDisconnected"), "error");
+      }
     };
     return true;
   }

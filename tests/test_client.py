@@ -90,6 +90,7 @@ class ClientTests(unittest.TestCase):
         ) -> FakeUrlopenResponse:
             captured["timeout"] = timeout
             captured["context"] = context
+            captured["request"] = request
             return FakeUrlopenResponse()
 
         with patch("codex_image.http.request.urlopen", fake_urlopen):
@@ -104,6 +105,7 @@ class ClientTests(unittest.TestCase):
         self.assertEqual(response.body, b"ok")
         self.assertEqual(captured["timeout"], 12.5)
         self.assertIsNotNone(captured["context"])
+        self.assertEqual(captured["request"].get_header("User-agent"), "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36")
 
     def test_urllib_transport_converts_socket_timeout_to_timeout_error(self) -> None:
         from unittest.mock import patch
@@ -411,6 +413,10 @@ class ClientTests(unittest.TestCase):
         payload = json.loads(request["body"].decode("utf-8"))
         self.assertEqual(request["url"], "https://api.example.com/v1/images/generations")
         self.assertEqual(request["headers"]["Authorization"], "Bearer test-api-key-test-secret")
+        self.assertEqual(
+            request["headers"]["User-Agent"],
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+        )
         self.assertEqual(payload["model"], "gpt-image-2")
         self.assertNotIn("main_model", payload)
         self.assertNotIn("stream", payload)

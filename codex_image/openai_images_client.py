@@ -17,6 +17,12 @@ from .client_types import (
 )
 from .http import Transport, UrllibTransport
 
+OPENAI_COMPATIBLE_USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/126.0.0.0 Safari/537.36"
+)
+
 class OpenAIImagesImageClient:
     def __init__(
         self,
@@ -260,6 +266,7 @@ class OpenAIImagesImageClient:
         return {
             "Content-Type": content_type,
             "Accept": "application/json",
+            "User-Agent": OPENAI_COMPATIBLE_USER_AGENT,
             "Authorization": f"Bearer {self.api_key}",
         }
 
@@ -360,7 +367,7 @@ class OpenAIImagesImageClient:
     def _build_image_download_headers(self, *, include_auth: bool = False) -> dict[str, str]:
         headers = {
             "Accept": "image/*,*/*",
-            "User-Agent": "codex-image-webui/1.0",
+            "User-Agent": OPENAI_COMPATIBLE_USER_AGENT,
         }
         if include_auth:
             headers["Authorization"] = f"Bearer {self.api_key}"

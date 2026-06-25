@@ -5,7 +5,12 @@ import unittest
 
 
 class PortablePackagingTests(unittest.TestCase):
+    def _require_upstream_workflows(self) -> None:
+        if not Path(".github/workflows/ci.yml").exists() or not Path(".github/workflows/release-portable.yml").exists():
+            self.skipTest("POC mirror disables upstream GitHub workflows")
+
     def test_github_workflows_use_node24_compatible_actions(self) -> None:
+        self._require_upstream_workflows()
         workflow_paths = [
             Path(".github/workflows/ci.yml"),
             Path(".github/workflows/release-portable.yml"),
@@ -29,6 +34,7 @@ class PortablePackagingTests(unittest.TestCase):
         self.assertIn("actions/download-artifact@v8", combined)
 
     def test_ci_workflow_avoids_github_unsupported_job_hashfiles_if(self) -> None:
+        self._require_upstream_workflows()
         workflow = Path(".github/workflows/ci.yml")
         self.assertTrue(workflow.exists(), f"{workflow} should exist")
 
@@ -256,6 +262,7 @@ class PortablePackagingTests(unittest.TestCase):
             self.assertIn("webui-auth-settings.json", text)
 
     def test_portable_release_workflow_runs_after_ci_success(self) -> None:
+        self._require_upstream_workflows()
         workflow = Path(".github/workflows/release-portable.yml")
         self.assertTrue(workflow.exists(), f"{workflow} should exist")
 

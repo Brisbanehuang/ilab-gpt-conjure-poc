@@ -1554,6 +1554,7 @@ class WebUIStaticLayoutTests(WebUIStaticTestCase):
         auth_source = Path("codex_image/webui/frontend/src/auth-source.ts").read_text(encoding="utf-8")
         styles = Path("codex_image/webui/static/styles.css").read_text(encoding="utf-8")
 
+        self.assertIn('class="omni-poc-mode"', html)
         self.assertIn('id="authSourceGroup"', html)
         self.assertIn('data-auth-source="codex"', html)
         self.assertIn('data-auth-source="api"', html)
@@ -1631,6 +1632,9 @@ class WebUIStaticLayoutTests(WebUIStaticTestCase):
         self.assertRegex(styles, r"\.auth-source-detail\s*\{[^}]*text-overflow:\s*ellipsis")
         self.assertNotRegex(styles, r"\.auth-source-detail\s*\{[^}]*width:\s*128px")
         self.assertIn("els.authSourceDetail.title = text", script)
+        self.assertIn('if (isOmniPocMode()) return "api";', auth_source)
+        self.assertIn('if (isOmniPocMode()) {', auth_source)
+        self.assertIn('updateOmniLegacyAuthState();', auth_source)
         self.assertIn('function currentApiProviderLabel(): string { return legacyMethod("currentApiProviderLabel"); }', auth_source)
         self.assertNotIn("自动 →", auth_source)
         self.assertIn('return `API · ${provider} · ${mode}`;', auth_source)
@@ -1638,6 +1642,8 @@ class WebUIStaticLayoutTests(WebUIStaticTestCase):
         self.assertIn('formatTranslation("auth.sourceUnavailable", { source: selected })', auth_source)
         self.assertNotIn('return `${effective} · ${mode} · ${imageModel}`', auth_source)
         self.assertRegex(styles, r"\.auth-source-button\.active\s*\{[^}]*background:\s*var\(--primary\)")
+        self.assertNotIn('data-i18n="auth.checking"', html)
+        self.assertNotIn('没有检测到 Codex 登录态', html)
         self.assertNotIn("文档中心", html)
         self.assertNotIn("user-profile", html)
     def test_output_and_auth_switchers_use_sliding_segmented_indicator(self) -> None:

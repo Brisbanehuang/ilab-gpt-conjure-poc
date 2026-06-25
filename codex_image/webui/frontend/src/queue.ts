@@ -1,5 +1,6 @@
 import { getEls } from "./dom";
 import { formatTranslation, LOCALE_CHANGE_EVENT, translate } from "./i18n";
+import { isOmniPocMode } from "./omni-poc-key";
 import { getLegacyBridge, getState } from "./state";
 import type { QueueState, RealtimePayload, WebUITask } from "./types";
 
@@ -61,7 +62,9 @@ export function startRealtimeUpdates({ migrateLegacyArchives = false } = {}): bo
     state.realtimeSnapshotNeedsArchiveMigration = false;
     void refreshQueue();
     void getLegacyBridge().methods.refreshTasks({ migrateLegacyArchives: shouldMigrateArchives });
-    getLegacyBridge().methods.setStatus(translate("queue.realtimeDisconnected"), "error");
+    if (!isOmniPocMode()) {
+      getLegacyBridge().methods.setStatus(translate("queue.realtimeDisconnected"), "error");
+    }
   };
   return true;
 }
