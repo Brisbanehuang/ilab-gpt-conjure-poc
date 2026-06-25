@@ -39,6 +39,7 @@ import { initLightboxFeature } from "./lightbox";
 import { initializeQueueFeature } from "./queue";
 import { initSegmentedIndicatorFeature } from "./segmented-indicator";
 import { initI18nFeature } from "./i18n";
+import { initOmniPocKeyControl } from "./omni-poc-key";
 
 initInputSourcesFeature();
 initImageEditorFeature();
@@ -81,3 +82,4 @@ initLightboxFeature();
 initializeQueueFeature();
 initSegmentedIndicatorFeature();
 window.__codexImageWebUI?.boot();
+void initOmniPocKeyControl();

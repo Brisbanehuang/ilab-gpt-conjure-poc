@@ -2653,9 +2653,84 @@ svg.button-icon {
     transition: none;
   }
 
-  .ratio-group .radio-btn {
+.ratio-group .radio-btn {
     transform: none;
   }
+}
+
+.omni-poc-mode #authSourceGroup,
+.omni-poc-mode #authSourceDetail,
+.omni-poc-mode #apiSourceSettingsButton,
+.omni-poc-mode #apiDirectSettingsButton,
+.omni-poc-mode #systemSettingsApiTab,
+.omni-poc-mode #systemSettingsCodexTab,
+.omni-poc-mode #systemSettingsApiPanel,
+.omni-poc-mode #systemSettingsCodexPanel,
+.omni-poc-mode .api-provider-section,
+.omni-poc-mode .api-direct-settings-control {
+  display: none !important;
+}
+
+.omni-poc-key-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 4px 8px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.omni-poc-key-label {
+  font-size: 12px;
+  color: #334155;
+}
+
+.omni-poc-key-input {
+  width: 220px;
+  max-width: 32vw;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid rgba(15, 23, 42, 0.16);
+  border-radius: 6px;
+}
+
+.omni-poc-key-button {
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid rgba(15, 23, 42, 0.16);
+  border-radius: 6px;
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.omni-poc-key-status {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: #475569;
+}
+
+.omni-poc-key-notice {
+  max-width: 360px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  color: #64748b;
+}
+
+.omni-poc-source-link {
+  font-size: 12px;
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.omni-poc-source-link:hover {
+  text-decoration: underline;
 }
 
 /* source: styles/50-image-input-gallery.css */

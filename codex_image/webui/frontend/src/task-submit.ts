@@ -1,5 +1,6 @@
 import { getLegacyBridge } from "./state";
 import { translate } from "./i18n";
+import { omniHeaders, requireOmniApiKeyBeforeSubmit } from "./omni-poc-key";
 
 const bridge = getLegacyBridge();
 const state = bridge.state;
@@ -294,6 +295,12 @@ async function runTask() {
     setStatus(customSizeError, "error");
     return;
   }
+  try {
+    requireOmniApiKeyBeforeSubmit();
+  } catch (error) {
+    setStatus(errorMessage(error, "请先填写 Omni API Key"), "error");
+    return;
+  }
 
   const form = new FormData();
   form.append("prompt", prompt);
@@ -342,6 +349,7 @@ async function runTask() {
   try {
     const response = await fetch(state.mode === "edit" ? "/api/edit" : "/api/generate", {
       method: "POST",
+      headers: omniHeaders(),
       body: form,
       signal: controller.signal,
     });
