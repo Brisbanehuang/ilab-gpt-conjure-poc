@@ -137,3 +137,28 @@ class OmniPOCGenerationTests(TempDirMixin, TestCase):
         self.assertEqual(metadata["params"]["api_mode"], "images")
         self.assertEqual(app.state.ctx.route_helpers["omni_task_secret_store"].get_task_key(task_id), "sk-task-secret")
         self.assertNotIn("sk-task-secret", str(metadata))
+
+
+class OmniPOCQueueRuntimeTests(TempDirMixin, TestCase):
+    def test_queue_client_uses_task_secret(self) -> None:
+        from codex_image.webui.queue import QueueChannel
+        from codex_image.webui.queue_runtime import _client_for_queue_channel
+
+        app, _ = OmniPOCGenerationTests.create_poc_app(self)
+        ctx = app.state.ctx
+        ctx.route_helpers["omni_task_secret_store"].put_task_key("task-1", "sk-task")
+
+        client = _client_for_queue_channel(
+            ctx,
+            QueueChannel(channel_id="api:default:1", auth_source="api", account_id=None),
+            {"task_id": "task-1", "params": {"omni_poc": True}},
+        )
+
+        self.assertEqual(client.api_key, "sk-task")
+        self.assertEqual(client.base_url, "http://127.0.0.1:8080/v1")
+
+    def test_poc_mode_starts_api_queue_channels(self) -> None:
+        app, _ = OmniPOCGenerationTests.create_poc_app(self)
+        channels = app.state.ctx.queue_manager.channels
+        self.assertTrue(channels)
+        self.assertTrue(all(channel.auth_source == "api" for channel in channels))

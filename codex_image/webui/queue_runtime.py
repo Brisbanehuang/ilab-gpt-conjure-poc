@@ -26,6 +26,7 @@ from .executor import (
     _is_usage_limit_error,
     _task_cancel_requested,
 )
+from .omni_poc import client_for_task
 from .queue import NonRetryableTaskError, QueueChannel, QueueManager
 from .storage import utc_now
 
@@ -107,9 +108,16 @@ def _queue_channel_available(ctx: WebUIContext, channel: QueueChannel) -> bool:
 def _client_for_queue_channel(ctx: WebUIContext, channel: QueueChannel, metadata: dict[str, Any] | None = None, *, client_factory_overridden: bool = False) -> Any:
     if client_factory_overridden:
         return ctx.client_factory()
+    params = metadata.get("params") if isinstance(metadata, dict) and isinstance(metadata.get("params"), dict) else {}
+    if bool(params.get("omni_poc")):
+        config = ctx.route_helpers.get("omni_poc_config")
+        store = ctx.route_helpers.get("omni_task_secret_store")
+        task_id = str((metadata or {}).get("task_id") or "")
+        if config is None or store is None or not getattr(config, "enabled", False):
+            raise RuntimeError("Omni POC is not configured")
+        return client_for_task(config, store, task_id)
     if channel.auth_source == "api":
         settings_payload = ctx.api_settings.read()
-        params = metadata.get("params") if isinstance(metadata, dict) and isinstance(metadata.get("params"), dict) else {}
         provider_settings = ctx.api_settings.provider_settings(str(params.get("api_provider_id") or settings_payload.get("active_provider_id") or ""))
         api_mode = _normalize_api_mode(params.get("api_mode") or provider_settings.get("api_mode"))
         return _api_client_from_settings(provider_settings, api_mode=api_mode)
@@ -205,6 +213,15 @@ async def execute_task(
     finally:
         if ctx.running_worker_tasks.get(task_id) is current_task:
             ctx.running_worker_tasks.pop(task_id, None)
+        try:
+            metadata_for_cleanup = ctx.storage.read_metadata(task_id)
+            params_for_cleanup = metadata_for_cleanup.get("params") if isinstance(metadata_for_cleanup.get("params"), dict) else {}
+            if bool(params_for_cleanup.get("omni_poc")):
+                store = ctx.route_helpers.get("omni_task_secret_store")
+                if store is not None:
+                    store.clear_task_key(task_id)
+        except FileNotFoundError:
+            pass
         ctx.active_task_ids.discard(task_id)
 
 
@@ -229,7 +246,9 @@ def install_queue_runtime(
         batch_delay_seconds=batch_delay_seconds,
         client_factory_overridden=client_factory_overridden,
     )
-    initial_channels = _queue_channels_for_source(ctx.auth_settings.read_source(), api_settings=ctx.api_settings)
+    omni_config = ctx.route_helpers.get("omni_poc_config")
+    initial_source = "api" if omni_config is not None and getattr(omni_config, "enabled", False) else ctx.auth_settings.read_source()
+    initial_channels = _queue_channels_for_source(initial_source, api_settings=ctx.api_settings)
     ctx.queue_manager = QueueManager(
         queue_storage=ctx.queue_storage,
         channels=initial_channels,
