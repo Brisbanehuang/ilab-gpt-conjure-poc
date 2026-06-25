@@ -162,3 +162,11 @@ class OmniPOCQueueRuntimeTests(TempDirMixin, TestCase):
         channels = app.state.ctx.queue_manager.channels
         self.assertTrue(channels)
         self.assertTrue(all(channel.auth_source == "api" for channel in channels))
+
+
+class OmniPOCValidationEndpointTests(TempDirMixin, TestCase):
+    def test_validate_requires_header(self) -> None:
+        app, _ = OmniPOCGenerationTests.create_poc_app(self)
+        response = TestClient(app).post("/api/omni/validate")
+        self.assertEqual(response.status_code, 401)
+        self.assertIn("Omni API Key", response.json()["detail"])
