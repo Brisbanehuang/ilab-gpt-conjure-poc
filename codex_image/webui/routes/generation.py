@@ -16,6 +16,7 @@ from codex_image.webui.executor import (
     _resolve_gallery_refs,
     _resolve_reference_assets,
 )
+from codex_image.webui.omni_poc_limits import validate_upload_limits
 from codex_image.webui.prompt_ratio import append_ratio_prompt_instruction
 from codex_image.webui.storage import utc_now
 from codex_image.webui.task_metadata import _dedupe_preserve_order, _params, _with_file_urls, _write_queued_metadata
@@ -33,6 +34,13 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
         api_key = str(request.headers.get("x-omni-api-key") or "").strip()
         if not api_key:
             raise HTTPException(status_code=401, detail="Omni API Key is required")
+        limiter = h.get("omni_submit_limiter")
+        client_ip = request.headers.get("cf-connecting-ip") or (request.client.host if request.client else "unknown")
+        if limiter is not None and not limiter.allow(str(client_ip)):
+            raise HTTPException(status_code=429, detail="提交过于频繁，请稍后再试")
+        queue_state = ctx.queue_storage.read_state()
+        if len(queue_state.get("waiting", [])) >= 100:
+            raise HTTPException(status_code=429, detail="当前排队任务过多，请稍后再试")
         return api_key
 
     def omni_auth_values(omni_api_key: str | None, api_provider_id: str | None, api_mode: str | None, codex_mode: str | None) -> tuple[str, str | None, str | None, str | None, str | None, int]:
@@ -81,6 +89,11 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
         reference_images: list[UploadFile] | None = File(None),
     ) -> dict[str, Any]:
         omni_api_key = omni_poc_key_from_request(request)
+        if omni_api_key is not None:
+            try:
+                validate_upload_limits(reference_images or [], max_files=4, max_bytes_each=8 * 1024 * 1024)
+            except ValueError as exc:
+                raise HTTPException(status_code=400, detail=str(exc)) from exc
         if omni_api_key is None and not ctx.auth_checker():
             raise HTTPException(status_code=401, detail="Codex auth is not available")
 
@@ -233,6 +246,14 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
         mask: UploadFile | None = File(None),
     ) -> dict[str, Any]:
         omni_api_key = omni_poc_key_from_request(request)
+        if omni_api_key is not None:
+            upload_items = list(images or [])
+            if mask is not None:
+                upload_items.append(mask)
+            try:
+                validate_upload_limits(upload_items, max_files=5, max_bytes_each=8 * 1024 * 1024)
+            except ValueError as exc:
+                raise HTTPException(status_code=400, detail=str(exc)) from exc
         if omni_api_key is None and not ctx.auth_checker():
             raise HTTPException(status_code=401, detail="Codex auth is not available")
 

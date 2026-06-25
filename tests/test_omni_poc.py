@@ -170,3 +170,26 @@ class OmniPOCValidationEndpointTests(TempDirMixin, TestCase):
         response = TestClient(app).post("/api/omni/validate")
         self.assertEqual(response.status_code, 401)
         self.assertIn("Omni API Key", response.json()["detail"])
+
+
+class OmniPOCLimitTests(TestCase):
+    def test_rate_limiter_rejects_after_limit(self) -> None:
+        from codex_image.webui.omni_poc_limits import FixedWindowRateLimiter
+
+        limiter = FixedWindowRateLimiter(limit=2, window_seconds=60)
+        self.assertTrue(limiter.allow("127.0.0.1"))
+        self.assertTrue(limiter.allow("127.0.0.1"))
+        self.assertFalse(limiter.allow("127.0.0.1"))
+
+    def test_upload_limits_count_and_size(self) -> None:
+        from codex_image.webui.omni_poc_limits import validate_upload_limits
+
+        files = [
+            Mock(size=1024, filename="a.png"),
+            Mock(size=1024, filename="b.png"),
+        ]
+        validate_upload_limits(files, max_files=2, max_bytes_each=2048)
+        with self.assertRaises(ValueError):
+            validate_upload_limits(files, max_files=1, max_bytes_each=2048)
+        with self.assertRaises(ValueError):
+            validate_upload_limits(files, max_files=2, max_bytes_each=512)

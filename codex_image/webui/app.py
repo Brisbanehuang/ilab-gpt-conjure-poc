@@ -115,6 +115,7 @@ from .settings_store import (
 from .context import WebUIContext
 from .events import event_key, event_snapshot, queue_snapshot, queued_or_running_task_ids, sse_message, task_event
 from .omni_poc import OmniTaskSecretStore, load_omni_poc_config
+from .omni_poc_limits import FixedWindowRateLimiter
 from .routes import register_webui_routes
 from .executor import (
     _call_image_client,
@@ -243,6 +244,7 @@ def create_app(
     app = FastAPI(title="iLab GPT CONJURE", lifespan=queue_lifespan)
     app.state.omni_poc_config = omni_poc_config
     app.state.omni_task_secret_store = omni_task_secret_store
+    app.state.omni_submit_limiter = FixedWindowRateLimiter(limit=20, window_seconds=3600)
     ctx = WebUIContext(
         app=app,
         storage=storage,
@@ -267,6 +269,7 @@ def create_app(
     ctx.install_on_app_state()
     ctx.route_helpers["omni_poc_config"] = omni_poc_config
     ctx.route_helpers["omni_task_secret_store"] = omni_task_secret_store
+    ctx.route_helpers["omni_submit_limiter"] = app.state.omni_submit_limiter
 
     queue_runtime = install_queue_runtime(
         ctx,
