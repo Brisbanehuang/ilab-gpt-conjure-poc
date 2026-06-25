@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 
 from codex_image.client import DEFAULT_MAIN_MODEL, image_model_supports_input_fidelity
 from codex_image.webui.context import WebUIContext
@@ -26,8 +26,37 @@ DEFAULT_PROMPT_FIDELITY = "strict"
 def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
     h = ctx.route_helpers
 
+    def omni_poc_key_from_request(request: Request) -> str | None:
+        config = h.get("omni_poc_config")
+        if not config or not getattr(config, "enabled", False):
+            return None
+        api_key = str(request.headers.get("x-omni-api-key") or "").strip()
+        if not api_key:
+            raise HTTPException(status_code=401, detail="Omni API Key is required")
+        return api_key
+
+    def omni_auth_values(omni_api_key: str | None, api_provider_id: str | None, api_mode: str | None, codex_mode: str | None) -> tuple[str, str | None, str | None, str | None, str | None, int]:
+        if omni_api_key is not None:
+            return "api", "omni-poc", "Omni BYOK", "images", None, 1
+        auth_source = ctx.auth_settings.read_source() if not h["client_factory_overridden"] else "codex"
+        effective_api_provider_id = h["request_api_provider_id"](auth_source, api_provider_id)
+        effective_api_provider_name = h["request_api_provider_name"](auth_source, effective_api_provider_id)
+        effective_api_mode = h["request_api_mode"](auth_source, api_mode, effective_api_provider_id)
+        effective_codex_mode = h["request_codex_mode"](auth_source, codex_mode)
+        effective_api_images_concurrency = h["request_api_images_concurrency"](auth_source, effective_api_provider_id)
+        return auth_source, effective_api_provider_id, effective_api_provider_name, effective_api_mode, effective_codex_mode, effective_api_images_concurrency
+
+    def put_omni_task_key(task_id: str, omni_api_key: str | None) -> None:
+        if omni_api_key is None:
+            return
+        store = h.get("omni_task_secret_store")
+        if store is None:
+            raise HTTPException(status_code=500, detail="Omni POC secret store is not configured")
+        store.put_task_key(task_id, omni_api_key)
+
     @app.post("/api/generate")
     async def generate(
+        request: Request,
         prompt: str = Form(...),
         main_model: str = Form(DEFAULT_MAIN_MODEL),
         model: str = Form("gpt-image-2"),
@@ -51,7 +80,8 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
         reference_asset_ids: list[str] | None = Form(None),
         reference_images: list[UploadFile] | None = File(None),
     ) -> dict[str, Any]:
-        if not ctx.auth_checker():
+        omni_api_key = omni_poc_key_from_request(request)
+        if omni_api_key is None and not ctx.auth_checker():
             raise HTTPException(status_code=401, detail="Codex auth is not available")
 
         gallery_refs, gallery_data_urls = _resolve_gallery_refs(ctx.gallery_storage, gallery_image_ids or [])
@@ -70,12 +100,14 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
         fidelity = _normalize_prompt_fidelity(prompt_fidelity)
         model_prompt = append_ratio_prompt_instruction(h["model_prompt_for_fidelity"](prompt, prompt_for_model, fidelity), ratio)
         prompt_constraints, guard_instructions = h["prompt_guard_context"](prompt, fidelity)
-        auth_source = ctx.auth_settings.read_source() if not h["client_factory_overridden"] else "codex"
-        effective_api_provider_id = h["request_api_provider_id"](auth_source, api_provider_id)
-        effective_api_provider_name = h["request_api_provider_name"](auth_source, effective_api_provider_id)
-        effective_api_mode = h["request_api_mode"](auth_source, api_mode, effective_api_provider_id)
-        effective_codex_mode = h["request_codex_mode"](auth_source, codex_mode)
-        effective_api_images_concurrency = h["request_api_images_concurrency"](auth_source, effective_api_provider_id)
+        (
+            auth_source,
+            effective_api_provider_id,
+            effective_api_provider_name,
+            effective_api_mode,
+            effective_codex_mode,
+            effective_api_images_concurrency,
+        ) = omni_auth_values(omni_api_key, api_provider_id, api_mode, codex_mode)
         requested_backend = h["backend_for_submit"](auth_source, effective_api_mode, effective_codex_mode)
         transport_mode = effective_api_mode or effective_codex_mode
         web_search_enabled = bool(web_search) and requested_backend.endswith("_responses")
@@ -146,6 +178,8 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
             params["api_provider_name"] = effective_api_provider_name
         if auth_source == "api" and effective_api_mode == "images":
             params["api_images_concurrency"] = effective_api_images_concurrency
+        if omni_api_key is not None:
+            params["omni_poc"] = True
         metadata = _write_queued_metadata(
             ctx.storage,
             task.task_id,
@@ -162,6 +196,7 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
             requested_backend=requested_backend,
             max_attempts=ctx.queue_manager.max_attempts if ctx.queue_manager is not None else 1,
         )
+        put_omni_task_key(task.task_id, omni_api_key)
         ctx.queue_storage.enqueue(task.task_id)
         h["ensure_queue_worker_running"]()
         return {
@@ -171,6 +206,7 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
 
     @app.post("/api/edit")
     async def edit(
+        request: Request,
         prompt: str = Form(...),
         main_model: str = Form(DEFAULT_MAIN_MODEL),
         model: str = Form("gpt-image-2"),
@@ -196,7 +232,8 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
         images: list[UploadFile] | None = File(None),
         mask: UploadFile | None = File(None),
     ) -> dict[str, Any]:
-        if not ctx.auth_checker():
+        omni_api_key = omni_poc_key_from_request(request)
+        if omni_api_key is None and not ctx.auth_checker():
             raise HTTPException(status_code=401, detail="Codex auth is not available")
 
         if not images and not _dedupe_preserve_order(gallery_image_ids or []) and not _dedupe_preserve_order(reference_asset_ids or []):
@@ -222,12 +259,14 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
         model_prompt = append_ratio_prompt_instruction(h["model_prompt_for_fidelity"](prompt, prompt_for_model, fidelity), ratio)
         prompt_constraints, guard_instructions = h["prompt_guard_context"](prompt, fidelity)
         effective_input_fidelity = input_fidelity if image_model_supports_input_fidelity(model) else None
-        auth_source = ctx.auth_settings.read_source() if not h["client_factory_overridden"] else "codex"
-        effective_api_provider_id = h["request_api_provider_id"](auth_source, api_provider_id)
-        effective_api_provider_name = h["request_api_provider_name"](auth_source, effective_api_provider_id)
-        effective_api_mode = h["request_api_mode"](auth_source, api_mode, effective_api_provider_id)
-        effective_codex_mode = h["request_codex_mode"](auth_source, codex_mode)
-        effective_api_images_concurrency = h["request_api_images_concurrency"](auth_source, effective_api_provider_id)
+        (
+            auth_source,
+            effective_api_provider_id,
+            effective_api_provider_name,
+            effective_api_mode,
+            effective_codex_mode,
+            effective_api_images_concurrency,
+        ) = omni_auth_values(omni_api_key, api_provider_id, api_mode, codex_mode)
         requested_backend = h["backend_for_submit"](auth_source, effective_api_mode, effective_codex_mode)
         transport_mode = effective_api_mode or effective_codex_mode
         web_search_enabled = bool(web_search) and requested_backend.endswith("_responses")
@@ -306,6 +345,8 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
             params["api_provider_name"] = effective_api_provider_name
         if auth_source == "api" and effective_api_mode == "images":
             params["api_images_concurrency"] = effective_api_images_concurrency
+        if omni_api_key is not None:
+            params["omni_poc"] = True
         metadata = _write_queued_metadata(
             ctx.storage,
             task.task_id,
@@ -322,6 +363,7 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
             requested_backend=requested_backend,
             max_attempts=ctx.queue_manager.max_attempts if ctx.queue_manager is not None else 1,
         )
+        put_omni_task_key(task.task_id, omni_api_key)
         ctx.queue_storage.enqueue(task.task_id)
         h["ensure_queue_worker_running"]()
         return {

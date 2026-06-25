@@ -95,3 +95,45 @@ class OmniPOCRouteTests(TempDirMixin, TestCase):
         self.assertEqual(payload["omni_poc"]["base_url"], "http://127.0.0.1:8080/v1")
         self.assertEqual(payload["omni_poc"]["image_model"], "gpt-image-2")
         self.assertEqual(payload["omni_poc"]["source_url"], "https://example.test/source")
+
+
+class OmniPOCGenerationTests(TempDirMixin, TestCase):
+    def create_poc_app(self) -> tuple[object, Path]:
+        tmp = Path(self.create_temp_dir())
+        old = os.environ.copy()
+        os.environ.update(
+            {
+                "OMNI_POC_MODE": "1",
+                "OMNI_POC_SECRET_KEY": Fernet.generate_key().decode("ascii"),
+                "OMNI_BASE_URL": "http://127.0.0.1:8080/v1",
+                "OMNI_POC_DB_PATH": str(tmp / "omni-poc.db"),
+            }
+        )
+        self.addCleanup(lambda: os.environ.clear() or os.environ.update(old))
+        return create_app(output_root=tmp / "output", auto_start_queue=False), tmp
+
+    def test_generate_requires_omni_key_in_poc_mode(self) -> None:
+        app, _ = self.create_poc_app()
+        response = TestClient(app).post(
+            "/api/generate",
+            data={"prompt": "test image", "model": "gpt-image-2"},
+        )
+        self.assertEqual(response.status_code, 401)
+        self.assertIn("Omni API Key", response.json()["detail"])
+
+    def test_generate_stores_task_scoped_omni_key_without_metadata_leak(self) -> None:
+        app, _ = self.create_poc_app()
+        response = TestClient(app).post(
+            "/api/generate",
+            headers={"X-Omni-API-Key": "sk-task-secret"},
+            data={"prompt": "test image", "model": "gpt-image-2"},
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        task_id = payload["task"]["task_id"]
+        metadata = app.state.ctx.storage.read_metadata(task_id)
+        self.assertEqual(metadata["params"]["omni_poc"], True)
+        self.assertEqual(metadata["params"]["api_provider_id"], "omni-poc")
+        self.assertEqual(metadata["params"]["api_mode"], "images")
+        self.assertEqual(app.state.ctx.route_helpers["omni_task_secret_store"].get_task_key(task_id), "sk-task-secret")
+        self.assertNotIn("sk-task-secret", str(metadata))
