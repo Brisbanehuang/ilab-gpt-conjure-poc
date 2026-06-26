@@ -119,7 +119,7 @@ export const PT_DICTIONARY: TranslationDictionary = {
     "footer.archiveCount": "Arquivo {count}",
     "footer.historyLibrary": "História",
     "historyLibrary.openFull": "Abra a biblioteca de histórico completa",
-    "history.documentTitle": "História - Omni Lens",
+    "history.documentTitle": "História - OmniAPi Image Studio",
     "history.back": "Voltar ao gerador",
     "history.title": "História",
     "history.loading": "Carregando",

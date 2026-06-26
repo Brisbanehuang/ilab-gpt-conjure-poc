@@ -119,7 +119,7 @@ export const RU_DICTIONARY: TranslationDictionary = {
     "footer.archiveCount": "Архив {count}",
     "footer.historyLibrary": "История",
     "historyLibrary.openFull": "Открыть полную библиотеку истории",
-    "history.documentTitle": "История - Omni Lens",
+    "history.documentTitle": "История - OmniAPi Image Studio",
     "history.back": "Вернуться к генератору",
     "history.title": "История",
     "history.loading": "Загрузка",

@@ -85,6 +85,7 @@ class WebUIStaticI18nTests(WebUIStaticTestCase):
         ):
             self.assertNotIn(forbidden, public_sources)
         self.assertNotIn("Responses API", all_dictionaries)
+        self.assertNotIn("Omni Lens", all_dictionaries)
         self.assertIn('"auth.checking": "正在读取登录状态"', public_sources)
         self.assertIn('"auth.missingCodexSession": "请先从 Omni 主站登录"', public_sources)
         self.assertIn('"apiSettings.responses": "联网搜索通道"', public_sources)

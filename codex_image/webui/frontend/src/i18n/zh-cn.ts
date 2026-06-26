@@ -119,7 +119,7 @@ export const ZH_CN_DICTIONARY: TranslationDictionary = {
     "footer.archiveCount": "会话归档 {count}",
     "footer.historyLibrary": "历史库",
     "historyLibrary.openFull": "打开完整历史库",
-    "history.documentTitle": "历史库 - Omni Lens",
+    "history.documentTitle": "历史库 - OmniAPi Image Studio",
     "history.back": "返回生成页",
     "history.title": "历史库",
     "history.loading": "载入中",

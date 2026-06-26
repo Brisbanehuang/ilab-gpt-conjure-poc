@@ -53,26 +53,27 @@ body.sidebar-resizing {
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  min-height: 44px;
+  min-height: 52px;
   margin-bottom: 18px;
   padding: 0 3px;
 }
 
 .brand-lockup {
   min-width: 0;
+  min-height: 52px;
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
 .brand-mark {
-  width: 42px;
-  height: 42px;
-  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
   background:
     radial-gradient(circle at 58% 48%, rgba(247, 213, 157, 0.42) 0 10%, transparent 11%),
     linear-gradient(145deg, #2f604f 0%, #4d8b72 66%, #b89155 100%);
-  border-radius: 15px;
+  border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -84,6 +85,7 @@ body.sidebar-resizing {
   min-width: 0;
   display: grid;
   gap: 2px;
+  line-height: 1.05;
 }
 
 .brand-name {
@@ -97,11 +99,11 @@ body.sidebar-resizing {
 
 .brand-subtitle {
   color: var(--muted);
-  font-size: 11px;
-  line-height: 1.12;
+  font-size: 13px;
+  line-height: 1.05;
   font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  letter-spacing: 0;
+  text-transform: none;
   white-space: nowrap;
 }
 

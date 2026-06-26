@@ -119,7 +119,7 @@ export const DE_DICTIONARY: TranslationDictionary = {
     "footer.archiveCount": "Archiv {count}",
     "footer.historyLibrary": "Geschichte",
     "historyLibrary.openFull": "Öffnen Sie die vollständige Geschichtsbibliothek",
-    "history.documentTitle": "Geschichte – Omni Lens",
+    "history.documentTitle": "Geschichte – OmniAPi Image Studio",
     "history.back": "Zurück zum Generator",
     "history.title": "Geschichte",
     "history.loading": "Laden",

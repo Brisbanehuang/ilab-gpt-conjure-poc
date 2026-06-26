@@ -217,6 +217,7 @@
 .history-brand {
   display: grid;
   gap: 4px;
+  min-width: 0;
 }
 
 .history-brand strong,
@@ -225,6 +226,8 @@
   margin: 0;
   color: var(--text);
   font-size: 18px;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
 }
 
 .history-brand span,

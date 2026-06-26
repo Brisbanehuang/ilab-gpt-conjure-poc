@@ -119,7 +119,7 @@ export const KO_DICTIONARY: TranslationDictionary = {
     "footer.archiveCount": "보관함 {count}",
     "footer.historyLibrary": "기록",
     "historyLibrary.openFull": "전체 기록 라이브러리 열기",
-    "history.documentTitle": "기록 - Omni Lens",
+    "history.documentTitle": "기록 - OmniAPi Image Studio",
     "history.back": "생성기로 돌아가기",
     "history.title": "기록",
     "history.loading": "로드 중",

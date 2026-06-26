@@ -119,7 +119,7 @@ export const HI_DICTIONARY: TranslationDictionary = {
     "footer.archiveCount": "संग्रह {count}",
     "footer.historyLibrary": "इतिहास",
     "historyLibrary.openFull": "पूर्ण इतिहास पुस्तकालय खोलें",
-    "history.documentTitle": "इतिहास - आईलैब जीपीटी कंज्यूर",
+    "history.documentTitle": "इतिहास - OmniAPi Image Studio",
     "history.back": "जेनरेटर को लौटें",
     "history.title": "इतिहास",
     "history.loading": "लोड हो रहा है",

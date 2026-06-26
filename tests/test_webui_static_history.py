@@ -25,6 +25,10 @@ class WebUIStaticHistoryTests(unittest.TestCase):
         html = Path("codex_image/webui/static/history.html").read_text(encoding="utf-8")
         styles = Path("codex_image/webui/static/styles/90-history.css").read_text(encoding="utf-8")
 
+        self.assertIn("<title>历史库 - OmniAPi Image Studio</title>", html)
+        self.assertIn("<strong>OmniAPi Image Studio</strong>", html)
+        self.assertNotIn("Omni Lens", html)
+        self.assertNotIn("BYOK STUDIO", html)
         self.assertIn('class="history-page"', html)
         self.assertIn('id="historyDetailClose"', html)
         self.assertIn('data-history-resizer="left"', html)
@@ -99,6 +103,8 @@ class WebUIStaticHistoryTests(unittest.TestCase):
         self.assertRegex(styles, r"\.history-filter-button\s*\{[^}]*min-height:\s*40px")
         self.assertRegex(styles, r"\.history-filter-heading-icon,\s*\.history-filter-icon\s*\{[^}]*stroke:\s*currentColor")
         self.assertRegex(styles, r"\.history-filter-button\[data-history-filter-key=\"orientation\"\]\s*\{[^}]*padding-left:\s*10px")
+        self.assertRegex(styles, r"\.history-brand\s*\{[^}]*min-width:\s*0")
+        self.assertRegex(styles, r"\.history-brand strong,\s*\.history-toolbar h1\s*\{[^}]*overflow-wrap:\s*anywhere")
 
     def test_history_page_feature_contracts_are_complete(self) -> None:
         html = Path("codex_image/webui/static/history.html").read_text(encoding="utf-8")
@@ -406,7 +412,7 @@ class WebUIStaticHistoryTests(unittest.TestCase):
 
         for marker in [
             'data-i18n="history.back"',
-            'data-i18n="history.title"',
+            "<strong>OmniAPi Image Studio</strong>",
             'data-i18n-attr="placeholder:history.searchPlaceholder"',
             'data-i18n="history.promptMode"',
             'data-i18n="history.quality"',
