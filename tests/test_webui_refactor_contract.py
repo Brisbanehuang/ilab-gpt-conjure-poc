@@ -356,6 +356,7 @@ class WebUIRefactorContractTests(unittest.TestCase):
                 ("/api/tasks/{task_id}/outputs.zip", "GET"),
                 ("/api/tasks/{task_id}/reveal-output", "POST"),
                 ("/api/tasks/{task_id}/inputs/{input_index}/thumbnail", "GET"),
+                ("/api/tasks/{task_id}/outputs/{output_index}", "GET"),
                 ("/api/tasks/{task_id}/outputs/{output_index}/thumbnail", "GET"),
                 ("/api/tasks/{task_id}/outputs/{output_index}/selected", "PATCH"),
                 ("/api/tasks/{task_id}/outputs/delete-unselected", "POST"),
