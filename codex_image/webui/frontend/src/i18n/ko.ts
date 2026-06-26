@@ -759,7 +759,7 @@ export const KO_DICTIONARY: TranslationDictionary = {
     "apiSettings.moveProviderDownAria": "{provider}아래로 이동",
     "apiSettings.mode": "호출 방식",
     "apiSettings.images": "Image API 직접 연결",
-    "apiSettings.responses": "Responses API",
+    "apiSettings.responses": "Search channel",
     "apiSettings.modeImagesShort": "직접 연결",
     "apiSettings.imageModel": "이미지 도구 모델",
     "apiSettings.concurrency": "공급자 전체 동시 실행 한도",

@@ -759,7 +759,7 @@ export const PT_DICTIONARY: TranslationDictionary = {
     "apiSettings.moveProviderDownAria": "Mova {provider} para baixo",
     "apiSettings.mode": "Modo de solicitação",
     "apiSettings.images": "Imagem Direta API",
-    "apiSettings.responses": "Responses API",
+    "apiSettings.responses": "Search channel",
     "apiSettings.modeImagesShort": "Direto",
     "apiSettings.imageModel": "Modelo de imagem",
     "apiSettings.concurrency": "Limite de simultaneidade do provedor",

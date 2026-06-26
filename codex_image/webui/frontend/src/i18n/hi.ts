@@ -759,7 +759,7 @@ export const HI_DICTIONARY: TranslationDictionary = {
     "apiSettings.moveProviderDownAria": "{provider} को नीचे ले जाएँ",
     "apiSettings.mode": "अनुरोध मोड",
     "apiSettings.images": "प्रत्यक्ष Image API",
-    "apiSettings.responses": "Responses API",
+    "apiSettings.responses": "Search channel",
     "apiSettings.modeImagesShort": "प्रत्यक्ष",
     "apiSettings.imageModel": "चित्र मॉडल",
     "apiSettings.concurrency": "प्रदाता समवर्ती सीमा",

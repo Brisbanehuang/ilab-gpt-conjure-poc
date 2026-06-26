@@ -759,7 +759,7 @@ export const ZH_TW_DICTIONARY: TranslationDictionary = {
     "apiSettings.moveProviderDownAria": "下移{provider}",
     "apiSettings.mode": "呼叫方式",
     "apiSettings.images": "直連Image API",
-    "apiSettings.responses": "Responses API",
+    "apiSettings.responses": "联网搜索通道",
     "apiSettings.modeImagesShort": "直連",
     "apiSettings.imageModel": "影像工具模型",
     "apiSettings.concurrency": "Provider 總並發上限",

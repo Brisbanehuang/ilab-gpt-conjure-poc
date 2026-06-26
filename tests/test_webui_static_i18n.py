@@ -57,6 +57,39 @@ class WebUIStaticI18nTests(WebUIStaticTestCase):
         self.assertIn("title:output.modeCreativeHelp", html)
         self.assertIn("title:output.modeStrictHelp", html)
 
+    def test_omni_public_copy_avoids_legacy_transport_terms(self) -> None:
+        public_sources = "\n".join(
+            [
+                Path("codex_image/webui/static/index.html").read_text(encoding="utf-8"),
+                Path("codex_image/webui/static/history.html").read_text(encoding="utf-8"),
+                Path("codex_image/webui/frontend/src/i18n/zh-cn.ts").read_text(encoding="utf-8"),
+                Path("codex_image/webui/frontend/src/i18n/en.ts").read_text(encoding="utf-8"),
+                Path("codex_image/webui/frontend/src/omni-poc-key.ts").read_text(encoding="utf-8"),
+                Path("codex_image/webui/frontend/src/auth-source.ts").read_text(encoding="utf-8"),
+                Path("codex_image/webui/frontend/src/task-context-menu.ts").read_text(encoding="utf-8"),
+            ]
+        )
+        all_dictionaries = "\n".join(
+            path.read_text(encoding="utf-8")
+            for path in Path("codex_image/webui/frontend/src/i18n").glob("*.ts")
+        )
+
+        for forbidden in (
+            "Codex 登录态",
+            "授权检查中",
+            "API mode",
+            "Codex mode",
+            "Responses API",
+            "Images API",
+            "打开输出目录",
+        ):
+            self.assertNotIn(forbidden, public_sources)
+        self.assertNotIn("Responses API", all_dictionaries)
+        self.assertIn('"auth.checking": "正在读取登录状态"', public_sources)
+        self.assertIn('"auth.missingCodexSession": "请先从 Omni 主站登录"', public_sources)
+        self.assertIn('"apiSettings.responses": "联网搜索通道"', public_sources)
+        self.assertIn('"taskContext.downloadOutput": "下载"', public_sources)
+
     def test_i18n_source_exposes_locales_and_dom_translation(self) -> None:
         source_path = Path("codex_image/webui/frontend/src/i18n.ts")
         self.assertTrue(source_path.exists(), "i18n feature module should exist")

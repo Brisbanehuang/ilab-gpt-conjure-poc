@@ -759,7 +759,7 @@ export const JA_DICTIONARY: TranslationDictionary = {
     "apiSettings.moveProviderDownAria": "{provider}を下に移動",
     "apiSettings.mode": "呼び出し方式",
     "apiSettings.images": "Image APIに直接接続",
-    "apiSettings.responses": "Responses API",
+    "apiSettings.responses": "Search channel",
     "apiSettings.modeImagesShort": "直結",
     "apiSettings.imageModel": "画像ツールモデル",
     "apiSettings.concurrency": "プロバイダー総同時実行上限",

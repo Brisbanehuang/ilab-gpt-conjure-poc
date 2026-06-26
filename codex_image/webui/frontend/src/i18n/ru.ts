@@ -759,7 +759,7 @@ export const RU_DICTIONARY: TranslationDictionary = {
     "apiSettings.moveProviderDownAria": "Переместить {provider} вниз",
     "apiSettings.mode": "Режим запроса",
     "apiSettings.images": "Прямой Image API",
-    "apiSettings.responses": "Responses API",
+    "apiSettings.responses": "Search channel",
     "apiSettings.modeImagesShort": "Прямой",
     "apiSettings.imageModel": "Модель Image",
     "apiSettings.concurrency": "Ограничение параллелизма поставщика",
