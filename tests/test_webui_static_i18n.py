@@ -45,6 +45,18 @@ class WebUIStaticI18nTests(WebUIStaticTestCase):
             self.assertIn(f'<option value="{locale}"', language_panel)
         self.assertNotIn("settings.status", language_panel)
 
+    def test_prompt_mode_copy_explains_creative_and_fidelity_behavior(self) -> None:
+        zh_dictionary_source = Path("codex_image/webui/frontend/src/i18n/zh-cn.ts").read_text(encoding="utf-8")
+        html = Path("codex_image/webui/static/index.html").read_text(encoding="utf-8")
+
+        self.assertIn("创意模式：不额外注入保真规则，让模型自由扩写。", zh_dictionary_source)
+        self.assertIn(
+            "保真模式通过本地规则提取标题/字体、目标人群、色彩和限制类硬性约束，再把这些约束作为系统指令传给模型；不会额外调用小模型。",
+            zh_dictionary_source,
+        )
+        self.assertIn("title:output.modeCreativeHelp", html)
+        self.assertIn("title:output.modeStrictHelp", html)
+
     def test_i18n_source_exposes_locales_and_dom_translation(self) -> None:
         source_path = Path("codex_image/webui/frontend/src/i18n.ts")
         self.assertTrue(source_path.exists(), "i18n feature module should exist")

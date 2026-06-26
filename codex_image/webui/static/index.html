@@ -459,10 +459,10 @@
                       <span data-i18n="output.promptMode">提示词模式</span>
                       <div class="radio-group" id="promptFidelityGroup">
                         <button class="radio-btn" data-val="original" type="button" data-i18n="output.modeOriginal">原始模式</button>
-                        <button class="radio-btn active" data-val="strict" type="button" data-i18n="output.modeStrict">保真模式</button>
-                        <button class="radio-btn" data-val="off" type="button" data-i18n="output.modeCreative">创意模式</button>
+                        <button class="radio-btn active" data-val="strict" type="button" data-i18n="output.modeStrict" data-i18n-attr="title:output.modeStrictHelp">保真模式</button>
+                        <button class="radio-btn" data-val="off" type="button" data-i18n="output.modeCreative" data-i18n-attr="title:output.modeCreativeHelp">创意模式</button>
                       </div>
-                      <select id="promptFidelity" class="hidden">
+                      <select id="promptFidelity" class="hidden" data-i18n-attr="aria-label:output.promptMode">
                         <option value="original" data-i18n="output.modeOriginal">原始模式</option>
                         <option value="strict" selected data-i18n="output.modeStrict">保真模式</option>
                         <option value="off" data-i18n="output.modeCreative">创意模式</option>

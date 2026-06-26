@@ -35,7 +35,20 @@ class PromptGuardTests(unittest.TestCase):
 
         self.assertIn("原始提示词模式", instructions)
         self.assertIn("不得优化", instructions)
+        self.assertIn("不得优化、扩写、翻译", instructions)
         self.assertIn("逐字使用", instructions)
+
+    def test_preserves_current_prompt_mode_contract(self) -> None:
+        from codex_image.prompt_guard import (
+            build_prompt_guard_instructions,
+            extract_prompt_constraints,
+        )
+
+        self.assertIn("不得改变原意", build_prompt_guard_instructions(["色彩：蓝色"]))
+        self.assertEqual(
+            ["目标人群：儿童", "色彩：蓝色", "限制：禁止出现文字"],
+            extract_prompt_constraints("目标人群是儿童，色彩：蓝色，禁止出现文字"),
+        )
 
 
 if __name__ == "__main__":
