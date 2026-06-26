@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
+import logging
 from typing import Any, AsyncContextManager, Callable
 
 from fastapi import FastAPI
@@ -27,8 +28,12 @@ from .executor import (
     _task_cancel_requested,
 )
 from .omni_poc import client_for_task
+from .object_storage import load_object_storage_config
 from .queue import NonRetryableTaskError, QueueChannel, QueueManager
 from .storage import utc_now
+from .storage_cleanup import cleanup_expired_storage
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -77,10 +82,33 @@ async def _queue_worker_loop(app_instance: FastAPI) -> None:
             raise
 
 
+async def _storage_cleanup_loop(app_instance: FastAPI) -> None:
+    while True:
+        config = load_object_storage_config()
+        await asyncio.sleep(float(max(60, config.cleanup_interval_seconds)))
+        try:
+            result = await asyncio.to_thread(cleanup_expired_storage, app_instance.state.output_root)
+            logger.info(
+                "omni_storage_cleanup deleted_objects=%s deleted_metadata=%s deleted_local_files=%s errors=%s dry_run=%s",
+                result.deleted_objects,
+                result.deleted_metadata,
+                result.deleted_local_files,
+                result.errors,
+                str(result.dry_run).lower(),
+            )
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.exception("omni_storage_cleanup failed")
+
+
 @asynccontextmanager
 async def queue_lifespan(app_instance: FastAPI):
     if app_instance.state.auto_start_queue:
         app_instance.state.queue_worker_task = asyncio.create_task(_queue_worker_loop(app_instance))
+    cleanup_config = load_object_storage_config()
+    if cleanup_config.driver == "r2":
+        app_instance.state.storage_cleanup_task = asyncio.create_task(_storage_cleanup_loop(app_instance))
     try:
         yield
     finally:
@@ -89,6 +117,13 @@ async def queue_lifespan(app_instance: FastAPI):
             worker.cancel()
             try:
                 await worker
+            except asyncio.CancelledError:
+                pass
+        cleanup_worker = getattr(app_instance.state, "storage_cleanup_task", None)
+        if cleanup_worker is not None:
+            cleanup_worker.cancel()
+            try:
+                await cleanup_worker
             except asyncio.CancelledError:
                 pass
 

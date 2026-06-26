@@ -120,6 +120,7 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
     ) -> dict[str, Any]:
         omni_key = await omni_key_from_request(request, sub2api_key_id)
         if omni_key is not None:
+            h["check_omni_storage_quota"](omni_session_params(request))
             try:
                 validate_upload_limits(reference_images or [], max_files=4, max_bytes_each=8 * 1024 * 1024)
             except ValueError as exc:
@@ -282,6 +283,7 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
     ) -> dict[str, Any]:
         omni_key = await omni_key_from_request(request, sub2api_key_id)
         if omni_key is not None:
+            h["check_omni_storage_quota"](omni_session_params(request))
             upload_items = list(images or [])
             if mask is not None:
                 upload_items.append(mask)

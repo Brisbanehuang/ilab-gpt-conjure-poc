@@ -5,6 +5,7 @@ import hmac
 import os
 import re
 from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 from typing import Any, Mapping, Protocol
 from urllib.parse import quote
 
@@ -68,6 +69,16 @@ def content_type_for_format(output_format: str) -> str:
     if suffix in {"png", "jpeg", "webp", "gif"}:
         return f"image/{suffix}"
     return "application/octet-stream"
+
+
+def retention_expires_at(created_at: str, *, policy: str, config: ObjectStorageConfig | None = None) -> str:
+    storage_config = config or load_object_storage_config()
+    base = _parse_datetime(created_at) or datetime.now(UTC)
+    if policy == "saved":
+        expires_at = base + timedelta(days=storage_config.saved_image_ttl_days)
+    else:
+        expires_at = base + timedelta(hours=storage_config.temp_image_ttl_hours)
+    return expires_at.isoformat().replace("+00:00", "Z")
 
 
 def load_object_storage_config(env: Mapping[str, str] | None = None) -> ObjectStorageConfig:
@@ -200,3 +211,18 @@ def _optional_int_env(value: Any) -> int | None:
     except (TypeError, ValueError):
         return None
     return parsed if parsed > 0 else None
+
+
+def _parse_datetime(value: Any) -> datetime | None:
+    text = str(value or "").strip()
+    if not text:
+        return None
+    if text.endswith("Z"):
+        text = text[:-1] + "+00:00"
+    try:
+        parsed = datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=UTC)
+    return parsed.astimezone(UTC)

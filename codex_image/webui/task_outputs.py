@@ -9,7 +9,14 @@ from fastapi import HTTPException
 
 from codex_image.client import ImageResult
 
-from .object_storage import content_type_for_format, object_storage_from_env, output_object_key, owner_id_from_params
+from .object_storage import (
+    content_type_for_format,
+    load_object_storage_config,
+    object_storage_from_env,
+    output_object_key,
+    owner_id_from_params,
+    retention_expires_at,
+)
 from .storage import TaskStorage, utc_now
 from .task_enrichment import _input_sources, _input_urls
 from .thumbnails import create_image_thumbnail, thumbnail_needs_refresh
@@ -297,6 +304,7 @@ def _stored_output_records(
 ) -> list[dict[str, Any]]:
     object_storage = object_storage_from_env() if params.get("omni_poc") else None
     title = str(metadata.get("title") or metadata.get("display_title") or "")
+    expires_at = str(metadata.get("expires_at") or "")
     records: list[dict[str, Any]] = []
     for index, (path, result) in enumerate(zip(output_paths, results), start=1):
         source_record = source_records[index - 1] if source_records is not None and index - 1 < len(source_records) else {}
@@ -334,8 +342,56 @@ def _stored_output_records(
                     "url": _backend_output_url(task_id, output_index),
                 }
             )
+            if expires_at:
+                record["expires_at"] = expires_at
+            _delete_transient_file(path, storage)
         records.append(record)
     return records
+
+
+def _apply_omni_retention_metadata(metadata: dict[str, Any], params: dict[str, Any], created_at: str) -> None:
+    if not params.get("omni_poc"):
+        return
+    policy = "saved" if metadata.get("archived_at") else "temporary"
+    expires_at = retention_expires_at(str(metadata.get("created_at") or created_at), policy=policy)
+    metadata["owner_id"] = owner_id_from_params(params)
+    metadata["storage_driver"] = load_object_storage_config().driver
+    metadata["retention_policy"] = policy
+    metadata["expires_at"] = expires_at
+    for collection_key in ("outputs", "input_sources"):
+        records = metadata.get(collection_key)
+        if not isinstance(records, list):
+            continue
+        for record in records:
+            if isinstance(record, dict) and record.get("storage_key"):
+                record["expires_at"] = expires_at
+
+
+def _delete_transient_file(path: Path, storage: TaskStorage) -> None:
+    try:
+        resolved = path.resolve(strict=False)
+        source_data_root = storage.source_data_root.resolve(strict=False)
+        try:
+            resolved.relative_to(source_data_root)
+            return
+        except ValueError:
+            pass
+        if resolved.suffix.lower() in {".sqlite", ".db"}:
+            return
+        allowed = False
+        for root in (storage.output_root.resolve(strict=False), storage.input_root.resolve(strict=False)):
+            try:
+                resolved.relative_to(root)
+            except ValueError:
+                continue
+            allowed = True
+            break
+        if not allowed:
+            return
+        path.unlink()
+        storage._prune_empty_output_dir(path.parent)
+    except FileNotFoundError:
+        return
 
 
 def _output_thumbnail_fields(storage: TaskStorage, task_id: str, output_index: int, output_path: Path) -> dict[str, str]:
@@ -753,6 +809,7 @@ def _write_queued_metadata(
     _apply_api_images_concurrency_metadata(metadata, params)
     if prompt_constraints:
         metadata["prompt_constraints"] = list(prompt_constraints)
+    _apply_omni_retention_metadata(metadata, params, created_at)
     storage.write_metadata(task_id, metadata)
     return metadata
 
@@ -810,6 +867,7 @@ def _write_progress_metadata(
         }
     )
     _apply_api_provider_metadata(metadata, params)
+    _apply_omni_retention_metadata(metadata, params, created_at)
     if failed_records:
         metadata["last_error"] = _partial_failure_message(len(failed_records), total_count, failed_records[-1].get("error"))
     else:
@@ -962,6 +1020,7 @@ def _finalize_generated_task(
         }
     )
     _apply_api_provider_metadata(metadata, params)
+    _apply_omni_retention_metadata(metadata, params, created_at)
     metadata.pop("request", None)
     metadata.pop("error", None)
     _apply_api_images_concurrency_metadata(metadata, params)
@@ -1061,6 +1120,7 @@ def _complete_task(
         }
     )
     _apply_api_provider_metadata(metadata, params)
+    _apply_omni_retention_metadata(metadata, params, created_at)
     metadata.pop("request", None)
     metadata.pop("error", None)
     metadata.pop("last_error", None)

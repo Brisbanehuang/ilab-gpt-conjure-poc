@@ -116,8 +116,10 @@ from .context import WebUIContext
 from .events import event_key, event_snapshot, queue_snapshot, queued_or_running_task_ids, sse_message, task_event
 from .omni_poc import OmniTaskSecretStore, load_omni_poc_config
 from .omni_poc_limits import FixedWindowRateLimiter
+from .object_storage import load_object_storage_config, owner_id_from_params
 from .omni_session import OmniSessionStore
 from .routes import register_webui_routes
+from .task_outputs import _apply_omni_retention_metadata
 from .executor import (
     _call_image_client,
     _debug_sse_path,
@@ -353,6 +355,7 @@ def create_app(
                 auth_source, api_settings, api_provider_id
             ),
             "client_factory_overridden": client_factory is not None,
+            "check_omni_storage_quota": lambda params: _check_omni_storage_quota(storage, params),
         }
     )
     register_webui_routes(app, ctx)
@@ -517,8 +520,19 @@ def _set_task_archived(storage: TaskStorage, task_id: str, archived: bool) -> di
         metadata["archived_at"] = str(metadata.get("archived_at") or utc_now())
     else:
         metadata.pop("archived_at", None)
+    params = metadata.get("params") if isinstance(metadata.get("params"), dict) else {}
+    _apply_omni_retention_metadata(metadata, params, str(metadata.get("created_at") or utc_now()))
     storage.write_metadata(task_id, metadata)
     return metadata
+
+
+def _check_omni_storage_quota(storage: TaskStorage, params: dict[str, Any]) -> None:
+    config = load_object_storage_config()
+    if config.max_bytes_per_user is None:
+        return
+    owner_id = owner_id_from_params(params)
+    if storage.stored_bytes_for_owner(owner_id) >= config.max_bytes_per_user:
+        raise HTTPException(status_code=429, detail="你的图片存储空间已接近上限，请先下载并删除旧作品后再继续。")
 
 
 def _mark_task_cancelled(storage: TaskStorage, task_id: str) -> dict[str, Any]:

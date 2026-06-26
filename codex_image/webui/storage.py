@@ -231,6 +231,36 @@ class TaskStorage:
         sharded_paths = list(sharded_root.glob("*/*.metadata.json")) if sharded_root.exists() else []
         return [*flat_paths, *sharded_paths]
 
+    def stored_bytes_for_owner(self, owner_id: str, *, now: datetime | None = None) -> int:
+        cutoff = now or datetime.now(UTC)
+        total = 0
+        for metadata_path in self.iter_metadata_paths():
+            try:
+                metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                continue
+            if not isinstance(metadata, dict) or str(metadata.get("owner_id") or "") != owner_id:
+                continue
+            expires_at = _parse_datetime(metadata.get("expires_at"))
+            if expires_at is not None and expires_at <= cutoff:
+                continue
+            for collection_key in ("outputs", "input_sources"):
+                records = metadata.get(collection_key)
+                if not isinstance(records, list):
+                    continue
+                for record in records:
+                    if not isinstance(record, dict):
+                        continue
+                    if record.get("deleted") or record.get("status") == "deleted":
+                        continue
+                    if str(record.get("storage_driver") or "") != "r2":
+                        continue
+                    record_expires_at = _parse_datetime(record.get("expires_at")) or expires_at
+                    if record_expires_at is not None and record_expires_at <= cutoff:
+                        continue
+                    total += _nonnegative_int(record.get("bytes"), 0)
+        return total
+
     def migrate_source_data_files(self) -> dict[str, int]:
         self.source_data_root.mkdir(parents=True, exist_ok=True)
         result = {
@@ -481,6 +511,8 @@ def _first_sidebar_thumbnail_url(metadata: dict[str, Any]) -> str:
         for output in outputs:
             if not isinstance(output, dict):
                 continue
+            if str(output.get("storage_driver") or "") == "r2" and output.get("url"):
+                return str(output["url"])
             thumbnail_url = output.get("thumbnail_url") or _output_file_url(output.get("thumbnail_file"))
             if thumbnail_url:
                 return thumbnail_url
@@ -509,6 +541,11 @@ def _first_output_thumbnail_route(metadata: dict[str, Any]) -> str:
             if status != "completed":
                 continue
             index = _positive_int(output.get("index")) or fallback_index
+            if (
+                str(output.get("storage_driver") or "") == "r2"
+                or output.get("storage_key")
+            ):
+                continue
             if (
                 output.get("file")
                 or (index <= len(output_files) and output_files[index - 1])
@@ -558,6 +595,21 @@ def _nonnegative_int(value: Any, fallback: int) -> int:
     except (TypeError, ValueError):
         return fallback
     return number if number >= 0 else fallback
+
+
+def _parse_datetime(value: Any) -> datetime | None:
+    text = str(value or "").strip()
+    if not text:
+        return None
+    if text.endswith("Z"):
+        text = text[:-1] + "+00:00"
+    try:
+        parsed = datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=UTC)
+    return parsed.astimezone(UTC)
 
 
 def _same_file_bytes(first: Path, second: Path) -> bool:
