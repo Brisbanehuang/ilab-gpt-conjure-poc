@@ -238,6 +238,50 @@ class WebUITaskTests(unittest.TestCase):
                 self.assertEqual(archive.read(f"{task_id}-image-1.png"), b"first-image")
                 self.assertEqual(archive.read(f"{task_id}-image-2.webp"), b"second-image")
 
+    def test_task_output_route_streams_r2_object_through_backend(self) -> None:
+        from codex_image.webui.app import create_app
+
+        class FakeObjectStorage:
+            def get(self, key: str) -> bytes:
+                self.key = key
+                return b"r2-image"
+
+        fake = FakeObjectStorage()
+        task_id = "20260505010203-abcdef01"
+        storage_key = "users/user_123/images/2026/05/05/010203-20260505010203-abcdef01/outputs/01-title.png"
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            metadata_path(root, task_id).parent.mkdir(parents=True, exist_ok=True)
+            metadata_path(root, task_id).write_text(
+                json.dumps(
+                    {
+                        "task_id": task_id,
+                        "status": "completed",
+                        "outputs": [
+                            {
+                                "index": 1,
+                                "status": "completed",
+                                "storage_driver": "r2",
+                                "storage_key": storage_key,
+                                "content_type": "image/png",
+                                "size": 8,
+                                "url": f"/api/tasks/{task_id}/outputs/1",
+                            }
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            app = create_app(output_root=root, auth_checker=lambda: True, auto_start_queue=False)
+            with patch("codex_image.webui.routes.tasks.object_storage_from_env", return_value=fake):
+                response = TestClient(app).get(f"/api/tasks/{task_id}/outputs/1")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers["content-type"], "image/png")
+        self.assertEqual(response.content, b"r2-image")
+        self.assertEqual(fake.key, storage_key)
+
     def test_task_reveal_output_endpoint_opens_output_directory(self) -> None:
         from codex_image.webui.app import create_app
 

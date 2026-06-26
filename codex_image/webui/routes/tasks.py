@@ -11,6 +11,7 @@ from fastapi import Body, FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse, StreamingResponse
 
 from codex_image.webui.context import WebUIContext
+from codex_image.webui.object_storage import object_storage_from_env
 from codex_image.webui.storage import utc_now
 from codex_image.webui.task_metadata import (
     _accept_partial_task_successes,
@@ -204,6 +205,34 @@ def register_task_routes(app: FastAPI, ctx: WebUIContext) -> None:
             media_type="image/jpeg",
             headers={"Cache-Control": "public, max-age=31536000, immutable"},
         )
+
+    @app.get("/api/tasks/{task_id}/outputs/{output_index}", response_model=None)
+    def get_task_output(task_id: str, output_index: int):
+        try:
+            metadata = ctx.storage.read_metadata(task_id)
+        except (FileNotFoundError, ValueError) as exc:
+            raise HTTPException(status_code=404, detail="Task not found") from exc
+        if output_index < 1:
+            raise HTTPException(status_code=404, detail="Output not found")
+
+        records = _visible_completed_output_records(metadata)
+        record = next((item for item in records if item.get("index") == output_index), None)
+        if record is None:
+            raise HTTPException(status_code=404, detail="Output not found")
+        if str(record.get("storage_driver") or "") == "r2" and record.get("storage_key"):
+            object_storage = object_storage_from_env()
+            if object_storage is None:
+                raise HTTPException(status_code=404, detail="Object storage is not configured")
+            try:
+                data = object_storage.get(str(record["storage_key"]))
+            except Exception as exc:
+                raise HTTPException(status_code=404, detail="Output not found") from exc
+            return StreamingResponse(BytesIO(data), media_type=str(record.get("content_type") or "application/octet-stream"))
+
+        output_path = _safe_output_path(ctx.storage, task_id, _output_record_filename(record))
+        if output_path is None or not output_path.is_file():
+            raise HTTPException(status_code=404, detail="Output not found")
+        return FileResponse(output_path)
 
     @app.get("/api/tasks/{task_id}/outputs/{output_index}/thumbnail")
     def get_task_output_thumbnail(task_id: str, output_index: int) -> FileResponse:

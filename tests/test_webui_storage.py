@@ -18,6 +18,99 @@ def _png_bytes(size: tuple[int, int] = (400, 600)) -> bytes:
 
 
 class WebUIStorageTests(unittest.TestCase):
+    def test_readable_object_keys_use_owner_date_task_and_safe_title(self) -> None:
+        from codex_image.webui.object_storage import output_object_key
+
+        task_id = "20260626144923-a63df6c2"
+
+        self.assertEqual(
+            output_object_key(
+                owner_id="user_123",
+                task_id=task_id,
+                title="黑神话李清照",
+                index=1,
+                ext="png",
+            ),
+            "users/user_123/images/2026/06/26/144923-20260626144923-a63df6c2/outputs/01-黑神话李清照.png",
+        )
+        self.assertEqual(
+            output_object_key(owner_id="user_123", task_id=task_id, title="../../猫:海报", index=2, ext=".webp"),
+            "users/user_123/images/2026/06/26/144923-20260626144923-a63df6c2/outputs/02-猫海报.webp",
+        )
+        self.assertEqual(
+            output_object_key(owner_id="user_123", task_id=task_id, title="", index=1, ext="png"),
+            "users/user_123/images/2026/06/26/144923-20260626144923-a63df6c2/outputs/01-output.png",
+        )
+
+    def test_owner_id_for_session_uses_sub2api_user_id_only(self) -> None:
+        from codex_image.webui.object_storage import owner_id_for_session
+        from codex_image.webui.omni_session import OmniSession
+
+        session = OmniSession(
+            id="session",
+            sub2api_user_id=123,
+            email="user@example.test",
+            username="alice",
+            balance=0,
+            token_cipher="cipher",
+            expires_at="2026-06-26T00:00:00+00:00",
+        )
+
+        self.assertEqual(owner_id_for_session(session), "user_123")
+
+    def test_complete_task_stores_omni_output_with_readable_object_key(self) -> None:
+        from codex_image.client import ImageResult
+        from codex_image.webui.object_storage import StoredObject
+        from codex_image.webui.storage import TaskStorage
+        from codex_image.webui.task_metadata import _complete_task, _write_queued_metadata
+
+        class FakeObjectStorage:
+            def __init__(self) -> None:
+                self.puts: list[tuple[str, bytes, str]] = []
+
+            def put(self, key: str, data: bytes, content_type: str) -> StoredObject:
+                self.puts.append((key, data, content_type))
+                return StoredObject(driver="r2", key=key, size=len(data), content_type=content_type)
+
+        fake = FakeObjectStorage()
+        task_id = "20260626144923-a63df6c2"
+        with tempfile.TemporaryDirectory() as tmp:
+            storage = TaskStorage(input_root=Path(tmp) / "inputs", output_root=Path(tmp) / "outputs", source_data_root=Path(tmp) / "source-data")
+            storage._task_source_data_dir(task_id).mkdir(parents=True, exist_ok=True)
+            _write_queued_metadata(
+                storage,
+                task_id,
+                created_at="2026-06-26T14:49:23+00:00",
+                mode="generate",
+                prompt="生成一张黑神话李清照海报",
+                prompt_for_model="生成一张黑神话李清照海报",
+                params={"omni_poc": True, "sub2api_user_id": 123, "output_format": "png", "n": 1},
+                input_files=[],
+                mask_file=None,
+                gallery_refs=[],
+                title="黑神话李清照",
+            )
+            with unittest.mock.patch("codex_image.webui.task_outputs.object_storage_from_env", return_value=fake):
+                metadata = _complete_task(
+                    storage,
+                    task_id,
+                    "2026-06-26T14:49:23+00:00",
+                    "generate",
+                    "生成一张黑神话李清照海报",
+                    "生成一张黑神话李清照海报",
+                    ImageResult(b"png-bytes", "revised", "png", "1024x1024", "auto", "low", {}),
+                    [],
+                    [],
+                    None,
+                    {},
+                    {"omni_poc": True, "sub2api_user_id": 123, "output_format": "png", "n": 1},
+                )
+
+        self.assertEqual(fake.puts[0], ("users/user_123/images/2026/06/26/144923-20260626144923-a63df6c2/outputs/01-黑神话李清照.png", b"png-bytes", "image/png"))
+        self.assertEqual(metadata["outputs"][0]["storage_driver"], "r2")
+        self.assertEqual(metadata["outputs"][0]["storage_key"], fake.puts[0][0])
+        self.assertEqual(metadata["outputs"][0]["url"], f"/api/tasks/{task_id}/outputs/1")
+
     def test_creates_sharded_task_files_and_lists_newest_first(self) -> None:
         from codex_image.webui.storage import TaskStorage
 

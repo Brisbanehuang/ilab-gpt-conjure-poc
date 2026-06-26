@@ -9,6 +9,7 @@ from fastapi import HTTPException
 
 from codex_image.client import ImageResult
 
+from .object_storage import content_type_for_format, object_storage_from_env, output_object_key, owner_id_from_params
 from .storage import TaskStorage, utc_now
 from .task_enrichment import _input_sources, _input_urls
 from .thumbnails import create_image_thumbnail, thumbnail_needs_refresh
@@ -279,6 +280,62 @@ def _is_generic_invalid_request_error(error: str) -> bool:
 
 def _output_url(storage: TaskStorage, path: Path) -> str:
     return f"/outputs/{quote(storage.output_file(path), safe='/')}"
+
+
+def _backend_output_url(task_id: str, output_index: int) -> str:
+    return f"/api/tasks/{task_id}/outputs/{output_index}"
+
+
+def _stored_output_records(
+    storage: TaskStorage,
+    task_id: str,
+    metadata: dict[str, Any],
+    params: dict[str, Any],
+    output_paths: list[Path],
+    results: list[ImageResult],
+    source_records: list[dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
+    object_storage = object_storage_from_env() if params.get("omni_poc") else None
+    title = str(metadata.get("title") or metadata.get("display_title") or "")
+    records: list[dict[str, Any]] = []
+    for index, (path, result) in enumerate(zip(output_paths, results), start=1):
+        source_record = source_records[index - 1] if source_records is not None and index - 1 < len(source_records) else {}
+        output_index = _positive_int(source_record.get("index")) or index
+        output_format = result.output_format or str(params.get("output_format") or path.suffix.lstrip(".") or "png")
+        record: dict[str, Any] = {
+            "index": output_index,
+            "status": "completed",
+            "file": storage.output_file(path),
+            "url": _output_url(storage, path),
+            "size": result.size,
+            "format": output_format,
+            "quality": result.quality,
+            "background": result.background,
+            "revised_prompt": result.revised_prompt,
+            "usage": result.usage,
+            "tool_usage": result.tool_usage,
+        }
+        if object_storage is not None:
+            key = output_object_key(
+                owner_id=owner_id_from_params(params),
+                task_id=task_id,
+                title=title,
+                index=output_index,
+                ext=output_format,
+            )
+            content_type = content_type_for_format(output_format)
+            stored = object_storage.put(key, path.read_bytes(), content_type)
+            record.update(
+                {
+                    "storage_driver": stored.driver,
+                    "storage_key": stored.key,
+                    "content_type": stored.content_type,
+                    "bytes": stored.size,
+                    "url": _backend_output_url(task_id, output_index),
+                }
+            )
+        records.append(record)
+    return records
 
 
 def _output_thumbnail_fields(storage: TaskStorage, task_id: str, output_index: int, output_path: Path) -> dict[str, str]:
@@ -847,10 +904,24 @@ def _finalize_generated_task(
     input_names = [path.name for path in input_files]
     results, output_paths, output_records = _ordered_output_progress(results, output_paths, output_records)
     failed_records = [record for record in output_records if record.get("status") == "failed"]
+    completed_records = [record for record in output_records if record.get("status") == "completed"]
     first_result = results[0]
     first_output_path = output_paths[0]
     total_count = int(params.get("n") or len(output_records) or len(results) or 1)
     metadata = storage.read_metadata(task_id)
+    stored_records = _stored_output_records(storage, task_id, metadata, params, output_paths, results, source_records=completed_records)
+    if output_records:
+        records_by_index = {
+            _positive_int(record.get("index")) or index: dict(record)
+            for index, record in enumerate(output_records, start=1)
+        }
+        for stored_record in stored_records:
+            index = _positive_int(stored_record.get("index")) or 0
+            merged = {**records_by_index.get(index, {}), **stored_record}
+            records_by_index[index] = merged
+        output_records = [records_by_index[index] for index in sorted(records_by_index)]
+    else:
+        output_records = stored_records
     metadata.update(
         {
             "task_id": task_id,
@@ -871,8 +942,8 @@ def _finalize_generated_task(
             "total_count": total_count,
             "output_file": storage.output_file(first_output_path),
             "output_files": [storage.output_file(path) for path in output_paths],
-            "output_url": _output_url(storage, first_output_path),
-            "output_urls": [_output_url(storage, path) for path in output_paths],
+            "output_url": str(stored_records[0].get("url") or _output_url(storage, first_output_path)),
+            "output_urls": [str(record.get("url") or _output_url(storage, path)) for record, path in zip(stored_records, output_paths)],
             "outputs": output_records,
             "output_size": first_result.size,
             "output_sizes": [result.size for result in results],
@@ -950,6 +1021,7 @@ def _complete_task(
     input_names = [path.name for path in input_files]
     total_count = int(params.get("n") or len(result_list) or 1)
     metadata = storage.read_metadata(task_id)
+    output_records = _stored_output_records(storage, task_id, metadata, params, output_paths, result_list)
     metadata.update(
         {
             "task_id": task_id,
@@ -969,8 +1041,9 @@ def _complete_task(
             "total_count": total_count,
             "output_file": storage.output_file(first_output_path),
             "output_files": [storage.output_file(path) for path in output_paths],
-            "output_url": _output_url(storage, first_output_path),
-            "output_urls": [_output_url(storage, path) for path in output_paths],
+            "output_url": str(output_records[0].get("url") or _output_url(storage, first_output_path)),
+            "output_urls": [str(record.get("url") or _output_url(storage, path)) for record, path in zip(output_records, output_paths)],
+            "outputs": output_records,
             "output_size": first_result.size,
             "output_sizes": output_sizes,
             "output_format": first_result.output_format,
