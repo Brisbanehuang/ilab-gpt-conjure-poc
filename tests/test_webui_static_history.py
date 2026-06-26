@@ -648,9 +648,12 @@ class WebUIStaticHistoryTests(unittest.TestCase):
         boot_source = Path("codex_image/webui/frontend/src/boot.ts").read_text(encoding="utf-8")
 
         self.assertIn('localStorage.setItem(HISTORY_TASK_REUSE_HANDOFF_KEY', history_source)
+        self.assertIn('intent: "view"', history_source)
         self.assertIn('window.location.href = "/"', history_source)
         self.assertIn("async function restoreHistoryTaskReuseHandoff()", selection_source)
         self.assertIn("localStorage.removeItem(HISTORY_TASK_REUSE_HANDOFF_KEY)", selection_source)
+        self.assertIn('const handoffIntent = String(parsed?.intent || "view")', selection_source)
+        self.assertIn('if (handoffIntent !== "view") return;', selection_source)
         self.assertIn("applyTaskToForm(task)", selection_source)
         self.assertIn("await restoreTaskInputs(task", selection_source)
         self.assertIn('restoreHistoryTaskReuseHandoff,', selection_source)

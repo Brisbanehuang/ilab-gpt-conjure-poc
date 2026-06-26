@@ -531,6 +531,7 @@ svg.button-icon {
 .omni-poc-key-control {
   display: inline-flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
   min-height: 36px;
   padding: 4px 8px;
@@ -544,8 +545,17 @@ svg.button-icon {
   color: #334155;
 }
 
-.omni-poc-key-input {
-  width: 220px;
+.omni-poc-account {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: #475569;
+}
+
+.omni-poc-key-select {
+  width: 280px;
   max-width: 32vw;
   height: 28px;
   padding: 0 8px;
@@ -554,12 +564,16 @@ svg.button-icon {
 }
 
 .omni-poc-key-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   height: 28px;
   padding: 0 10px;
   border: 1px solid rgba(15, 23, 42, 0.16);
   border-radius: 6px;
   background: #f8fafc;
   color: #0f172a;
+  text-decoration: none;
 }
 
 .omni-poc-key-status {

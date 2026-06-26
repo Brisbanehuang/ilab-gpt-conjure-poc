@@ -7,6 +7,7 @@ const els = bridge.els;
 
 let previewGridEventsBound = false;
 let pendingPreviewRenderToken = 0;
+const PREVIEW_FINAL_STATUSES = new Set(["completed", "failed", "partial_failed", "cancelled"]);
 
 function legacyMethod(name: string, ...args: any[]): any {
   const method = getLegacyBridge().methods[name];
@@ -68,6 +69,7 @@ function queueContainsTask(items: any[] | undefined, taskId: string) {
 function taskPreviewStatus(task: any) {
   const status = String(task?.status || "");
   const taskId = String(task?.task_id || "");
+  if (PREVIEW_FINAL_STATUSES.has(status)) return status;
   if (queueContainsTask(state.queue.running, taskId)) return "running";
   if (queueContainsTask(state.queue.waiting, taskId)) return status === "submitting" ? "submitting" : "queued";
   return status;

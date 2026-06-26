@@ -19,6 +19,7 @@ export interface TaskOutputRecord {
   usage?: Record<string, unknown>;
   error?: string;
   attempts?: number;
+  elapsed_seconds?: number;
 }
 
 export interface TaskNotification {

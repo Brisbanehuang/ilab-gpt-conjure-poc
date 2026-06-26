@@ -57,6 +57,11 @@ def sse_message(payload: dict[str, Any]) -> str:
     return f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
 
 
+def sse_comment(comment: str) -> str:
+    clean_comment = str(comment).replace("\n", " ")
+    return f": {clean_comment}\n\n"
+
+
 def event_key(payload: dict[str, Any]) -> str:
     return json.dumps(payload, ensure_ascii=False, sort_keys=True)
 
@@ -82,3 +87,12 @@ def task_event(ctx: WebUIContext, task_id: str) -> dict[str, Any] | None:
             include_request=False,
         ),
     }
+
+
+def task_events_for_finished_ids(ctx: WebUIContext, task_ids: set[str]) -> list[dict[str, Any]]:
+    events: list[dict[str, Any]] = []
+    for task_id in sorted(task_ids):
+        task_payload = task_event(ctx, task_id)
+        if task_payload is not None:
+            events.append(task_payload)
+    return events

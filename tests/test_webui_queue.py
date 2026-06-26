@@ -115,6 +115,36 @@ class WebUIQueueTests(unittest.TestCase):
         self.assertIn('"thumbnail_urls": ["/thumb.jpg"]', response.text)
         self.assertNotIn("expanded event prompt", response.text)
         self.assertNotIn('"outputs"', response.text)
+    def test_sse_comment_formats_heartbeat(self) -> None:
+        from codex_image.webui.events import sse_comment
+
+        self.assertEqual(sse_comment("heartbeat"), ": heartbeat\n\n")
+    def test_finished_queue_task_events_include_completed_task_payload(self) -> None:
+        from codex_image.webui.app import create_app
+        from codex_image.webui.events import task_events_for_finished_ids
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            app = create_app(output_root=root, client_factory=lambda: FakeImageClient(), auth_checker=lambda: True, auto_start_queue=False)
+            app.state.storage.write_metadata(
+                "task-completed",
+                {
+                    "task_id": "task-completed",
+                    "created_at": "2026-05-10T10:10:10+00:00",
+                    "updated_at": "2026-05-10T10:10:12+00:00",
+                    "status": "completed",
+                    "prompt": "completed event",
+                    "outputs": [{"index": 1, "status": "completed", "thumbnail_url": "/done.jpg"}],
+                    "generated_count": 1,
+                    "total_count": 1,
+                },
+            )
+            events = task_events_for_finished_ids(app.state, {"task-completed", "missing-task"})
+
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0]["type"], "task")
+        self.assertEqual(events[0]["task"]["task_id"], "task-completed")
+        self.assertEqual(events[0]["task"]["status"], "completed")
     def test_events_endpoint_restarts_stopped_background_worker(self) -> None:
         from codex_image.webui.app import create_app
 

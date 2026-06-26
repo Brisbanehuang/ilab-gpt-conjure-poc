@@ -115,7 +115,7 @@ def _client_for_queue_channel(ctx: WebUIContext, channel: QueueChannel, metadata
         task_id = str((metadata or {}).get("task_id") or "")
         if config is None or store is None or not getattr(config, "enabled", False):
             raise RuntimeError("Omni POC is not configured")
-        return client_for_task(config, store, task_id)
+        return client_for_task(config, store, task_id, api_mode=str(params.get("api_mode") or "images"))
     if channel.auth_source == "api":
         settings_payload = ctx.api_settings.read()
         provider_settings = ctx.api_settings.provider_settings(str(params.get("api_provider_id") or settings_payload.get("active_provider_id") or ""))

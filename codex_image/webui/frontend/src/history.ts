@@ -1637,6 +1637,7 @@ function reuseHistoryTask(taskId: string): void {
     localStorage.setItem(HISTORY_TASK_REUSE_HANDOFF_KEY, JSON.stringify({
       task_id: actualTaskId,
       source: "history",
+      intent: "view",
       added_at: new Date().toISOString(),
     }));
     window.location.href = "/";

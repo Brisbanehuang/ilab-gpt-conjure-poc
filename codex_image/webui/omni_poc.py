@@ -9,7 +9,7 @@ from typing import Mapping
 import httpx
 from cryptography.fernet import Fernet, InvalidToken
 
-from codex_image.client import OpenAIImagesImageClient
+from codex_image.client import OpenAIImagesImageClient, OpenAIResponsesImageClient
 
 
 TRUE_VALUES = {"1", "true", "yes", "on"}
@@ -145,8 +145,10 @@ async def validate_omni_api_key(config: OmniPOCConfig, api_key: str) -> dict[str
     return {"ok": True, "masked_key": mask_api_key(clean_key), "model": config.image_model}
 
 
-def client_for_task(config: OmniPOCConfig, store: OmniTaskSecretStore, task_id: str) -> OpenAIImagesImageClient:
+def client_for_task(config: OmniPOCConfig, store: OmniTaskSecretStore, task_id: str, *, api_mode: str = "images") -> OpenAIImagesImageClient | OpenAIResponsesImageClient:
     api_key = store.get_task_key(task_id)
     if not api_key:
         raise RuntimeError("Omni API Key is missing for this task")
+    if str(api_mode or "").strip() == "responses":
+        return OpenAIResponsesImageClient(api_key=api_key, base_url=config.base_url, image_model=config.image_model)
     return OpenAIImagesImageClient(api_key=api_key, base_url=config.base_url, image_model=config.image_model)

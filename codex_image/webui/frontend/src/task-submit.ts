@@ -1,6 +1,6 @@
 import { getLegacyBridge } from "./state";
 import { translate } from "./i18n";
-import { omniHeaders, requireOmniApiKeyBeforeSubmit } from "./omni-poc-key";
+import { getSelectedOmniKeyId, omniHeaders, requireOmniApiKeyBeforeSubmit } from "./omni-poc-key";
 
 const bridge = getLegacyBridge();
 const state = bridge.state;
@@ -161,6 +161,10 @@ function buildPreviewRequest() {
     gallery_image_ids: galleries.map((source: any) => source.id),
     reference_asset_ids: assets.map((source: any) => source.id),
   };
+  const selectedOmniKeyId = getSelectedOmniKeyId();
+  if (selectedOmniKeyId) {
+    payload.sub2api_api_key_id = selectedOmniKeyId;
+  }
   if (isApi) {
     const apiMode = currentApiMode();
     const action = state.mode === "edit" || uploads.length || assets.length || galleries.length ? "edit" : "generate";
@@ -318,6 +322,8 @@ async function runTask() {
   form.append("n", String(params.n));
   form.append("prompt_fidelity", currentPromptFidelity());
   if (params.web_search) form.append("web_search", "true");
+  const selectedOmniKeyId = getSelectedOmniKeyId();
+  if (selectedOmniKeyId) form.append("sub2api_key_id", selectedOmniKeyId);
   if (currentAuthSource() === "api") {
     form.append("api_provider_id", currentApiProviderId());
     form.append("api_mode", currentApiMode());

@@ -17,6 +17,7 @@ from codex_image.webui.executor import (
     _resolve_reference_assets,
 )
 from codex_image.webui.omni_poc_limits import validate_upload_limits
+from codex_image.webui.omni_session import SESSION_COOKIE_NAME, resolve_omni_image_key
 from codex_image.webui.prompt_ratio import append_ratio_prompt_instruction
 from codex_image.webui.storage import utc_now
 from codex_image.webui.task_metadata import _dedupe_preserve_order, _params, _with_file_urls, _write_queued_metadata
@@ -27,13 +28,16 @@ DEFAULT_PROMPT_FIDELITY = "strict"
 def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
     h = ctx.route_helpers
 
-    def omni_poc_key_from_request(request: Request) -> str | None:
+    def omni_session_from_request(request: Request):
         config = h.get("omni_poc_config")
         if not config or not getattr(config, "enabled", False):
             return None
-        api_key = str(request.headers.get("x-omni-api-key") or "").strip()
-        if not api_key:
-            raise HTTPException(status_code=401, detail="Omni API Key is required")
+        session_store = h.get("omni_session_store")
+        if session_store is None:
+            raise HTTPException(status_code=500, detail="Omni session store is not configured")
+        session = session_store.get_session(str(request.cookies.get(SESSION_COOKIE_NAME) or ""))
+        if session is None:
+            raise HTTPException(status_code=401, detail="请先登录 OmniAPI 后再使用生图功能。")
         limiter = h.get("omni_submit_limiter")
         client_ip = request.headers.get("cf-connecting-ip") or (request.client.host if request.client else "unknown")
         if limiter is not None and not limiter.allow(str(client_ip)):
@@ -41,11 +45,22 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
         queue_state = ctx.queue_storage.read_state()
         if len(queue_state.get("waiting", [])) >= 100:
             raise HTTPException(status_code=429, detail="当前排队任务过多，请稍后再试")
-        return api_key
+        return session
 
-    def omni_auth_values(omni_api_key: str | None, api_provider_id: str | None, api_mode: str | None, codex_mode: str | None) -> tuple[str, str | None, str | None, str | None, str | None, int]:
-        if omni_api_key is not None:
-            return "api", "omni-poc", "Omni BYOK", "images", None, 1
+    async def omni_key_from_request(request: Request, sub2api_key_id: str | None) -> dict[str, Any] | None:
+        session = omni_session_from_request(request)
+        if session is None:
+            return None
+        config = h.get("omni_poc_config")
+        session_store = h.get("omni_session_store")
+        try:
+            return await resolve_omni_image_key(config, session_store, session, str(sub2api_key_id or ""))
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    def omni_auth_values(omni_key: dict[str, Any] | None, api_provider_id: str | None, api_mode: str | None, codex_mode: str | None, web_search: bool = False) -> tuple[str, str | None, str | None, str | None, str | None, int]:
+        if omni_key is not None:
+            return "api", "omni-poc", "Omni API Key", "responses" if web_search else "images", None, 1
         auth_source = ctx.auth_settings.read_source() if not h["client_factory_overridden"] else "codex"
         effective_api_provider_id = h["request_api_provider_id"](auth_source, api_provider_id)
         effective_api_provider_name = h["request_api_provider_name"](auth_source, effective_api_provider_id)
@@ -54,13 +69,18 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
         effective_api_images_concurrency = h["request_api_images_concurrency"](auth_source, effective_api_provider_id)
         return auth_source, effective_api_provider_id, effective_api_provider_name, effective_api_mode, effective_codex_mode, effective_api_images_concurrency
 
-    def put_omni_task_key(task_id: str, omni_api_key: str | None) -> None:
-        if omni_api_key is None:
+    def put_omni_task_key(task_id: str, omni_key: dict[str, Any] | None) -> None:
+        if omni_key is None:
             return
         store = h.get("omni_task_secret_store")
         if store is None:
             raise HTTPException(status_code=500, detail="Omni POC secret store is not configured")
-        store.put_task_key(task_id, omni_api_key)
+        store.put_task_key(task_id, str(omni_key.get("key") or ""))
+
+    def omni_session_params(request: Request) -> dict[str, Any]:
+        session_store = h.get("omni_session_store")
+        session = session_store.get_session(str(request.cookies.get(SESSION_COOKIE_NAME) or "")) if session_store is not None else None
+        return {"sub2api_user_id": session.sub2api_user_id} if session is not None else {}
 
     @app.post("/api/generate")
     async def generate(
@@ -82,19 +102,20 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
         codex_mode: str | None = Form(None),
         api_mode: str | None = Form(None),
         api_provider_id: str | None = Form(None),
+        sub2api_key_id: str | None = Form(None),
         prompt_for_model: str | None = Form(None),
         prompt_fidelity: str = Form(DEFAULT_PROMPT_FIDELITY),
         gallery_image_ids: list[str] | None = Form(None),
         reference_asset_ids: list[str] | None = Form(None),
         reference_images: list[UploadFile] | None = File(None),
     ) -> dict[str, Any]:
-        omni_api_key = omni_poc_key_from_request(request)
-        if omni_api_key is not None:
+        omni_key = await omni_key_from_request(request, sub2api_key_id)
+        if omni_key is not None:
             try:
                 validate_upload_limits(reference_images or [], max_files=4, max_bytes_each=8 * 1024 * 1024)
             except ValueError as exc:
                 raise HTTPException(status_code=400, detail=str(exc)) from exc
-        if omni_api_key is None and not ctx.auth_checker():
+        if omni_key is None and not ctx.auth_checker():
             raise HTTPException(status_code=401, detail="Codex auth is not available")
 
         gallery_refs, gallery_data_urls = _resolve_gallery_refs(ctx.gallery_storage, gallery_image_ids or [])
@@ -120,7 +141,7 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
             effective_api_mode,
             effective_codex_mode,
             effective_api_images_concurrency,
-        ) = omni_auth_values(omni_api_key, api_provider_id, api_mode, codex_mode)
+        ) = omni_auth_values(omni_key, api_provider_id, api_mode, codex_mode, bool(web_search))
         requested_backend = h["backend_for_submit"](auth_source, effective_api_mode, effective_codex_mode)
         transport_mode = effective_api_mode or effective_codex_mode
         web_search_enabled = bool(web_search) and requested_backend.endswith("_responses")
@@ -191,8 +212,10 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
             params["api_provider_name"] = effective_api_provider_name
         if auth_source == "api" and effective_api_mode == "images":
             params["api_images_concurrency"] = effective_api_images_concurrency
-        if omni_api_key is not None:
+        if omni_key is not None:
             params["omni_poc"] = True
+            params["sub2api_api_key_id"] = str(omni_key.get("id") or sub2api_key_id or "")
+            params.update(omni_session_params(request))
         metadata = _write_queued_metadata(
             ctx.storage,
             task.task_id,
@@ -209,7 +232,7 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
             requested_backend=requested_backend,
             max_attempts=ctx.queue_manager.max_attempts if ctx.queue_manager is not None else 1,
         )
-        put_omni_task_key(task.task_id, omni_api_key)
+        put_omni_task_key(task.task_id, omni_key)
         ctx.queue_storage.enqueue(task.task_id)
         h["ensure_queue_worker_running"]()
         return {
@@ -238,6 +261,7 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
         codex_mode: str | None = Form(None),
         api_mode: str | None = Form(None),
         api_provider_id: str | None = Form(None),
+        sub2api_key_id: str | None = Form(None),
         prompt_for_model: str | None = Form(None),
         prompt_fidelity: str = Form(DEFAULT_PROMPT_FIDELITY),
         gallery_image_ids: list[str] | None = Form(None),
@@ -245,8 +269,8 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
         images: list[UploadFile] | None = File(None),
         mask: UploadFile | None = File(None),
     ) -> dict[str, Any]:
-        omni_api_key = omni_poc_key_from_request(request)
-        if omni_api_key is not None:
+        omni_key = await omni_key_from_request(request, sub2api_key_id)
+        if omni_key is not None:
             upload_items = list(images or [])
             if mask is not None:
                 upload_items.append(mask)
@@ -254,7 +278,7 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
                 validate_upload_limits(upload_items, max_files=5, max_bytes_each=8 * 1024 * 1024)
             except ValueError as exc:
                 raise HTTPException(status_code=400, detail=str(exc)) from exc
-        if omni_api_key is None and not ctx.auth_checker():
+        if omni_key is None and not ctx.auth_checker():
             raise HTTPException(status_code=401, detail="Codex auth is not available")
 
         if not images and not _dedupe_preserve_order(gallery_image_ids or []) and not _dedupe_preserve_order(reference_asset_ids or []):
@@ -287,7 +311,7 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
             effective_api_mode,
             effective_codex_mode,
             effective_api_images_concurrency,
-        ) = omni_auth_values(omni_api_key, api_provider_id, api_mode, codex_mode)
+        ) = omni_auth_values(omni_key, api_provider_id, api_mode, codex_mode, bool(web_search))
         requested_backend = h["backend_for_submit"](auth_source, effective_api_mode, effective_codex_mode)
         transport_mode = effective_api_mode or effective_codex_mode
         web_search_enabled = bool(web_search) and requested_backend.endswith("_responses")
@@ -366,8 +390,10 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
             params["api_provider_name"] = effective_api_provider_name
         if auth_source == "api" and effective_api_mode == "images":
             params["api_images_concurrency"] = effective_api_images_concurrency
-        if omni_api_key is not None:
+        if omni_key is not None:
             params["omni_poc"] = True
+            params["sub2api_api_key_id"] = str(omni_key.get("id") or sub2api_key_id or "")
+            params.update(omni_session_params(request))
         metadata = _write_queued_metadata(
             ctx.storage,
             task.task_id,
@@ -384,7 +410,7 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
             requested_backend=requested_backend,
             max_attempts=ctx.queue_manager.max_attempts if ctx.queue_manager is not None else 1,
         )
-        put_omni_task_key(task.task_id, omni_api_key)
+        put_omni_task_key(task.task_id, omni_key)
         ctx.queue_storage.enqueue(task.task_id)
         h["ensure_queue_worker_running"]()
         return {

@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import os
+import json
 import shutil
 import tempfile
 from pathlib import Path
 from unittest import TestCase
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from cryptography.fernet import Fernet
 from fastapi.testclient import TestClient
@@ -17,6 +18,7 @@ from codex_image.webui.omni_poc import (
     mask_api_key,
     omni_poc_enabled,
 )
+from codex_image.webui.omni_session import OmniSessionStore
 
 
 class TempDirMixin:
@@ -119,15 +121,24 @@ class OmniPOCGenerationTests(TempDirMixin, TestCase):
             data={"prompt": "test image", "model": "gpt-image-2"},
         )
         self.assertEqual(response.status_code, 401)
-        self.assertIn("Omni API Key", response.json()["detail"])
+        self.assertIn("请先登录 OmniAPI", response.json()["detail"])
 
-    def test_generate_stores_task_scoped_omni_key_without_metadata_leak(self) -> None:
+    def test_generate_stores_task_scoped_selected_key_without_metadata_leak(self) -> None:
         app, _ = self.create_poc_app()
-        response = TestClient(app).post(
-            "/api/generate",
-            headers={"X-Omni-API-Key": "sk-task-secret"},
-            data={"prompt": "test image", "model": "gpt-image-2"},
+        session_store = app.state.ctx.route_helpers["omni_session_store"]
+        session = session_store.create_session(
+            {"id": 123, "email": "user@example.test", "username": "user", "balance": 12.5},
+            "sub2api-token",
         )
+        with patch(
+            "codex_image.webui.routes.generation.resolve_omni_image_key",
+            return_value={"id": "456", "key": "sk-task-secret", "name": "image key", "group": {"name": "default"}},
+        ):
+            response = TestClient(app).post(
+                "/api/generate",
+                cookies={"omni_lens_session": session.id},
+                data={"prompt": "test image", "model": "gpt-image-2", "sub2api_key_id": "456"},
+            )
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         task_id = payload["task"]["task_id"]
@@ -135,14 +146,59 @@ class OmniPOCGenerationTests(TempDirMixin, TestCase):
         self.assertEqual(metadata["params"]["omni_poc"], True)
         self.assertEqual(metadata["params"]["api_provider_id"], "omni-poc")
         self.assertEqual(metadata["params"]["api_mode"], "images")
+        self.assertEqual(metadata["params"]["sub2api_api_key_id"], "456")
+        self.assertEqual(metadata["params"]["sub2api_user_id"], 123)
         self.assertEqual(app.state.ctx.route_helpers["omni_task_secret_store"].get_task_key(task_id), "sk-task-secret")
         self.assertNotIn("sk-task-secret", str(metadata))
+
+    def test_generate_with_web_search_uses_omni_responses_backend(self) -> None:
+        app, _ = self.create_poc_app()
+        session_store = app.state.ctx.route_helpers["omni_session_store"]
+        session = session_store.create_session(
+            {"id": 123, "email": "user@example.test", "username": "user", "balance": 12.5},
+            "sub2api-token",
+        )
+        with patch(
+            "codex_image.webui.routes.generation.resolve_omni_image_key",
+            return_value={"id": "456", "key": "sk-task-secret", "name": "image key", "group": {"name": "default"}},
+        ):
+            response = TestClient(app).post(
+                "/api/generate",
+                cookies={"omni_lens_session": session.id},
+                data={"prompt": "test image with search", "model": "gpt-image-2", "sub2api_key_id": "456", "web_search": "true"},
+            )
+        self.assertEqual(response.status_code, 200)
+        task_id = response.json()["task"]["task_id"]
+        metadata = app.state.ctx.storage.read_metadata(task_id)
+        request = json.loads(app.state.ctx.storage.request_path(task_id).read_text(encoding="utf-8"))
+        self.assertEqual(metadata["requested_backend"], "openai_responses")
+        self.assertEqual(metadata["params"]["api_mode"], "responses")
+        self.assertTrue(metadata["params"]["web_search"])
+        self.assertEqual(metadata["params"]["sub2api_api_key_id"], "456")
+        self.assertEqual(request["endpoint"], "/responses")
+        self.assertEqual(request["tools"][0]["type"], "web_search")
+
+    def test_generate_rejects_missing_selected_key(self) -> None:
+        app, _ = self.create_poc_app()
+        session_store = app.state.ctx.route_helpers["omni_session_store"]
+        session = session_store.create_session(
+            {"id": 123, "email": "user@example.test", "username": "user", "balance": 12.5},
+            "sub2api-token",
+        )
+        response = TestClient(app).post(
+            "/api/generate",
+            cookies={"omni_lens_session": session.id},
+            data={"prompt": "test image", "model": "gpt-image-2"},
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("请选择 Omni API Key", response.json()["detail"])
 
 
 class OmniPOCQueueRuntimeTests(TempDirMixin, TestCase):
     def test_queue_client_uses_task_secret(self) -> None:
         from codex_image.webui.queue import QueueChannel
         from codex_image.webui.queue_runtime import _client_for_queue_channel
+        from codex_image.client import OpenAIImagesImageClient
 
         app, _ = OmniPOCGenerationTests.create_poc_app(self)
         ctx = app.state.ctx
@@ -156,6 +212,26 @@ class OmniPOCQueueRuntimeTests(TempDirMixin, TestCase):
 
         self.assertEqual(client.api_key, "sk-task")
         self.assertEqual(client.base_url, "http://127.0.0.1:8080/v1")
+        self.assertIsInstance(client, OpenAIImagesImageClient)
+
+    def test_queue_client_uses_responses_client_for_omni_web_search_task(self) -> None:
+        from codex_image.webui.queue import QueueChannel
+        from codex_image.webui.queue_runtime import _client_for_queue_channel
+        from codex_image.client import OpenAIResponsesImageClient
+
+        app, _ = OmniPOCGenerationTests.create_poc_app(self)
+        ctx = app.state.ctx
+        ctx.route_helpers["omni_task_secret_store"].put_task_key("task-1", "sk-task")
+
+        client = _client_for_queue_channel(
+            ctx,
+            QueueChannel(channel_id="api:default:1", auth_source="api", account_id=None),
+            {"task_id": "task-1", "params": {"omni_poc": True, "api_mode": "responses"}},
+        )
+
+        self.assertEqual(client.api_key, "sk-task")
+        self.assertEqual(client.responses_url, "http://127.0.0.1:8080/v1/responses")
+        self.assertIsInstance(client, OpenAIResponsesImageClient)
 
     def test_poc_mode_starts_api_queue_channels(self) -> None:
         app, _ = OmniPOCGenerationTests.create_poc_app(self)
@@ -165,11 +241,70 @@ class OmniPOCQueueRuntimeTests(TempDirMixin, TestCase):
 
 
 class OmniPOCValidationEndpointTests(TempDirMixin, TestCase):
-    def test_validate_requires_header(self) -> None:
+    def test_auth_session_exchange_and_key_listing(self) -> None:
         app, _ = OmniPOCGenerationTests.create_poc_app(self)
-        response = TestClient(app).post("/api/omni/validate")
+        client = TestClient(app)
+
+        async def fake_verify(config, access_token):
+            self.assertEqual(access_token, "sub2api-token")
+            return {"id": 123, "email": "user@example.test", "username": "user", "balance": 12.5}
+
+        async def fake_key_dtos(config, token):
+            self.assertEqual(token, "sub2api-token")
+            return [
+                {
+                    "id": "456",
+                    "name": "image key",
+                    "group_id": "g1",
+                    "group_name": "default",
+                    "masked_key": "sk-...cret",
+                    "supports_image_model": True,
+                    "supports_title_model": True,
+                }
+            ]
+
+        with (
+            patch("codex_image.webui.routes.omni_auth.verify_sub2api_token", fake_verify),
+            patch("codex_image.webui.routes.omni_auth.usable_key_dtos", fake_key_dtos),
+        ):
+            exchange = client.post("/api/auth/sub2api/exchange", json={"accessToken": "sub2api-token"})
+            self.assertEqual(exchange.status_code, 200)
+            self.assertTrue(exchange.json()["authenticated"])
+            self.assertEqual(exchange.json()["user"]["id"], 123)
+
+            session = client.get("/api/auth/session")
+            self.assertEqual(session.status_code, 200)
+            self.assertTrue(session.json()["authenticated"])
+
+            keys = client.get("/api/omni/keys")
+            self.assertEqual(keys.status_code, 200)
+            payload = keys.json()
+            self.assertEqual(payload["model"], "gpt-image-2")
+            self.assertEqual(payload["title_model"], "gpt-5.4-mini")
+            self.assertEqual(payload["keys"][0]["id"], "456")
+            self.assertTrue(payload["keys"][0]["supports_title_model"])
+            self.assertNotIn("sk-image-secret", str(payload))
+
+    def test_key_listing_requires_session(self) -> None:
+        app, _ = OmniPOCGenerationTests.create_poc_app(self)
+        response = TestClient(app).get("/api/omni/keys")
         self.assertEqual(response.status_code, 401)
-        self.assertIn("Omni API Key", response.json()["detail"])
+        self.assertIn("请先登录 OmniAPI", response.json()["detail"])
+
+    def test_session_store_encrypts_sub2api_token(self) -> None:
+        tmp = Path(self.create_temp_dir())
+        config = OmniPOCConfig(
+            enabled=True,
+            base_url="http://127.0.0.1:8080/v1",
+            image_model="gpt-image-2",
+            secret_key=Fernet.generate_key().decode("ascii"),
+            db_path=tmp / "omni-poc.db",
+            source_url="https://example.test/source",
+        )
+        store = OmniSessionStore(config)
+        session = store.create_session({"id": 123, "email": "u@example.test", "username": "u", "balance": 1}, "sub2api-token")
+        self.assertEqual(store.decrypt_token(session), "sub2api-token")
+        self.assertNotIn(b"sub2api-token", config.db_path.read_bytes())
 
 
 class OmniPOCLimitTests(TestCase):

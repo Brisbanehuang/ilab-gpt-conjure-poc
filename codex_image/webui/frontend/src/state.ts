@@ -13,6 +13,9 @@ export interface WebUIState {
   tasksRequestSeq: number;
   realtimeSource: EventSource | null;
   realtimeSnapshotNeedsArchiveMigration: boolean;
+  realtimeReconnectTimerId: number | null;
+  realtimeReconnectAttempts: number;
+  activeTaskPollTimerId: number | null;
   queueDragTaskId: string | null;
   expandedTaskGroupKey: string | null;
   taskNotifications: TaskNotification[];

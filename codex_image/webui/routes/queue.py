@@ -7,7 +7,15 @@ from fastapi import Body, FastAPI, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
 from codex_image.webui.context import WebUIContext
-from codex_image.webui.events import event_key, event_snapshot, queue_snapshot, queued_or_running_task_ids, sse_message, task_event
+from codex_image.webui.events import (
+    event_key,
+    event_snapshot,
+    queue_snapshot,
+    queued_or_running_task_ids,
+    sse_comment,
+    sse_message,
+    task_events_for_finished_ids,
+)
 
 EVENT_STREAM_CHECK_INTERVAL_SECONDS = 1.0
 
@@ -43,14 +51,13 @@ def register_queue_routes(app: FastAPI, ctx: WebUIContext) -> None:
                 queue = queue_snapshot(ctx)
                 queue_key = event_key(queue)
                 if queue_key == previous_queue_key:
+                    yield sse_comment("heartbeat")
                     continue
 
                 yield sse_message({"type": "queue", "queue": queue})
                 current_task_ids = queued_or_running_task_ids(queue)
-                for task_id in sorted(previous_task_ids - current_task_ids):
-                    task_payload = task_event(ctx, task_id)
-                    if task_payload is not None:
-                        yield sse_message(task_payload)
+                for task_payload in task_events_for_finished_ids(ctx, previous_task_ids - current_task_ids):
+                    yield sse_message(task_payload)
                 previous_queue_key = queue_key
                 previous_task_ids = current_task_ids
 

@@ -12458,6 +12458,9 @@
       tasksRequestSeq: 0,
       realtimeSource: null,
       realtimeSnapshotNeedsArchiveMigration: false,
+      realtimeReconnectTimerId: null,
+      realtimeReconnectAttempts: 0,
+      activeTaskPollTimerId: null,
       queueDragTaskId: null,
       expandedTaskGroupKey: null,
       expandedTaskGroupAnimationPending: false,
@@ -28703,111 +28706,170 @@ ${hint}` : hint;
   }
 
   // codex_image/webui/frontend/src/omni-poc-key.ts
-  var STORAGE_KEY = "ilab.omniApiKey";
+  var SELECTED_KEY_STORAGE = "ilab.omniSelectedKeyId";
+  var LOGIN_URL = "https://api.brislouise.online/image-generator";
   var enabled = false;
   var sourceUrl = "https://github.com/Brisbanehuang/ilab-gpt-conjure-poc";
+  var authenticated = false;
+  var selectedKeyId = window.localStorage.getItem(SELECTED_KEY_STORAGE)?.trim() || "";
+  var keys = [];
+  var user = null;
   function isOmniPocMode() {
     return enabled || document.documentElement.classList.contains("omni-poc-mode");
   }
-  function getOmniApiKey() {
-    return window.localStorage.getItem(STORAGE_KEY)?.trim() || "";
-  }
-  function setOmniApiKey(value) {
-    const clean = value.trim();
-    if (clean) {
-      window.localStorage.setItem(STORAGE_KEY, clean);
-    } else {
-      window.localStorage.removeItem(STORAGE_KEY);
-    }
-  }
-  function maskOmniApiKey(value) {
-    const clean = value.trim();
-    if (!clean) return "";
-    if (clean.length <= 8) return "********";
-    return `${clean.slice(0, 3)}...${clean.slice(-4)}`;
+  function getSelectedOmniKeyId() {
+    return selectedKeyId;
   }
   function omniHeaders() {
-    const apiKey = getOmniApiKey();
-    return isOmniPocMode() && apiKey ? { "X-Omni-API-Key": apiKey } : {};
+    return {};
   }
   function requireOmniApiKeyBeforeSubmit() {
-    if (isOmniPocMode() && !getOmniApiKey()) {
-      throw new Error("\u8BF7\u5148\u586B\u5199 Omni API Key");
+    if (!isOmniPocMode()) return;
+    if (!authenticated) {
+      throw new Error("\u8BF7\u5148\u4ECE Omni \u4E3B\u7AD9\u767B\u5F55\u540E\u518D\u4F7F\u7528\u751F\u56FE\u529F\u80FD");
+    }
+    if (!selectedKeyId) {
+      throw new Error("\u8BF7\u9009\u62E9 Omni API Key");
     }
   }
   function updateOmniLegacyAuthState() {
     const bridge39 = getLegacyBridge();
-    bridge39.state.authAvailable = true;
+    const ready = Boolean(authenticated && selectedKeyId);
+    bridge39.state.authAvailable = ready;
     bridge39.state.authStatus = {
       selected_source: "api",
       effective_source: "api",
-      auth_available: true,
+      auth_available: ready,
       sources: {}
     };
     if (bridge39.els.apiStatus) {
-      bridge39.els.apiStatus.className = "status-dot ok";
+      bridge39.els.apiStatus.className = `status-dot ${ready ? "ok" : "error"}`;
     }
     if (bridge39.els.runButton) {
-      bridge39.els.runButton.disabled = false;
+      bridge39.els.runButton.disabled = !ready;
     }
     if (bridge39.els.authSourceDetail) {
-      bridge39.els.authSourceDetail.textContent = "Omni API Key";
-      bridge39.els.authSourceDetail.title = "Omni API Key";
+      const text = ready ? "Omni API Key" : authenticated ? "\u8BF7\u9009\u62E9 Omni API Key" : "\u8BF7\u4ECE Omni \u4E3B\u7AD9\u767B\u5F55";
+      bridge39.els.authSourceDetail.textContent = text;
+      bridge39.els.authSourceDetail.title = text;
     }
   }
   function mountPoint() {
     const bridge39 = getLegacyBridge();
     return bridge39.els.authSourceGroup?.parentElement || document.querySelector("header") || document.body;
   }
+  function labelForKey(key) {
+    const group = key.group_name ? ` \xB7 ${key.group_name}` : "";
+    const mask = key.masked_key ? ` \xB7 ${key.masked_key}` : "";
+    const title = key.supports_title_model ? " \xB7 \u652F\u6301\u6807\u9898" : "";
+    return `${key.name || "Omni API Key"}${group}${mask}${title}`;
+  }
+  function renderKeyOptions(select) {
+    select.innerHTML = "";
+    if (!keys.length) {
+      const option = document.createElement("option");
+      option.value = "";
+      option.textContent = authenticated ? "\u6CA1\u6709\u53EF\u7528\u7684 gpt-image-2 API Key" : "\u8BF7\u5148\u767B\u5F55";
+      select.appendChild(option);
+      select.value = "";
+      selectedKeyId = "";
+      window.localStorage.removeItem(SELECTED_KEY_STORAGE);
+      return;
+    }
+    keys.forEach((key) => {
+      const option = document.createElement("option");
+      option.value = key.id;
+      option.textContent = labelForKey(key);
+      select.appendChild(option);
+    });
+    if (!keys.some((key) => key.id === selectedKeyId)) {
+      selectedKeyId = keys[0]?.id || "";
+    }
+    select.value = selectedKeyId;
+    if (selectedKeyId) {
+      window.localStorage.setItem(SELECTED_KEY_STORAGE, selectedKeyId);
+    }
+  }
+  function renderSession(root) {
+    const status = root.querySelector(".omni-poc-key-status");
+    const account = root.querySelector(".omni-poc-account");
+    const select = root.querySelector(".omni-poc-key-select");
+    const login = root.querySelector(".omni-poc-login-link");
+    const refresh = root.querySelector('[data-action="refresh"]');
+    if (account) {
+      account.textContent = authenticated && user ? `${user.username || user.email || `\u7528\u6237 ${user.id}`} \xB7 \u4F59\u989D ${Number(user.balance || 0).toFixed(2)}` : "\u672A\u767B\u5F55 Omni \u4E3B\u7AD9";
+    }
+    if (login) {
+      login.classList.toggle("hidden", authenticated);
+    }
+    if (select) {
+      select.disabled = !authenticated || !keys.length;
+      renderKeyOptions(select);
+    }
+    if (refresh) {
+      refresh.disabled = false;
+    }
+    if (status) {
+      status.textContent = authenticated ? keys.length ? "\u8BF7\u9009\u62E9\u8981\u7528\u4E8E\u751F\u6210\u56FE\u7247\u7684 API Key" : "\u6CA1\u6709\u68C0\u6D4B\u5230\u53EF\u8C03\u7528 gpt-image-2 \u7684 API Key" : "\u8BF7\u4ECE Omni \u4E3B\u7AD9\u8FDB\u5165\u65B0\u7248 Image Studio";
+    }
+    updateOmniLegacyAuthState();
+  }
+  async function refreshSessionAndKeys(root) {
+    const status = root.querySelector(".omni-poc-key-status");
+    const refresh = root.querySelector('[data-action="refresh"]');
+    if (status) status.textContent = "\u6B63\u5728\u8BFB\u53D6\u767B\u5F55\u72B6\u6001";
+    if (refresh) refresh.disabled = true;
+    try {
+      const sessionResponse = await fetch("/api/auth/session", { credentials: "include" });
+      const sessionPayload = await sessionResponse.json().catch(() => ({}));
+      authenticated = Boolean(sessionPayload?.authenticated);
+      user = authenticated ? sessionPayload.user || null : null;
+      keys = [];
+      if (authenticated) {
+        const keysResponse = await fetch("/api/omni/keys", { credentials: "include" });
+        const keysPayload = await keysResponse.json().catch(() => ({}));
+        keys = Array.isArray(keysPayload?.keys) ? keysPayload.keys : [];
+      }
+    } catch {
+      authenticated = false;
+      user = null;
+      keys = [];
+      if (status) status.textContent = "\u767B\u5F55\u72B6\u6001\u8BFB\u53D6\u5931\u8D25";
+    } finally {
+      renderSession(root);
+    }
+  }
   function renderKeyControl() {
     if (document.querySelector(".omni-poc-key-control")) return;
     const root = document.createElement("div");
     root.className = "omni-poc-key-control";
     root.innerHTML = `
-    <label class="omni-poc-key-label" for="omni-poc-key-input">Omni API Key</label>
-    <input id="omni-poc-key-input" class="omni-poc-key-input" type="password" autocomplete="off" placeholder="sk-..." />
-    <button class="omni-poc-key-button" type="button" data-action="save">\u4FDD\u5B58</button>
-    <button class="omni-poc-key-button" type="button" data-action="clear">\u6E05\u9664</button>
+    <label class="omni-poc-key-label" for="omni-poc-key-select">Omni API Key</label>
+    <span class="omni-poc-account"></span>
+    <select id="omni-poc-key-select" class="omni-poc-key-select"></select>
+    <button class="omni-poc-key-button" type="button" data-action="refresh">\u5237\u65B0</button>
+    <a class="omni-poc-key-button omni-poc-login-link" href="${LOGIN_URL}">\u767B\u5F55 Omni</a>
     <span class="omni-poc-key-status" aria-live="polite"></span>
-    <span class="omni-poc-key-notice">Key \u4FDD\u5B58\u5728\u672C\u6D4F\u89C8\u5668\uFF0C\u4EC5\u5728\u9A8C\u8BC1\u548C\u63D0\u4EA4\u4EFB\u52A1\u65F6\u53D1\u9001\u5230 POC \u540E\u7AEF\u3002</span>
+    <span class="omni-poc-key-notice">\u4F7F\u7528\u4F60\u5728 Omni \u4E3B\u7AD9\u767B\u5F55\u540E\u7684 API Key\uFF1BKey \u4E0D\u4F1A\u4FDD\u5B58\u5728\u6D4F\u89C8\u5668\u3002</span>
     <a class="omni-poc-source-link" href="${sourceUrl}" target="_blank" rel="noreferrer">\u6E90\u7801</a>
   `;
     mountPoint().appendChild(root);
-    const input = root.querySelector("#omni-poc-key-input");
-    const status = root.querySelector(".omni-poc-key-status");
-    const current = getOmniApiKey();
-    if (input && current) input.value = current;
-    if (status && current) status.textContent = `\u5DF2\u4FDD\u5B58 ${maskOmniApiKey(current)}`;
-    root.addEventListener("click", async (event) => {
+    root.addEventListener("click", (event) => {
       const target = event.target;
-      const action = target.dataset.action;
-      if (!action || !input || !status) return;
-      if (action === "clear") {
-        setOmniApiKey("");
-        input.value = "";
-        status.textContent = "\u5DF2\u6E05\u9664";
-        updateOmniLegacyAuthState();
-        return;
-      }
-      const value = input.value.trim();
-      if (!value) {
-        status.textContent = "\u8BF7\u8F93\u5165 Omni API Key";
-        return;
-      }
-      setOmniApiKey(value);
-      status.textContent = "\u9A8C\u8BC1\u4E2D";
-      const response = await fetch("/api/omni/validate", {
-        method: "POST",
-        headers: omniHeaders()
-      });
-      if (response.ok) {
-        status.textContent = `\u53EF\u7528 ${maskOmniApiKey(value)}`;
-        updateOmniLegacyAuthState();
-      } else {
-        const payload2 = await response.json().catch(() => ({}));
-        status.textContent = String(payload2.detail || "\u9A8C\u8BC1\u5931\u8D25");
+      if (target.dataset.action === "refresh") {
+        void refreshSessionAndKeys(root);
       }
     });
+    root.querySelector(".omni-poc-key-select")?.addEventListener("change", (event) => {
+      selectedKeyId = event.target.value;
+      if (selectedKeyId) {
+        window.localStorage.setItem(SELECTED_KEY_STORAGE, selectedKeyId);
+      } else {
+        window.localStorage.removeItem(SELECTED_KEY_STORAGE);
+      }
+      updateOmniLegacyAuthState();
+    });
+    void refreshSessionAndKeys(root);
   }
   async function initOmniPocKeyControl() {
     try {
@@ -37031,6 +37093,10 @@ ${galleryText}`;
       gallery_image_ids: galleries.map((source) => source.id),
       reference_asset_ids: assets.map((source) => source.id)
     };
+    const selectedOmniKeyId = getSelectedOmniKeyId();
+    if (selectedOmniKeyId) {
+      payload2.sub2api_api_key_id = selectedOmniKeyId;
+    }
     if (isApi) {
       const apiMode = currentApiMode4();
       const action = state24.mode === "edit" || uploads.length || assets.length || galleries.length ? "edit" : "generate";
@@ -37180,6 +37246,8 @@ ${galleryText}`;
     form.append("n", String(params.n));
     form.append("prompt_fidelity", currentPromptFidelity3());
     if (params.web_search) form.append("web_search", "true");
+    const selectedOmniKeyId = getSelectedOmniKeyId();
+    if (selectedOmniKeyId) form.append("sub2api_key_id", selectedOmniKeyId);
     if (currentAuthSource3() === "api") {
       form.append("api_provider_id", currentApiProviderId3());
       form.append("api_mode", currentApiMode4());
@@ -37393,6 +37461,9 @@ ${galleryText}`;
   // codex_image/webui/frontend/src/queue.ts
   var REALTIME_EVENTS_URL = "/api/events?stream=1";
   var QUEUE_DISPATCH_RESYNC_DELAY_MS = 1500;
+  var REALTIME_RECONNECT_INITIAL_DELAY_MS = 1500;
+  var REALTIME_RECONNECT_MAX_DELAY_MS = 15e3;
+  var ACTIVE_TASK_POLL_INTERVAL_MS = 5e3;
   var queueFeatureInitialized = false;
   function initializeQueueFeature() {
     if (queueFeatureInitialized) return;
@@ -37416,10 +37487,15 @@ ${galleryText}`;
   function startRealtimeUpdates({ migrateLegacyArchives = false } = {}) {
     const state32 = getState();
     if (!window.EventSource) return false;
-    closeRealtimeUpdates();
+    closeRealtimeSource();
+    clearRealtimeReconnectTimer();
     state32.realtimeSnapshotNeedsArchiveMigration = migrateLegacyArchives;
     const source = new EventSource(REALTIME_EVENTS_URL);
     state32.realtimeSource = source;
+    source.onopen = () => {
+      if (state32.realtimeSource !== source) return;
+      state32.realtimeReconnectAttempts = 0;
+    };
     source.onmessage = (event) => {
       handleRealtimeMessage(event).catch((error) => {
         console.error(error);
@@ -37429,21 +37505,42 @@ ${galleryText}`;
     source.onerror = () => {
       if (state32.realtimeSource !== source) return;
       const shouldMigrateArchives = state32.realtimeSnapshotNeedsArchiveMigration;
-      closeRealtimeUpdates();
+      closeRealtimeSource();
       state32.realtimeSnapshotNeedsArchiveMigration = false;
       void refreshQueue();
       void getLegacyBridge().methods.refreshTasks({ migrateLegacyArchives: shouldMigrateArchives });
-      if (!isOmniPocMode()) {
-        getLegacyBridge().methods.setStatus(translate("queue.realtimeDisconnected"), "error");
-      }
+      scheduleRealtimeReconnect({ migrateLegacyArchives: false });
     };
     return true;
   }
   function closeRealtimeUpdates() {
+    closeRealtimeSource();
+    clearRealtimeReconnectTimer();
+  }
+  function closeRealtimeSource() {
     const state32 = getState();
     if (!state32.realtimeSource) return;
     state32.realtimeSource.close();
     state32.realtimeSource = null;
+  }
+  function clearRealtimeReconnectTimer() {
+    const state32 = getState();
+    if (!state32.realtimeReconnectTimerId) return;
+    window.clearTimeout(state32.realtimeReconnectTimerId);
+    state32.realtimeReconnectTimerId = null;
+  }
+  function scheduleRealtimeReconnect({ migrateLegacyArchives = false } = {}) {
+    const state32 = getState();
+    if (state32.realtimeReconnectTimerId) return;
+    const delay = Math.min(
+      REALTIME_RECONNECT_INITIAL_DELAY_MS * Math.max(1, 2 ** state32.realtimeReconnectAttempts),
+      REALTIME_RECONNECT_MAX_DELAY_MS
+    );
+    state32.realtimeReconnectAttempts += 1;
+    state32.realtimeReconnectTimerId = window.setTimeout(() => {
+      state32.realtimeReconnectTimerId = null;
+      startRealtimeUpdates({ migrateLegacyArchives });
+    }, delay);
   }
   async function handleRealtimeMessage(event) {
     if (!event.data) return;
@@ -37532,6 +37629,7 @@ ${galleryText}`;
     } else {
       clearQueueDispatchSync();
     }
+    syncActiveTaskPolling();
     const nextRenderKey = queueListRenderKey();
     if (state32.queueRenderKey === nextRenderKey) {
       updateQueueElapsedDisplays();
@@ -37594,6 +37692,40 @@ ${galleryText}`;
     if (!state32.queueDispatchSyncTimerId) return;
     window.clearTimeout(state32.queueDispatchSyncTimerId);
     state32.queueDispatchSyncTimerId = null;
+  }
+  function syncActiveTaskPolling() {
+    if (queueHasActiveTasks()) {
+      scheduleActiveTaskPolling();
+    } else {
+      clearActiveTaskPolling();
+    }
+  }
+  function queueHasActiveTasks(queue = getState().queue) {
+    const waitingCount = Number(queue?.summary?.waiting_count ?? queue?.waiting?.length ?? 0);
+    const runningCount = Number(queue?.summary?.running_count ?? queue?.running?.length ?? 0);
+    return waitingCount + runningCount > 0;
+  }
+  function scheduleActiveTaskPolling() {
+    const state32 = getState();
+    if (state32.activeTaskPollTimerId) return;
+    state32.activeTaskPollTimerId = window.setTimeout(activeTaskPollingTick, ACTIVE_TASK_POLL_INTERVAL_MS);
+  }
+  function clearActiveTaskPolling() {
+    const state32 = getState();
+    if (!state32.activeTaskPollTimerId) return;
+    window.clearTimeout(state32.activeTaskPollTimerId);
+    state32.activeTaskPollTimerId = null;
+  }
+  async function activeTaskPollingTick() {
+    const state32 = getState();
+    state32.activeTaskPollTimerId = null;
+    if (!queueHasActiveTasks()) return;
+    const bridge39 = getLegacyBridge();
+    await refreshQueue();
+    await bridge39.methods.refreshTasks();
+    if (queueHasActiveTasks()) {
+      scheduleActiveTaskPolling();
+    }
   }
   function queueListRenderKey() {
     const state32 = getState();
@@ -38714,8 +38846,8 @@ ${galleryText}`;
   }
   function persistTaskNotificationSeenKeys() {
     try {
-      const keys = Array.from(getLegacyBridge().state.taskNotificationSeenKeys).slice(-MAX_SEEN_TASK_NOTIFICATION_KEYS);
-      localStorage.setItem(TASK_NOTIFICATION_SEEN_KEY, JSON.stringify(keys));
+      const keys2 = Array.from(getLegacyBridge().state.taskNotificationSeenKeys).slice(-MAX_SEEN_TASK_NOTIFICATION_KEYS);
+      localStorage.setItem(TASK_NOTIFICATION_SEEN_KEY, JSON.stringify(keys2));
     } catch {
     }
   }
@@ -38805,6 +38937,7 @@ ${galleryText}`;
       "21:9": [3808, 1632]
     }
   };
+  var MAX_PUBLIC_RUNTIME_SECONDS = 24 * 60 * 60;
   function legacyMethod37(name, ...args) {
     const method = getLegacyBridge().methods[name];
     if (typeof method !== "function") {
@@ -39240,13 +39373,36 @@ ${galleryText}`;
   }
   function taskRuntimeText3(task) {
     if (!task || !["completed", "failed", "partial_failed"].includes(task.status)) return "";
-    const startedAt = timestampMs3(task.started_at || task.created_at);
-    const endedAt = timestampMs3(task.completed_at || task.updated_at);
-    if (startedAt === null || endedAt === null || endedAt < startedAt) return "";
-    const seconds = Math.floor((endedAt - startedAt) / 1e3);
+    const seconds = taskStableRuntimeSeconds(task);
+    if (seconds === null) return "";
     const completion = taskCompletionTimestampText(task);
     const duration = formatDuration2(seconds);
     return completion ? formatTranslation("taskStatus.runtimeCompleted", { duration, time: completion.shortText }) : formatTranslation("taskStatus.runtime", { duration });
+  }
+  function taskStableRuntimeSeconds(task) {
+    const persisted = taskPersistedElapsedSeconds(task);
+    if (persisted !== null) return persisted;
+    const startedAt = timestampMs3(task.started_at || task.created_at);
+    const endedAt = timestampMs3(task.completed_at || task.updated_at);
+    if (startedAt === null || endedAt === null || endedAt < startedAt) return null;
+    const seconds = Math.floor((endedAt - startedAt) / 1e3);
+    if (seconds > MAX_PUBLIC_RUNTIME_SECONDS) {
+      console.warn("Ignoring implausible task runtime", {
+        task_id: task?.task_id,
+        seconds,
+        started_at: task?.started_at,
+        completed_at: task?.completed_at,
+        updated_at: task?.updated_at
+      });
+      return null;
+    }
+    return seconds;
+  }
+  function taskPersistedElapsedSeconds(task) {
+    if (!Array.isArray(task?.outputs)) return null;
+    const values = task.outputs.map((record) => Number(record?.elapsed_seconds)).filter((value) => Number.isFinite(value) && value >= 0);
+    if (!values.length) return null;
+    return Math.floor(Math.max(...values));
   }
   function taskCompletionTimestampText(task) {
     const completedAt = taskCompletionTimestampMs(task);
@@ -39395,6 +39551,8 @@ ${galleryText}`;
       taskHasNonRetryableError,
       taskPartialFailureCanRetryGenericInvalidRequest,
       taskRuntimeText: taskRuntimeText3,
+      taskStableRuntimeSeconds,
+      taskPersistedElapsedSeconds,
       taskCompletionTimestampText,
       taskCompletionTimestampTitle: taskCompletionTimestampTitle2,
       timestampMs: timestampMs3,
@@ -39420,6 +39578,7 @@ ${galleryText}`;
   var els37 = bridge34.els;
   var previewGridEventsBound = false;
   var pendingPreviewRenderToken = 0;
+  var PREVIEW_FINAL_STATUSES = /* @__PURE__ */ new Set(["completed", "failed", "partial_failed", "cancelled"]);
   function legacyMethod38(name, ...args) {
     const method = getLegacyBridge().methods[name];
     if (typeof method !== "function") {
@@ -39508,6 +39667,7 @@ ${galleryText}`;
   function taskPreviewStatus(task) {
     const status = String(task?.status || "");
     const taskId = String(task?.task_id || "");
+    if (PREVIEW_FINAL_STATUSES.has(status)) return status;
     if (queueContainsTask(state28.queue.running, taskId)) return "running";
     if (queueContainsTask(state28.queue.waiting, taskId)) return status === "submitting" ? "submitting" : "queued";
     return status;
@@ -40742,6 +40902,8 @@ ${galleryText}`;
       if (!raw) return;
       localStorage.removeItem(HISTORY_TASK_REUSE_HANDOFF_KEY);
       const parsed = JSON.parse(raw);
+      const handoffIntent = String(parsed?.intent || "view");
+      if (handoffIntent !== "view") return;
       let task = parsed?.task || null;
       const taskId = String(parsed?.task_id || task?.task_id || "");
       if (!taskId) return;

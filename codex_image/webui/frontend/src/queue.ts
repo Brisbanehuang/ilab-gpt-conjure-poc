@@ -1,11 +1,13 @@
 import { getEls } from "./dom";
 import { formatTranslation, LOCALE_CHANGE_EVENT, translate } from "./i18n";
-import { isOmniPocMode } from "./omni-poc-key";
 import { getLegacyBridge, getState } from "./state";
 import type { QueueState, RealtimePayload, WebUITask } from "./types";
 
 const REALTIME_EVENTS_URL = "/api/events?stream=1";
 const QUEUE_DISPATCH_RESYNC_DELAY_MS = 1500;
+const REALTIME_RECONNECT_INITIAL_DELAY_MS = 1500;
+const REALTIME_RECONNECT_MAX_DELAY_MS = 15000;
+const ACTIVE_TASK_POLL_INTERVAL_MS = 5000;
 
 type QueueTask = WebUITask & {
   output_size?: string;
@@ -45,10 +47,15 @@ function bindQueueControls(): void {
 export function startRealtimeUpdates({ migrateLegacyArchives = false } = {}): boolean {
   const state = getState();
   if (!window.EventSource) return false;
-  closeRealtimeUpdates();
+  closeRealtimeSource();
+  clearRealtimeReconnectTimer();
   state.realtimeSnapshotNeedsArchiveMigration = migrateLegacyArchives;
   const source = new EventSource(REALTIME_EVENTS_URL);
   state.realtimeSource = source;
+  source.onopen = () => {
+    if (state.realtimeSource !== source) return;
+    state.realtimeReconnectAttempts = 0;
+  };
   source.onmessage = (event) => {
     handleRealtimeMessage(event).catch((error: unknown) => {
       console.error(error);
@@ -58,22 +65,46 @@ export function startRealtimeUpdates({ migrateLegacyArchives = false } = {}): bo
   source.onerror = () => {
     if (state.realtimeSource !== source) return;
     const shouldMigrateArchives = state.realtimeSnapshotNeedsArchiveMigration;
-    closeRealtimeUpdates();
+    closeRealtimeSource();
     state.realtimeSnapshotNeedsArchiveMigration = false;
     void refreshQueue();
     void getLegacyBridge().methods.refreshTasks({ migrateLegacyArchives: shouldMigrateArchives });
-    if (!isOmniPocMode()) {
-      getLegacyBridge().methods.setStatus(translate("queue.realtimeDisconnected"), "error");
-    }
+    scheduleRealtimeReconnect({ migrateLegacyArchives: false });
   };
   return true;
 }
 
 export function closeRealtimeUpdates(): void {
+  closeRealtimeSource();
+  clearRealtimeReconnectTimer();
+}
+
+function closeRealtimeSource(): void {
   const state = getState();
   if (!state.realtimeSource) return;
   state.realtimeSource.close();
   state.realtimeSource = null;
+}
+
+function clearRealtimeReconnectTimer(): void {
+  const state = getState();
+  if (!state.realtimeReconnectTimerId) return;
+  window.clearTimeout(state.realtimeReconnectTimerId);
+  state.realtimeReconnectTimerId = null;
+}
+
+function scheduleRealtimeReconnect({ migrateLegacyArchives = false } = {}): void {
+  const state = getState();
+  if (state.realtimeReconnectTimerId) return;
+  const delay = Math.min(
+    REALTIME_RECONNECT_INITIAL_DELAY_MS * Math.max(1, 2 ** state.realtimeReconnectAttempts),
+    REALTIME_RECONNECT_MAX_DELAY_MS,
+  );
+  state.realtimeReconnectAttempts += 1;
+  state.realtimeReconnectTimerId = window.setTimeout(() => {
+    state.realtimeReconnectTimerId = null;
+    startRealtimeUpdates({ migrateLegacyArchives });
+  }, delay);
 }
 
 export async function handleRealtimeMessage(event: MessageEvent): Promise<void> {
@@ -171,6 +202,7 @@ export function renderQueue(): void {
   } else {
     clearQueueDispatchSync();
   }
+  syncActiveTaskPolling();
   const nextRenderKey = queueListRenderKey();
   if (state.queueRenderKey === nextRenderKey) {
     updateQueueElapsedDisplays();
@@ -253,6 +285,45 @@ export function clearQueueDispatchSync(): void {
   if (!state.queueDispatchSyncTimerId) return;
   window.clearTimeout(state.queueDispatchSyncTimerId);
   state.queueDispatchSyncTimerId = null;
+}
+
+function syncActiveTaskPolling(): void {
+  if (queueHasActiveTasks()) {
+    scheduleActiveTaskPolling();
+  } else {
+    clearActiveTaskPolling();
+  }
+}
+
+function queueHasActiveTasks(queue: QueueState | null | undefined = getState().queue): boolean {
+  const waitingCount = Number(queue?.summary?.waiting_count ?? queue?.waiting?.length ?? 0);
+  const runningCount = Number(queue?.summary?.running_count ?? queue?.running?.length ?? 0);
+  return waitingCount + runningCount > 0;
+}
+
+function scheduleActiveTaskPolling(): void {
+  const state = getState();
+  if (state.activeTaskPollTimerId) return;
+  state.activeTaskPollTimerId = window.setTimeout(activeTaskPollingTick, ACTIVE_TASK_POLL_INTERVAL_MS);
+}
+
+function clearActiveTaskPolling(): void {
+  const state = getState();
+  if (!state.activeTaskPollTimerId) return;
+  window.clearTimeout(state.activeTaskPollTimerId);
+  state.activeTaskPollTimerId = null;
+}
+
+async function activeTaskPollingTick(): Promise<void> {
+  const state = getState();
+  state.activeTaskPollTimerId = null;
+  if (!queueHasActiveTasks()) return;
+  const bridge = getLegacyBridge();
+  await refreshQueue();
+  await bridge.methods.refreshTasks();
+  if (queueHasActiveTasks()) {
+    scheduleActiveTaskPolling();
+  }
 }
 
 function queueListRenderKey(): string {

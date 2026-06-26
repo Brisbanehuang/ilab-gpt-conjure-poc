@@ -56,6 +56,7 @@ const GPT_IMAGE_2_SIZE_PRESETS: Record<string, Record<string, [number, number]>>
     "21:9": [3808, 1632],
   },
 };
+const MAX_PUBLIC_RUNTIME_SECONDS = 24 * 60 * 60;
 
 function legacyMethod(name: string, ...args: any[]): any {
   const method = getLegacyBridge().methods[name];
@@ -545,15 +546,42 @@ function taskPartialFailureCanRetryGenericInvalidRequest(task: any) {
 
 function taskRuntimeText(task: any) {
   if (!task || !["completed", "failed", "partial_failed"].includes(task.status)) return "";
-  const startedAt = timestampMs(task.started_at || task.created_at);
-  const endedAt = timestampMs(task.completed_at || task.updated_at);
-  if (startedAt === null || endedAt === null || endedAt < startedAt) return "";
-  const seconds = Math.floor((endedAt - startedAt) / 1000);
+  const seconds = taskStableRuntimeSeconds(task);
+  if (seconds === null) return "";
   const completion = taskCompletionTimestampText(task);
   const duration = formatDuration(seconds);
   return completion
     ? formatTranslation("taskStatus.runtimeCompleted", { duration, time: completion.shortText })
     : formatTranslation("taskStatus.runtime", { duration });
+}
+
+function taskStableRuntimeSeconds(task: any) {
+  const persisted = taskPersistedElapsedSeconds(task);
+  if (persisted !== null) return persisted;
+  const startedAt = timestampMs(task.started_at || task.created_at);
+  const endedAt = timestampMs(task.completed_at || task.updated_at);
+  if (startedAt === null || endedAt === null || endedAt < startedAt) return null;
+  const seconds = Math.floor((endedAt - startedAt) / 1000);
+  if (seconds > MAX_PUBLIC_RUNTIME_SECONDS) {
+    console.warn("Ignoring implausible task runtime", {
+      task_id: task?.task_id,
+      seconds,
+      started_at: task?.started_at,
+      completed_at: task?.completed_at,
+      updated_at: task?.updated_at,
+    });
+    return null;
+  }
+  return seconds;
+}
+
+function taskPersistedElapsedSeconds(task: any) {
+  if (!Array.isArray(task?.outputs)) return null;
+  const values = task.outputs
+    .map((record: any) => Number(record?.elapsed_seconds))
+    .filter((value: number) => Number.isFinite(value) && value >= 0);
+  if (!values.length) return null;
+  return Math.floor(Math.max(...values));
 }
 
 function taskCompletionTimestampText(task: any) {
@@ -728,6 +756,8 @@ export function initTaskDerivedFeature() {
     taskHasNonRetryableError,
     taskPartialFailureCanRetryGenericInvalidRequest,
     taskRuntimeText,
+    taskStableRuntimeSeconds,
+    taskPersistedElapsedSeconds,
     taskCompletionTimestampText,
     taskCompletionTimestampTitle,
     timestampMs,
