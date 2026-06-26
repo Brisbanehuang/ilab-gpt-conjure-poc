@@ -240,6 +240,26 @@ class WebUITaskIndexTests(unittest.TestCase):
         self.assertIn({"value": "1152x2048", "count": 1}, summary["sizes"])
         self.assertIn({"value": "high", "count": 2}, summary["qualities"])
 
+    def test_history_rows_use_generated_title_as_compact_preview(self) -> None:
+        with TemporaryDirectory() as tmp:
+            index = SQLiteTaskIndex(Path(tmp) / "tasks.db")
+            index.upsert(
+                {
+                    "task_id": "task-title",
+                    "created_at": "2026-05-09T10:00:00+00:00",
+                    "updated_at": "2026-05-09T10:01:00+00:00",
+                    "status": "completed",
+                    "prompt": "生成一张高完成度艺术海报，主题为黑神话李清照",
+                    "title": "黑神话李清照",
+                    "display_title": "黑神话李清照",
+                    "params": {"size": "1024x1024"},
+                }
+            )
+
+            page = index.query_history(limit=10)
+
+        self.assertEqual(page["tasks"][0]["prompt_preview"], "黑神话李清照")
+
     def test_history_ratio_filter_derives_known_size_and_groups_unknown_as_other(self) -> None:
         with TemporaryDirectory() as tmp:
             index = SQLiteTaskIndex(Path(tmp) / "tasks.db")

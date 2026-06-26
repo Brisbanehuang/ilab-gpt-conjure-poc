@@ -20,6 +20,8 @@ SUMMARY_KEYS = {
     "retry_requested_at",
     "mode",
     "status",
+    "title",
+    "display_title",
     "prompt",
     "prompt_for_model",
     "prompt_constraints",
@@ -522,6 +524,7 @@ def _history_fields_for_metadata(metadata: dict[str, Any]) -> dict[str, Any]:
     params = metadata.get("params") if isinstance(metadata.get("params"), dict) else {}
     prompt = str(metadata.get("prompt") or "")
     prompt_for_model = str(metadata.get("prompt_for_model") or "")
+    title = str(metadata.get("title") or metadata.get("display_title") or "").strip()
     created_at = str(metadata.get("created_at") or "")
     backend = str(metadata.get("backend") or metadata.get("requested_backend") or "")
     provider = str(metadata.get("api_provider_name") or params.get("api_provider_name") or metadata.get("api_provider_id") or params.get("api_provider_id") or "")
@@ -551,8 +554,8 @@ def _history_fields_for_metadata(metadata: dict[str, Any]) -> dict[str, Any]:
         "failed_count": failed_count,
         "total_count": total_count,
         "thumbnail_url": _first_thumbnail_url(task_id, metadata),
-        "prompt_preview": _truncate(prompt, 240),
-        "search_text": "\n".join(value for value in [task_id, prompt, prompt_for_model] if value),
+        "prompt_preview": _truncate(title or prompt, 240),
+        "search_text": "\n".join(value for value in [task_id, title, prompt, prompt_for_model] if value),
     }
 
 

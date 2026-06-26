@@ -400,6 +400,7 @@ def _sidebar_task_card(metadata: dict[str, Any]) -> dict[str, Any]:
     params = metadata.get("params") if isinstance(metadata.get("params"), dict) else {}
     size = str(metadata.get("output_size") or params.get("size") or "")
     thumbnail_url = _first_sidebar_thumbnail_url(metadata)
+    title = _truncate_text(metadata.get("title") or metadata.get("display_title") or "", 80)
     card = {
         "task_id": task_id,
         "summary_only": True,
@@ -413,6 +414,8 @@ def _sidebar_task_card(metadata: dict[str, Any]) -> dict[str, Any]:
         "archived_at": metadata.get("archived_at") or "",
         "status": metadata.get("status") or "",
         "mode": metadata.get("mode") or "",
+        "title": title,
+        "display_title": title,
         "prompt": _truncate_text(metadata.get("prompt") or metadata.get("prompt_for_model") or "", 260),
         "output_size": size,
         "params": {

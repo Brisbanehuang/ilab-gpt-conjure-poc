@@ -35440,7 +35440,7 @@ ${galleryText}`;
     const unread = taskHasUnreadUpdate(task);
     const unreadClass = unread ? " unread" : "";
     const statusClass = task.status ? ` ${escapeHtml13(task.status)}` : "";
-    const title = escapeHtml13(task.prompt || task.mode || "Untitled");
+    const title = escapeHtml13(task.title || task.display_title || task.prompt || task.mode || "Untitled");
     const statusLight = taskStatusLightHtml(task);
     const statusMeta = escapeHtml13(taskMetaDetailsText(task));
     const imageBlocks = taskImageBlocksHtml(task);
@@ -35623,6 +35623,8 @@ ${galleryText}`;
         task.updated_at,
         task.completed_at,
         task.started_at,
+        task.title,
+        task.display_title,
         task.prompt,
         task.mode,
         task.backend,

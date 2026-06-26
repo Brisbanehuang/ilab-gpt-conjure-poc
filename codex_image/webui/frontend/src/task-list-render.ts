@@ -680,7 +680,7 @@ function taskCardHtml(task: any) {
   const unread = taskHasUnreadUpdate(task);
   const unreadClass = unread ? " unread" : "";
   const statusClass = task.status ? ` ${escapeHtml(task.status)}` : "";
-  const title = escapeHtml(task.prompt || task.mode || "Untitled");
+  const title = escapeHtml(task.title || task.display_title || task.prompt || task.mode || "Untitled");
   const statusLight = taskStatusLightHtml(task);
   const statusMeta = escapeHtml(taskMetaDetailsText(task));
   const imageBlocks = taskImageBlocksHtml(task);
@@ -884,6 +884,8 @@ function taskListRenderKey(tasks: any, query: any, layout: any = {}, filters: an
       task.updated_at,
       task.completed_at,
       task.started_at,
+      task.title,
+      task.display_title,
       task.prompt,
       task.mode,
       task.backend,

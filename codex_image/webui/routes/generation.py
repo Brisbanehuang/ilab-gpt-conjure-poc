@@ -21,6 +21,7 @@ from codex_image.webui.omni_session import SESSION_COOKIE_NAME, resolve_omni_ima
 from codex_image.webui.prompt_ratio import append_ratio_prompt_instruction
 from codex_image.webui.storage import utc_now
 from codex_image.webui.task_metadata import _dedupe_preserve_order, _params, _with_file_urls, _write_queued_metadata
+from codex_image.webui.title_generation import generate_task_title
 
 DEFAULT_PROMPT_FIDELITY = "strict"
 
@@ -81,6 +82,14 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
         session_store = h.get("omni_session_store")
         session = session_store.get_session(str(request.cookies.get(SESSION_COOKIE_NAME) or "")) if session_store is not None else None
         return {"sub2api_user_id": session.sub2api_user_id} if session is not None else {}
+
+    async def omni_task_title(omni_key: dict[str, Any] | None, prompt: str) -> str | None:
+        if omni_key is None:
+            return None
+        config = h.get("omni_poc_config")
+        if config is None:
+            return None
+        return await generate_task_title(config, omni_key, prompt)
 
     @app.post("/api/generate")
     async def generate(
@@ -216,6 +225,7 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
             params["omni_poc"] = True
             params["sub2api_api_key_id"] = str(omni_key.get("id") or sub2api_key_id or "")
             params.update(omni_session_params(request))
+        title = await omni_task_title(omni_key, prompt)
         metadata = _write_queued_metadata(
             ctx.storage,
             task.task_id,
@@ -231,6 +241,7 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
             prompt_constraints=prompt_constraints,
             requested_backend=requested_backend,
             max_attempts=ctx.queue_manager.max_attempts if ctx.queue_manager is not None else 1,
+            title=title,
         )
         put_omni_task_key(task.task_id, omni_key)
         ctx.queue_storage.enqueue(task.task_id)
@@ -394,6 +405,7 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
             params["omni_poc"] = True
             params["sub2api_api_key_id"] = str(omni_key.get("id") or sub2api_key_id or "")
             params.update(omni_session_params(request))
+        title = await omni_task_title(omni_key, prompt)
         metadata = _write_queued_metadata(
             ctx.storage,
             task.task_id,
@@ -409,6 +421,7 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
             prompt_constraints=prompt_constraints,
             requested_backend=requested_backend,
             max_attempts=ctx.queue_manager.max_attempts if ctx.queue_manager is not None else 1,
+            title=title,
         )
         put_omni_task_key(task.task_id, omni_key)
         ctx.queue_storage.enqueue(task.task_id)

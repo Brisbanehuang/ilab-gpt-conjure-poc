@@ -809,6 +809,7 @@ class WebUIStaticTaskTests(WebUIStaticTestCase):
         self.assertNotIn(">顶</button>", render_source)
         self.assertNotIn(">删</button>", render_source)
         self.assertNotIn("const title = escapeHtml(task.prompt || task.mode || task.task_id || \"Untitled\")", render_source)
+        self.assertIn("task.title || task.display_title || task.prompt", render_source)
         self.assertRegex(styles, r"\.task-queue-drag-handle\s*\{[^}]*cursor:\s*grab")
         self.assertRegex(styles, r"\.task-queue-action,\s*\.task-queue-drag-handle\s*\{[^}]*width:\s*24px")
         self.assertRegex(styles, r"\.task-queue-action,\s*\.task-queue-drag-handle\s*\{[^}]*padding:\s*0")

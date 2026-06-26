@@ -267,5 +267,7 @@ async def resolve_omni_image_key(config: OmniPOCConfig, session_store: OmniSessi
             break
         if not await key_supports_model(config, api_key, config.image_model):
             break
+        key = dict(key)
+        key["supports_title_model"] = await key_supports_model(config, api_key, DEFAULT_TITLE_MODEL) if is_openai_text_key_candidate(key) else False
         return key
     raise ValueError("选择的 Omni API Key 不可用或不属于当前用户")

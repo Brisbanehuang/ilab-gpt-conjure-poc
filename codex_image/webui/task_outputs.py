@@ -663,6 +663,7 @@ def _write_queued_metadata(
     prompt_constraints: list[str] | None = None,
     requested_backend: str | None = None,
     max_attempts: int = 2,
+    title: str | None = None,
 ) -> dict[str, Any]:
     metadata = {
         "task_id": task_id,
@@ -685,6 +686,10 @@ def _write_queued_metadata(
         "max_attempts": max_attempts,
         "last_error": "",
     }
+    clean_title = str(title or "").strip()
+    if clean_title:
+        metadata["title"] = clean_title
+        metadata["display_title"] = clean_title
     if requested_backend:
         metadata["requested_backend"] = requested_backend
     _apply_api_provider_metadata(metadata, params)

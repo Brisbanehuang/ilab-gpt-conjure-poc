@@ -12,7 +12,7 @@ import zipfile
 from io import BytesIO
 from pathlib import Path
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 from fastapi.testclient import TestClient
 from PIL import Image
@@ -125,6 +125,64 @@ class WebUIGenerationTests(unittest.TestCase):
         self.assertEqual(body["request"]["tools"][1]["quality"], "low")
         self.assertEqual(body["request"]["tool_choice"], "required")
         self.assertFalse(body["request"]["parallel_tool_calls"])
+
+    def test_title_generation_normalizes_and_falls_back_like_omni_studio(self) -> None:
+        from codex_image.webui.title_generation import fallback_title, normalize_generated_title
+
+        self.assertEqual(normalize_generated_title("《赛博护肤产品海报。》"), "赛博护肤产品海报")
+        self.assertEqual(normalize_generated_title("  猫咪 海报！！ "), "猫咪海报")
+        self.assertEqual(fallback_title("生成一张高完成度艺术海报，主题为黑神话"), "生成一张高完成度…")
+
+    def test_omni_generate_route_stores_small_model_title(self) -> None:
+        from cryptography.fernet import Fernet
+
+        from codex_image.webui.app import create_app
+
+        old_env = os.environ.copy()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            os.environ.update(
+                {
+                    "OMNI_POC_MODE": "1",
+                    "OMNI_POC_SECRET_KEY": Fernet.generate_key().decode("ascii"),
+                    "OMNI_BASE_URL": "http://127.0.0.1:8080/v1",
+                    "OMNI_POC_DB_PATH": str(root / "omni-poc.db"),
+                }
+            )
+            self.addCleanup(lambda: os.environ.clear() or os.environ.update(old_env))
+            app = create_app(output_root=root / "output", auto_start_queue=False)
+            session_store = app.state.ctx.route_helpers["omni_session_store"]
+            session = session_store.create_session(
+                {"id": 123, "email": "user@example.test", "username": "user", "balance": 12.5},
+                "sub2api-token",
+            )
+            with (
+                patch(
+                    "codex_image.webui.routes.generation.resolve_omni_image_key",
+                    return_value={
+                        "id": "456",
+                        "key": "sk-task-secret",
+                        "name": "image key",
+                        "group": {"name": "default"},
+                        "supports_title_model": True,
+                    },
+                ),
+                patch("codex_image.webui.routes.generation.generate_task_title", new_callable=AsyncMock) as generate_title,
+            ):
+                generate_title.return_value = "黑神话李清照"
+                response = TestClient(app).post(
+                    "/api/generate",
+                    cookies={"omni_lens_session": session.id},
+                    data={"prompt": "生成一张黑神话风格李清照海报", "model": "gpt-image-2", "sub2api_key_id": "456"},
+                )
+
+            body = response.json()
+            metadata = json.loads(metadata_path(root / "output", body["task"]["task_id"]).read_text(encoding="utf-8"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(body["task"]["title"], "黑神话李清照")
+        self.assertEqual(metadata["title"], "黑神话李清照")
+        self.assertEqual(metadata["display_title"], "黑神话李清照")
 
     def test_queue_worker_generates_output_thumbnail_metadata(self) -> None:
         from codex_image.client import ImageResult
