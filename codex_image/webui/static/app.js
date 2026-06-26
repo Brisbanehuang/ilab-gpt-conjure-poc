@@ -970,14 +970,14 @@
     "taskContext.view": "View task",
     "taskContext.copyId": "Copy task ID",
     "taskContext.copyPrompt": "Copy prompt",
-    "taskContext.revealOutput": "Open output folder",
+    "taskContext.downloadOutput": "Download",
     "taskContext.archive": "Archive task",
     "taskContext.delete": "Delete task",
     "taskContext.idCopied": "Task ID copied",
     "taskContext.promptCopied": "Prompt copied",
     "taskContext.noPrompt": "This task has no prompt to copy",
-    "taskContext.revealFailed": "Failed to open output folder",
-    "taskContext.revealOpened": "Output folder opened",
+    "taskContext.noDownloadableOutputs": "No downloadable images",
+    "taskContext.downloadStarted": "Download started",
     "taskContext.actionFailed": "Task action failed",
     "taskActions.group": "Task actions",
     "taskActions.deleteTitle": "Delete task?",
@@ -9852,14 +9852,14 @@
     "taskContext.view": "\u67E5\u770B\u4EFB\u52A1",
     "taskContext.copyId": "\u590D\u5236\u4EFB\u52A1 ID",
     "taskContext.copyPrompt": "\u590D\u5236\u63D0\u793A\u8BCD",
-    "taskContext.revealOutput": "\u6253\u5F00\u8F93\u51FA\u76EE\u5F55",
+    "taskContext.downloadOutput": "\u4E0B\u8F7D",
     "taskContext.archive": "\u5F52\u6863\u4EFB\u52A1",
     "taskContext.delete": "\u5220\u9664\u4EFB\u52A1",
     "taskContext.idCopied": "\u4EFB\u52A1 ID \u5DF2\u590D\u5236",
     "taskContext.promptCopied": "\u63D0\u793A\u8BCD\u5DF2\u590D\u5236",
     "taskContext.noPrompt": "\u8FD9\u4E2A\u4EFB\u52A1\u6CA1\u6709\u53EF\u590D\u5236\u7684\u63D0\u793A\u8BCD",
-    "taskContext.revealFailed": "\u6253\u5F00\u8F93\u51FA\u76EE\u5F55\u5931\u8D25",
-    "taskContext.revealOpened": "\u5DF2\u6253\u5F00\u8F93\u51FA\u76EE\u5F55",
+    "taskContext.noDownloadableOutputs": "\u6CA1\u6709\u53EF\u4E0B\u8F7D\u56FE\u7247",
+    "taskContext.downloadStarted": "\u5DF2\u5F00\u59CB\u4E0B\u8F7D",
     "taskContext.actionFailed": "\u4EFB\u52A1\u64CD\u4F5C\u5931\u8D25",
     "taskActions.group": "\u4EFB\u52A1\u64CD\u4F5C",
     "taskActions.deleteTitle": "\u5220\u9664\u4EFB\u52A1\uFF1F",
@@ -38308,7 +38308,7 @@ ${galleryText}`;
     <div class="task-context-menu-section">
       ${taskContextButton("copy-id", translate("taskContext.copyId"))}
       ${taskContextButton("copy-prompt", translate("taskContext.copyPrompt"), !taskCanCopyPrompt(task))}
-      ${taskContextButton("reveal-output", translate("taskContext.revealOutput"), !hasOutput)}
+      ${taskContextButton("download-output", translate("taskContext.downloadOutput"), !hasOutput)}
     </div>
     <div class="task-context-menu-section">
       ${taskContextButton("archive", translate("taskContext.archive"))}
@@ -38357,8 +38357,8 @@ ${galleryText}`;
         if (!prompt) throw new Error(translate("taskContext.noPrompt"));
         await copyText(prompt);
         setStatus18(translate("taskContext.promptCopied"), "ok");
-      } else if (action === "reveal-output") {
-        await revealTaskOutputDirectory(taskId);
+      } else if (action === "download-output") {
+        await downloadTaskOutputs(taskId, task);
       } else if (action === "archive") {
         await archiveTask3(taskId);
       }
@@ -38366,14 +38366,59 @@ ${galleryText}`;
       setStatus18(errorMessage6(error, translate("taskContext.actionFailed")), "error");
     }
   }
-  async function revealTaskOutputDirectory(taskId) {
-    const response = await fetch(`/api/tasks/${encodeURIComponent(taskId)}/reveal-output`, {
-      method: "POST",
-      headers: { "X-Requested-With": "codex-image-webui" }
-    });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data.detail || translate("taskContext.revealFailed"));
-    setStatus18(translate("taskContext.revealOpened"), "ok");
+  async function downloadTaskOutputs(taskId, task) {
+    const detailedTask = await ensureTaskContextTaskDetail(taskId, task);
+    const records = downloadableOutputRecords(detailedTask);
+    if (!records.length) throw new Error(translate("taskContext.noDownloadableOutputs"));
+    if (records.length === 1) {
+      const record = records[0];
+      triggerDownload(String(record.url), outputDownloadFilename(taskId, record, 1));
+    } else {
+      triggerDownload(`/api/tasks/${encodeURIComponent(taskId)}/outputs.zip`, `${taskId}-images.zip`);
+    }
+    setStatus18(translate("taskContext.downloadStarted"), "ok");
+  }
+  function downloadableOutputRecords(task) {
+    const records = [];
+    if (Array.isArray(task?.outputs)) {
+      task.outputs.forEach((record, fallbackIndex) => {
+        if (record?.status && record.status !== "completed") return;
+        const url = String(record?.url || "");
+        if (!url) return;
+        records.push({
+          index: positiveIndex(record?.index) || fallbackIndex + 1,
+          url,
+          file: String(record?.file || "")
+        });
+      });
+    }
+    if (!records.length) {
+      const urls = Array.isArray(task?.output_urls) ? task.output_urls : task?.output_url ? [task.output_url] : [];
+      urls.forEach((url, index) => {
+        if (!url) return;
+        records.push({ index: index + 1, url: String(url) });
+      });
+    }
+    return records.sort((a, b) => a.index - b.index);
+  }
+  function outputDownloadFilename(taskId, record, fallbackIndex) {
+    const source = String(record.file || record.url || "");
+    const pathname = source.split(/[?#]/)[0] || "";
+    const filename = pathname.split("/").filter(Boolean).pop() || "";
+    if (filename && /\.[a-z0-9]+$/i.test(filename)) return filename;
+    return `${taskId}-image-${record.index || fallbackIndex}.png`;
+  }
+  function triggerDownload(url, filename) {
+    const link = document.createElement("a");
+    link.href = url;
+    if (filename) link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  }
+  function positiveIndex(value) {
+    const parsed = Number.parseInt(String(value), 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
   }
   async function copyText(text) {
     if (navigator.clipboard?.writeText) {
@@ -39909,7 +39954,7 @@ ${galleryText}`;
   function updatePreviewOutputCard(card, task, url, index, totalCount, { preservePreviousImage = true, imageAlreadyLoaded = false } = {}) {
     const outputIndex = taskOutputIndex2(task, url, index);
     const outputUrl = String(url || "");
-    const downloadName = outputDownloadFilename(task, url, index);
+    const downloadName = outputDownloadFilename2(task, url, index);
     card.setAttribute("data-preview-card-key", previewOutputCardKey(task, url, index));
     card.setAttribute("data-preview-output-url", outputUrl);
     card.dataset.previewTaskId = String(task?.task_id || "");
@@ -40171,7 +40216,7 @@ ${galleryText}`;
     if (selectedUrls.length === 1) {
       const outputUrls = taskOutputUrls3(task);
       const index = Math.max(0, outputUrls.indexOf(selectedUrls[0]));
-      return outputDownloadFilename(task, selectedUrls[0], index);
+      return outputDownloadFilename2(task, selectedUrls[0], index);
     }
     return `${safeDownloadStem(task?.task_id || "image")}-selected-images.zip`;
   }
@@ -40235,7 +40280,7 @@ ${galleryText}`;
       setStatus20(error instanceof Error ? error.message : translate("preview.deleteUnselectedFailed"), "error");
     }
   }
-  function outputDownloadFilename(task, url, index) {
+  function outputDownloadFilename2(task, url, index) {
     return outputFilenameFromUrl(url) || `${safeDownloadStem(task?.task_id || "image")}-image-${taskOutputIndex2(task, url, index)}.png`;
   }
   function outputFilenameFromUrl(url) {
@@ -40445,7 +40490,7 @@ ${galleryText}`;
       updateTaskOutputSelection,
       openDeleteUnselectedOutputsConfirm,
       deleteUnselectedOutputs,
-      outputDownloadFilename,
+      outputDownloadFilename: outputDownloadFilename2,
       outputFilenameFromUrl,
       retryFailureSummaryButton
     });

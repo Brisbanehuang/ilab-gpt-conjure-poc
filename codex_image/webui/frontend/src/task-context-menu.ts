@@ -123,7 +123,7 @@ function taskContextMenuHtml(task: any) {
     <div class="task-context-menu-section">
       ${taskContextButton("copy-id", translate("taskContext.copyId"))}
       ${taskContextButton("copy-prompt", translate("taskContext.copyPrompt"), !taskCanCopyPrompt(task))}
-      ${taskContextButton("reveal-output", translate("taskContext.revealOutput"), !hasOutput)}
+      ${taskContextButton("download-output", translate("taskContext.downloadOutput"), !hasOutput)}
     </div>
     <div class="task-context-menu-section">
       ${taskContextButton("archive", translate("taskContext.archive"))}
@@ -177,8 +177,8 @@ async function handleTaskContextMenuAction(button: HTMLButtonElement) {
       if (!prompt) throw new Error(translate("taskContext.noPrompt"));
       await copyText(prompt);
       setStatus(translate("taskContext.promptCopied"), "ok");
-    } else if (action === "reveal-output") {
-      await revealTaskOutputDirectory(taskId);
+    } else if (action === "download-output") {
+      await downloadTaskOutputs(taskId, task);
     } else if (action === "archive") {
       await archiveTask(taskId);
     }
@@ -187,14 +187,63 @@ async function handleTaskContextMenuAction(button: HTMLButtonElement) {
   }
 }
 
-async function revealTaskOutputDirectory(taskId: string) {
-  const response = await fetch(`/api/tasks/${encodeURIComponent(taskId)}/reveal-output`, {
-    method: "POST",
-    headers: { "X-Requested-With": "codex-image-webui" },
-  });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.detail || translate("taskContext.revealFailed"));
-  setStatus(translate("taskContext.revealOpened"), "ok");
+async function downloadTaskOutputs(taskId: string, task: any) {
+  const detailedTask = await ensureTaskContextTaskDetail(taskId, task);
+  const records = downloadableOutputRecords(detailedTask);
+  if (!records.length) throw new Error(translate("taskContext.noDownloadableOutputs"));
+  if (records.length === 1) {
+    const record = records[0]!;
+    triggerDownload(String(record.url), outputDownloadFilename(taskId, record, 1));
+  } else {
+    triggerDownload(`/api/tasks/${encodeURIComponent(taskId)}/outputs.zip`, `${taskId}-images.zip`);
+  }
+  setStatus(translate("taskContext.downloadStarted"), "ok");
+}
+
+function downloadableOutputRecords(task: any) {
+  const records: Array<{ index: number; url: string; file?: string }> = [];
+  if (Array.isArray(task?.outputs)) {
+    task.outputs.forEach((record: any, fallbackIndex: number) => {
+      if (record?.status && record.status !== "completed") return;
+      const url = String(record?.url || "");
+      if (!url) return;
+      records.push({
+        index: positiveIndex(record?.index) || fallbackIndex + 1,
+        url,
+        file: String(record?.file || ""),
+      });
+    });
+  }
+  if (!records.length) {
+    const urls = Array.isArray(task?.output_urls) ? task.output_urls : (task?.output_url ? [task.output_url] : []);
+    urls.forEach((url: any, index: number) => {
+      if (!url) return;
+      records.push({ index: index + 1, url: String(url) });
+    });
+  }
+  return records.sort((a, b) => a.index - b.index);
+}
+
+function outputDownloadFilename(taskId: string, record: { index: number; url: string; file?: string }, fallbackIndex: number) {
+  const source = String(record.file || record.url || "");
+  const pathname = source.split(/[?#]/)[0] || "";
+  const filename = pathname.split("/").filter(Boolean).pop() || "";
+  if (filename && /\.[a-z0-9]+$/i.test(filename)) return filename;
+  return `${taskId}-image-${record.index || fallbackIndex}.png`;
+}
+
+function triggerDownload(url: string, filename?: string) {
+  const link = document.createElement("a");
+  link.href = url;
+  if (filename) link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+}
+
+function positiveIndex(value: any) {
+  const parsed = Number.parseInt(String(value), 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
 
 async function copyText(text: string) {
