@@ -2686,6 +2686,7 @@ svg.button-icon {
   align-items: center;
   flex-wrap: nowrap;
   gap: 3px;
+  max-width: min(440px, 42vw);
   height: var(--top-nav-control-height);
   min-height: var(--top-nav-control-height);
   padding: var(--top-nav-control-padding);
@@ -2703,15 +2704,11 @@ svg.button-icon {
 }
 
 .omni-poc-account {
-  max-width: 170px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--muted);
+  display: none;
 }
 
 .omni-poc-key-select {
-  width: min(360px, 32vw);
+  width: min(220px, 20vw);
   height: var(--top-nav-segment-height);
   min-height: var(--top-nav-segment-height);
   padding: 0 26px 0 10px;

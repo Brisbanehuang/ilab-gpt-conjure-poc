@@ -112,6 +112,30 @@ class WebUIStorageTests(unittest.TestCase):
         self.assertEqual(metadata["outputs"][0]["storage_key"], fake.puts[0][0])
         self.assertEqual(metadata["outputs"][0]["url"], f"/api/tasks/{task_id}/outputs/1")
 
+    def test_enriched_r2_outputs_use_output_route_for_thumbnail_url(self) -> None:
+        from codex_image.webui.task_enrichment import _with_file_urls
+
+        task_id = "20260626144923-a63df6c2"
+        metadata = _with_file_urls(
+            {
+                "task_id": task_id,
+                "status": "completed",
+                "params": {"omni_poc": True},
+                "outputs": [
+                    {
+                        "index": 1,
+                        "status": "completed",
+                        "storage_driver": "r2",
+                        "storage_key": "users/user_9/images/2026/0626/144923-task/outputs/01-output.png",
+                        "url": f"/api/tasks/{task_id}/outputs/1",
+                    }
+                ],
+            }
+        )
+
+        self.assertEqual(metadata["outputs"][0]["thumbnail_url"], f"/api/tasks/{task_id}/outputs/1")
+        self.assertEqual(metadata["thumbnail_urls"], [f"/api/tasks/{task_id}/outputs/1"])
+
     def test_creates_sharded_task_files_and_lists_newest_first(self) -> None:
         from codex_image.webui.storage import TaskStorage
 

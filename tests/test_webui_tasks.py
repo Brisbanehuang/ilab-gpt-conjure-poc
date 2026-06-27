@@ -282,6 +282,48 @@ class WebUITaskTests(unittest.TestCase):
         self.assertEqual(response.content, b"r2-image")
         self.assertEqual(fake.key, storage_key)
 
+    def test_recent_tasks_use_output_route_as_r2_thumbnail_url(self) -> None:
+        from codex_image.webui.app import create_app
+
+        task_id = "20260505010203-abcdef01"
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            metadata_path(root, task_id).parent.mkdir(parents=True, exist_ok=True)
+            metadata_path(root, task_id).write_text(
+                json.dumps(
+                    {
+                        "task_id": task_id,
+                        "created_at": "2026-05-05T01:02:03+00:00",
+                        "updated_at": "2026-05-05T01:03:03+00:00",
+                        "status": "completed",
+                        "mode": "generate",
+                        "prompt": "r2 sidebar image",
+                        "params": {"omni_poc": True, "size": "1024x1024"},
+                        "outputs": [
+                            {
+                                "index": 1,
+                                "status": "completed",
+                                "storage_driver": "r2",
+                                "storage_key": "users/user_9/images/2026/0505/010203-task/outputs/01-output.png",
+                                "url": f"/api/tasks/{task_id}/outputs/1",
+                            }
+                        ],
+                        "output_urls": [f"/api/tasks/{task_id}/outputs/1"],
+                        "generated_count": 1,
+                        "failed_count": 0,
+                        "total_count": 1,
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            app = create_app(output_root=root, auth_checker=lambda: True, auto_start_queue=False)
+            response = TestClient(app).get("/api/tasks/recent", params={"limit": 10})
+
+        self.assertEqual(response.status_code, 200)
+        task = response.json()["tasks"][0]
+        self.assertEqual(task["thumbnail_urls"], [f"/api/tasks/{task_id}/outputs/1"])
+
     def test_delete_completed_task_removes_r2_objects(self) -> None:
         from codex_image.webui.app import create_app
 

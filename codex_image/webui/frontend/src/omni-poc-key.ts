@@ -76,9 +76,7 @@ function mountPoint(): Element {
 
 function labelForKey(key: OmniKey): string {
   const group = key.group_name ? ` · ${key.group_name}` : "";
-  const mask = key.masked_key ? ` · ${key.masked_key}` : "";
-  const title = key.supports_title_model ? " · 支持标题" : "";
-  return `${key.name || "Omni API Key"}${group}${mask}${title}`;
+  return `${key.name || "Omni API Key"}${group}`;
 }
 
 function renderKeyOptions(select: HTMLSelectElement): void {
@@ -116,9 +114,11 @@ function renderSession(root: HTMLElement): void {
   const login = root.querySelector<HTMLAnchorElement>(".omni-poc-login-link");
   const refresh = root.querySelector<HTMLButtonElement>('[data-action="refresh"]');
   if (account) {
-    account.textContent = authenticated && user
+    const accountText = authenticated && user
       ? `${user.username || user.email || `用户 ${user.id}`} · 余额 ${Number(user.balance || 0).toFixed(2)}`
       : "未登录 Omni 主站";
+    account.textContent = "";
+    account.title = accountText;
   }
   if (login) {
     login.classList.toggle("hidden", authenticated);

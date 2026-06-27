@@ -28708,9 +28708,7 @@ ${hint}` : hint;
   }
   function labelForKey(key) {
     const group = key.group_name ? ` \xB7 ${key.group_name}` : "";
-    const mask = key.masked_key ? ` \xB7 ${key.masked_key}` : "";
-    const title = key.supports_title_model ? " \xB7 \u652F\u6301\u6807\u9898" : "";
-    return `${key.name || "Omni API Key"}${group}${mask}${title}`;
+    return `${key.name || "Omni API Key"}${group}`;
   }
   function renderKeyOptions(select) {
     select.innerHTML = "";
@@ -28746,7 +28744,9 @@ ${hint}` : hint;
     const login = root.querySelector(".omni-poc-login-link");
     const refresh = root.querySelector('[data-action="refresh"]');
     if (account) {
-      account.textContent = authenticated && user ? `${user.username || user.email || `\u7528\u6237 ${user.id}`} \xB7 \u4F59\u989D ${Number(user.balance || 0).toFixed(2)}` : "\u672A\u767B\u5F55 Omni \u4E3B\u7AD9";
+      const accountText = authenticated && user ? `${user.username || user.email || `\u7528\u6237 ${user.id}`} \xB7 \u4F59\u989D ${Number(user.balance || 0).toFixed(2)}` : "\u672A\u767B\u5F55 Omni \u4E3B\u7AD9";
+      account.textContent = "";
+      account.title = accountText;
     }
     if (login) {
       login.classList.toggle("hidden", authenticated);
