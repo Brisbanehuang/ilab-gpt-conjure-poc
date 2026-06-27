@@ -76,7 +76,7 @@ SUMMARY_KEYS = {
     "assigned_auth_source",
 }
 
-TASK_INDEX_SCHEMA_VERSION = 7
+TASK_INDEX_SCHEMA_VERSION = 8
 RATIO_OTHER_VALUE = "__other__"
 KNOWN_RATIO_ORIENTATIONS = {
     "1:1": "square",
@@ -533,6 +533,7 @@ class SQLiteTaskIndex:
 def _summary_for_metadata(metadata: dict[str, Any]) -> dict[str, Any]:
     summary = {key: metadata[key] for key in SUMMARY_KEYS if key in metadata}
     task_id = str(metadata.get("task_id") or "")
+    _sanitize_r2_summary_outputs(task_id, summary)
     thumbnail_url = _first_thumbnail_url(task_id, metadata)
     if thumbnail_url:
         summary["thumbnail_urls"] = [thumbnail_url]
@@ -544,6 +545,30 @@ def _summary_for_metadata(metadata: dict[str, Any]) -> dict[str, Any]:
     if isinstance(params, dict) and not params.get("main_model") and isinstance(request_payload, dict) and request_payload.get("model"):
         summary["params"] = {**params, "main_model": str(request_payload["model"])}
     return summary
+
+
+def _sanitize_r2_summary_outputs(task_id: str, summary: dict[str, Any]) -> None:
+    if not task_id:
+        return
+    outputs = summary.get("outputs")
+    if not isinstance(outputs, list):
+        return
+    sanitized_outputs: list[Any] = []
+    changed = False
+    for fallback_index, output in enumerate(outputs, start=1):
+        if not isinstance(output, dict):
+            sanitized_outputs.append(output)
+            continue
+        if str(output.get("storage_driver") or "") != "r2" and not output.get("storage_key"):
+            sanitized_outputs.append(output)
+            continue
+        index = _positive_int(output.get("index")) or fallback_index
+        route = f"/api/tasks/{task_id}/outputs/{index}"
+        sanitized = {**output, "url": route, "thumbnail_url": route}
+        sanitized_outputs.append(sanitized)
+        changed = True
+    if changed:
+        summary["outputs"] = sanitized_outputs
 
 
 def _history_fields_for_metadata(metadata: dict[str, Any]) -> dict[str, Any]:

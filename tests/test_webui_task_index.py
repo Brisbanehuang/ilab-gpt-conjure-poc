@@ -80,6 +80,7 @@ class WebUITaskIndexTests(unittest.TestCase):
             history = index.query_history(limit=10)
 
         self.assertEqual(tasks[0]["thumbnail_urls"], ["/api/tasks/r2-task/outputs/1"])
+        self.assertEqual(tasks[0]["outputs"][0]["thumbnail_url"], "/api/tasks/r2-task/outputs/1")
         self.assertEqual(history["tasks"][0]["thumbnail_url"], "/api/tasks/r2-task/outputs/1")
 
     def test_index_deletes_task(self) -> None:
