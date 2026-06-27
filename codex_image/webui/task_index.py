@@ -76,7 +76,7 @@ SUMMARY_KEYS = {
     "assigned_auth_source",
 }
 
-TASK_INDEX_SCHEMA_VERSION = 6
+TASK_INDEX_SCHEMA_VERSION = 7
 RATIO_OTHER_VALUE = "__other__"
 KNOWN_RATIO_ORIENTATIONS = {
     "1:1": "square",
@@ -694,6 +694,7 @@ def _first_output_thumbnail_route(task_id: str, metadata: dict[str, Any]) -> str
     output_files = metadata.get("output_files") if isinstance(metadata.get("output_files"), list) else []
     output_urls = metadata.get("output_urls") if isinstance(metadata.get("output_urls"), list) else []
     outputs = metadata.get("outputs")
+    has_r2_output = False
     if isinstance(outputs, list):
         for fallback_index, output in enumerate(outputs, start=1):
             if not isinstance(output, dict):
@@ -703,6 +704,7 @@ def _first_output_thumbnail_route(task_id: str, metadata: dict[str, Any]) -> str
                 continue
             index = _positive_int(output.get("index")) or fallback_index
             if str(output.get("storage_driver") or "") == "r2" or output.get("storage_key"):
+                has_r2_output = True
                 continue
             if (
                 output.get("file")
@@ -711,6 +713,8 @@ def _first_output_thumbnail_route(task_id: str, metadata: dict[str, Any]) -> str
                 or (index <= len(output_urls) and _is_local_output_url(output_urls[index - 1]))
             ):
                 return f"/api/tasks/{task_id}/outputs/{index}/thumbnail"
+    if has_r2_output:
+        return ""
     if output_files:
         return f"/api/tasks/{task_id}/outputs/1/thumbnail"
     if output_urls and _is_local_output_url(output_urls[0]):

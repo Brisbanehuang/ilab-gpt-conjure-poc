@@ -57,6 +57,9 @@ class WebUITaskIndexTests(unittest.TestCase):
                     "updated_at": "2026-06-27T16:03:27+00:00",
                     "status": "completed",
                     "params": {"omni_poc": True},
+                    "output_file": "2026-06-27/r2-task-image-1.png",
+                    "output_files": ["2026-06-27/r2-task-image-1.png"],
+                    "output_url": "/api/tasks/r2-task/outputs/1",
                     "output_urls": ["/api/tasks/r2-task/outputs/1"],
                     "outputs": [
                         {
