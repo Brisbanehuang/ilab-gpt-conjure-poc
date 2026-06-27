@@ -24,6 +24,9 @@ class GalleryStorage:
     def __init__(self, root: Path | str = DEFAULT_WEBUI_GALLERY_ROOT) -> None:
         self.root = Path(root)
 
+    def scoped(self, owner_id: str) -> "GalleryStorage":
+        return GalleryStorage(self.root / "users" / _clean_gallery_owner_id(owner_id) / "gallery")
+
     def list_categories(self) -> list[dict[str, Any]]:
         categories = self._read_categories()
         return sorted(categories, key=lambda category: (int(category.get("order", 0)), str(category.get("name", ""))))
@@ -441,6 +444,13 @@ def _clean_gallery_item_order(value: Any, *, fallback: int = 0) -> int:
     except (TypeError, ValueError):
         return int(fallback)
     return order if order > 0 else int(fallback)
+
+
+def _clean_gallery_owner_id(owner_id: str) -> str:
+    clean = re.sub(r"[^a-zA-Z0-9_-]+", "", str(owner_id or "").strip())
+    if not clean:
+        raise ValueError("Invalid gallery owner id")
+    return clean
 
 
 def _clean_reorder_ids(

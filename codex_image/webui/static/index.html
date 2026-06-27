@@ -304,11 +304,11 @@
                 </div>
 
                 <div class="image-gallery-column">
-                  <div id="quickGalleryDock" class="quick-gallery-dock" aria-label="快速选择公用图库" data-i18n-attr="aria-label:gallery.quick">
+                  <div id="quickGalleryDock" class="quick-gallery-dock" aria-label="快速选择我的素材库" data-i18n-attr="aria-label:gallery.quick">
                     <div id="quickGalleryPreview" class="quick-gallery-preview"></div>
                     <div class="quick-gallery-picker">
-                      <div id="quickGalleryList" class="quick-gallery-list" aria-label="当前分类图库" data-i18n-attr="aria-label:gallery.current"></div>
-                      <div id="quickGalleryRail" class="quick-gallery-rail" aria-label="图库分类" data-i18n-attr="aria-label:gallery.categories">
+                      <div id="quickGalleryList" class="quick-gallery-list" aria-label="当前分类素材" data-i18n-attr="aria-label:gallery.current"></div>
+                      <div id="quickGalleryRail" class="quick-gallery-rail" aria-label="素材分类" data-i18n-attr="aria-label:gallery.categories">
                         <button class="quick-gallery-category active" data-quick-gallery-category="portrait" type="button" data-i18n="gallery.categoryPortrait">人像</button>
                         <button class="quick-gallery-category" data-quick-gallery-category="character" type="button" data-i18n="gallery.categoryCharacter">角色</button>
                         <button class="quick-gallery-category" data-quick-gallery-category="product" type="button" data-i18n="gallery.categoryProduct">产品</button>
@@ -317,7 +317,7 @@
                   </div>
 
                   <div id="galleryManagePanel" class="gallery-manage-panel">
-                    <button id="galleryManageButton" class="ghost-button text-sm" type="button" aria-controls="galleryDrawer" aria-expanded="false" title="管理公用库" data-i18n="gallery.manage" data-i18n-attr="title:gallery.manage">管理公用库</button>
+                    <button id="galleryManageButton" class="ghost-button text-sm" type="button" aria-controls="galleryDrawer" aria-expanded="false" title="管理素材库" data-i18n="gallery.manage" data-i18n-attr="title:gallery.manage">管理素材库</button>
                   </div>
                 </div>
               </div>
@@ -921,7 +921,7 @@
               <input id="settingsOutputRoot" class="control" type="text" autocomplete="off" />
             </label>
             <label class="field">
-              <span data-i18n="settings.galleryRoot">公用图库目录</span>
+              <span data-i18n="settings.galleryRoot">素材库目录</span>
               <input id="settingsGalleryRoot" class="control" type="text" autocomplete="off" />
             </label>
             <label class="field">
@@ -1115,13 +1115,13 @@
       </div>
     </div>
 
-    <div id="galleryDrawer" class="resource-sheet resource-sheet-wide gallery-drawer" role="dialog" aria-modal="true" aria-hidden="true" aria-label="公用图库" data-i18n-attr="aria-label:gallery.title">
+    <div id="galleryDrawer" class="resource-sheet resource-sheet-wide gallery-drawer" role="dialog" aria-modal="true" aria-hidden="true" aria-label="我的素材库" data-i18n-attr="aria-label:gallery.title">
       <div class="resource-sheet-header gallery-drawer-header">
           <div>
-            <h2 data-i18n="gallery.title">公用图库</h2>
+            <h2 data-i18n="gallery.title">我的素材库</h2>
             <p id="galleryDrawerSubtitle" data-i18n="gallery.subtitle">选择参考图加入当前任务</p>
           </div>
-          <button id="galleryDrawerClose" class="ghost-button drawer-close-button" type="button" aria-label="关闭公用图库面板" title="关闭" data-i18n-attr="aria-label:close.gallery;title:action.close">
+          <button id="galleryDrawerClose" class="ghost-button drawer-close-button" type="button" aria-label="关闭我的素材库面板" title="关闭" data-i18n-attr="aria-label:close.gallery;title:action.close">
             <svg class="drawer-close-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
               <path d="M7 7L17 17M17 7L7 17" />
             </svg>
@@ -1130,13 +1130,13 @@
       <div class="resource-sheet-body gallery-drawer-body">
         <div class="gallery-drawer-top">
           <div class="gallery-drawer-toolbar">
-            <div id="galleryDrawerCategoryTabs" class="gallery-drawer-category-tabs" aria-label="图库分类" data-i18n-attr="aria-label:gallery.categories"></div>
+            <div id="galleryDrawerCategoryTabs" class="gallery-drawer-category-tabs" aria-label="素材分类" data-i18n-attr="aria-label:gallery.categories"></div>
             <button id="galleryCategoryManageToggle" class="ghost-button text-sm" type="button" aria-expanded="false" data-i18n="gallery.manageCategories">管理分类</button>
           </div>
-          <div id="galleryCategoryManagePanel" class="gallery-category-manage-panel hidden" aria-label="管理图库分类" data-i18n-attr="aria-label:gallery.categoryManager">
+          <div id="galleryCategoryManagePanel" class="gallery-category-manage-panel hidden" aria-label="管理素材分类" data-i18n-attr="aria-label:gallery.categoryManager">
             <div class="gallery-category-manage-copy">
               <strong data-i18n="gallery.categoryManagement">分类管理</strong>
-              <span data-i18n="gallery.categoryCopy">分类会保存到图库；提示词用途用于生成参考图说明</span>
+              <span data-i18n="gallery.categoryCopy">分类会保存到你的素材库；提示词用途用于生成参考图说明</span>
             </div>
             <div class="gallery-category-create-row">
               <input id="newGalleryCategoryName" class="control" type="text" maxlength="32" placeholder="新分类名称" data-i18n-attr="placeholder:gallery.newCategoryName" />
@@ -1153,14 +1153,14 @@
     </div>
     <div id="galleryDrawerBackdrop" class="resource-sheet-backdrop gallery-drawer-backdrop hidden"></div>
 
-    <div id="addToGalleryModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-label="添加到图库" data-i18n-attr="aria-label:addGallery.title">
+    <div id="addToGalleryModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-label="添加到素材库" data-i18n-attr="aria-label:addGallery.title">
       <div class="modal-panel add-gallery-panel">
         <div class="modal-heading">
           <div>
-            <h2 data-i18n="addGallery.title">添加到图库</h2>
-            <p data-i18n="addGallery.copy">名称全局唯一，后续可用 @名称 调取</p>
+            <h2 data-i18n="addGallery.title">添加到素材库</h2>
+            <p data-i18n="addGallery.copy">名称仅在你的素材库内唯一，后续可用 @名称 调取</p>
           </div>
-          <button id="addToGalleryClose" class="ghost-button drawer-close-button" type="button" aria-label="关闭添加到图库面板" title="关闭" data-i18n-attr="aria-label:close.addGallery;title:action.close">
+          <button id="addToGalleryClose" class="ghost-button drawer-close-button" type="button" aria-label="关闭添加到素材库面板" title="关闭" data-i18n-attr="aria-label:close.addGallery;title:action.close">
             <svg class="drawer-close-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
               <path d="M7 7L17 17M17 7L7 17" />
             </svg>
@@ -1184,7 +1184,7 @@
             <span data-i18n="addGallery.note">引用备注</span>
             <textarea id="galleryPromptNoteInput" class="control" maxlength="160" placeholder="例如：只参考脸型和发型，不参考衣服和背景" data-i18n-attr="placeholder:addGallery.notePlaceholder"></textarea>
           </label>
-          <button id="saveToGalleryButton" class="run-button" type="button" data-i18n="addGallery.save">保存到图库</button>
+          <button id="saveToGalleryButton" class="run-button" type="button" data-i18n="addGallery.save">保存到素材库</button>
         </div>
       </div>
     </div>

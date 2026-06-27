@@ -15,6 +15,7 @@ RUN python -m pip install --no-cache-dir --upgrade pip \
     && python -m pip install --no-cache-dir -r requirements-webui.txt
 
 COPY codex_image ./codex_image
+COPY scripts ./scripts
 
 EXPOSE 8787
 

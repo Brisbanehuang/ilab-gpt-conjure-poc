@@ -932,7 +932,7 @@ class WebUIStaticLayoutTests(WebUIStaticTestCase):
         self.assertIn('id="galleryManageButton"', html)
         self.assertNotIn('id="galleryManageSummary"', html)
         self.assertNotIn("查看全部", html)
-        self.assertIn(">管理公用库</button>", html)
+        self.assertIn(">管理素材库</button>", html)
         self.assertIn('data-quick-gallery-category="portrait"', html)
         self.assertIn('data-quick-gallery-category="character"', html)
         self.assertIn('data-quick-gallery-category="product"', html)
@@ -2009,8 +2009,8 @@ class WebUIStaticLayoutTests(WebUIStaticTestCase):
             "archiveModalClose": "关闭会话归档面板",
             "systemSettingsModalClose": "关闭系统设置面板",
             "imageEditorClose": "关闭编辑输入图片面板",
-            "galleryDrawerClose": "关闭公用图库面板",
-            "addToGalleryClose": "关闭添加到图库面板",
+            "galleryDrawerClose": "关闭我的素材库面板",
+            "addToGalleryClose": "关闭添加到素材库面板",
         }
         for button_id, aria_label in expected_buttons.items():
             with self.subTest(button_id=button_id):

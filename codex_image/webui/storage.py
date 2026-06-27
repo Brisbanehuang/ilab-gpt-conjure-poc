@@ -139,32 +139,32 @@ class TaskStorage:
         for path in source_data_dirs:
             self._prune_empty_source_data_dir(path)
 
-    def list_tasks(self) -> list[dict[str, Any]]:
-        indexed_tasks = self.task_index.list_summaries()
+    def list_tasks(self, *, owner_id: str | None = None) -> list[dict[str, Any]]:
+        indexed_tasks = self.task_index.list_summaries(owner_id=owner_id)
         if indexed_tasks:
             return indexed_tasks
         if not self.source_data_root.exists():
             return []
-        return self.rebuild_task_index()
+        return _filter_tasks_by_owner(self.rebuild_task_index(), owner_id)
 
-    def list_recent_tasks(self, limit: int = 200) -> list[dict[str, Any]]:
-        indexed_tasks = self.task_index.list_summaries(limit=limit)
+    def list_recent_tasks(self, limit: int = 200, *, owner_id: str | None = None) -> list[dict[str, Any]]:
+        indexed_tasks = self.task_index.list_summaries(limit=limit, owner_id=owner_id)
         if indexed_tasks:
             return indexed_tasks
-        return self.rebuild_task_index()[: max(0, limit)]
+        return _filter_tasks_by_owner(self.rebuild_task_index(), owner_id)[: max(0, limit)]
 
-    def list_recent_task_cards(self, limit: int = 200) -> list[dict[str, Any]]:
-        indexed_tasks = self.task_index.list_summaries(limit=limit)
+    def list_recent_task_cards(self, limit: int = 200, *, owner_id: str | None = None) -> list[dict[str, Any]]:
+        indexed_tasks = self.task_index.list_summaries(limit=limit, owner_id=owner_id)
         if not indexed_tasks:
-            indexed_tasks = self.rebuild_task_index()[: max(0, limit)]
+            indexed_tasks = _filter_tasks_by_owner(self.rebuild_task_index(), owner_id)[: max(0, limit)]
         return [_sidebar_task_card(task) for task in indexed_tasks]
 
     def task_sidebar_card(self, task_id: str) -> dict[str, Any]:
         return _sidebar_task_card(self.read_metadata(task_id))
 
-    def task_history_summary(self) -> dict[str, Any]:
+    def task_history_summary(self, *, owner_id: str | None = None) -> dict[str, Any]:
         self.refresh_stale_task_index()
-        return self.task_index.history_summary()
+        return self.task_index.history_summary(owner_id=owner_id)
 
     def query_task_history(
         self,
@@ -184,6 +184,7 @@ class TaskStorage:
         archived: bool | None = None,
         sort: str = "newest",
         direction: str = "next",
+        owner_id: str | None = None,
     ) -> dict[str, Any]:
         self.refresh_stale_task_index()
         return self.task_index.query_history(
@@ -202,6 +203,7 @@ class TaskStorage:
             archived=archived,
             sort=sort,
             direction=direction,
+            owner_id=owner_id,
         )
 
     def refresh_stale_task_index(self, *, limit: int = 500) -> int:
@@ -617,3 +619,22 @@ def _same_file_bytes(first: Path, second: Path) -> bool:
         return first.read_bytes() == second.read_bytes()
     except OSError:
         return False
+
+
+def _filter_tasks_by_owner(tasks: list[dict[str, Any]], owner_id: str | None) -> list[dict[str, Any]]:
+    clean_owner = str(owner_id or "").strip()
+    if not clean_owner:
+        return tasks
+    return [task for task in tasks if _owner_id_for_metadata(task) == clean_owner]
+
+
+def _owner_id_for_metadata(metadata: dict[str, Any]) -> str:
+    owner_id = str(metadata.get("owner_id") or "").strip()
+    if owner_id:
+        return owner_id
+    params = metadata.get("params") if isinstance(metadata.get("params"), dict) else {}
+    try:
+        user_id = int(params.get("sub2api_user_id"))
+    except (TypeError, ValueError):
+        return ""
+    return f"user_{user_id}" if user_id > 0 else ""

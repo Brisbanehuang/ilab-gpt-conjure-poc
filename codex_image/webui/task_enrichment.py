@@ -31,6 +31,10 @@ def _thumbnail_route_url(task_id: str, output_index: int) -> str:
     return f"/api/tasks/{quote(task_id, safe='')}/outputs/{output_index}/thumbnail"
 
 
+def _output_route_url(task_id: str, output_index: int) -> str:
+    return f"/api/tasks/{quote(task_id, safe='')}/outputs/{output_index}"
+
+
 def _gallery_item_response(item: dict[str, Any]) -> dict[str, Any]:
     item_id = str(item.get("id") or "")
     enriched = dict(item)
@@ -227,6 +231,8 @@ def _with_output_thumbnail_urls(enriched: dict[str, Any], metadata: dict[str, An
     if not task_id:
         return
     deleted_indexes = _task_deleted_output_indexes(metadata)
+    params = metadata.get("params") if isinstance(metadata.get("params"), dict) else {}
+    route_output_urls = bool(params.get("omni_poc"))
     thumbnail_urls_by_index: dict[int, str] = {}
     raw_outputs = enriched.get("outputs")
     if isinstance(raw_outputs, list):
@@ -237,6 +243,8 @@ def _with_output_thumbnail_urls(enriched: dict[str, Any], metadata: dict[str, An
                 continue
             record = dict(raw_record)
             index = _positive_int(record.get("index")) or fallback_index
+            if route_output_urls and record.get("status") == "completed" and index not in deleted_indexes and task_id:
+                record["url"] = _output_route_url(task_id, index)
             if record.get("status") == "completed" and index not in deleted_indexes and (record.get("url") or record.get("file")):
                 thumbnail_url = _output_record_thumbnail_url(task_id, record, fallback_index)
                 if thumbnail_url:
@@ -269,6 +277,9 @@ def _with_output_thumbnail_urls(enriched: dict[str, Any], metadata: dict[str, An
 
     if thumbnail_urls_by_index:
         enriched["thumbnail_urls"] = [thumbnail_urls_by_index[index] for index in sorted(thumbnail_urls_by_index)]
+        if route_output_urls:
+            enriched["output_urls"] = [_output_route_url(task_id, index) for index in sorted(thumbnail_urls_by_index)]
+            enriched["output_url"] = enriched["output_urls"][0]
 
 
 def _with_file_urls(
