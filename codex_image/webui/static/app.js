@@ -660,7 +660,8 @@
     "history.quality.auto": "Auto",
     "footer.batch": "Batch",
     "footer.storage": "Storage",
-    "footer.apiStatus": "API status: OK",
+    "footer.apiStatus": "Service connected",
+    "footer.retentionNotice": "Images are kept for 30 days. Download them in time.",
     "footer.version": "Version {version}",
     "footer.versionInfo": "Version info",
     "footer.versionLoading": "Version ...",
@@ -9540,7 +9541,8 @@
     "history.quality.auto": "\u81EA\u52A8",
     "footer.batch": "\u6279\u91CF\u7BA1\u7406",
     "footer.storage": "\u5B58\u50A8\u8BBE\u7F6E",
-    "footer.apiStatus": "API \u72B6\u6001: \u6B63\u5E38",
+    "footer.apiStatus": "\u670D\u52A1\u8FDE\u63A5\u6B63\u5E38",
+    "footer.retentionNotice": "\u56FE\u7247\u4EC5\u4FDD\u5B58 30 \u5929\uFF0C\u8BF7\u53CA\u65F6\u4E0B\u8F7D",
     "footer.version": "\u7248\u672C {version}",
     "footer.versionInfo": "\u7248\u672C\u4FE1\u606F",
     "footer.versionLoading": "\u7248\u672C ...",
@@ -28650,6 +28652,7 @@ ${hint}` : hint;
   var selectedKeyId = window.localStorage.getItem(SELECTED_KEY_STORAGE)?.trim() || "";
   var keys = [];
   var user = null;
+  var sessionConnectionOk = true;
   function isOmniPocMode() {
     return enabled || document.documentElement.classList.contains("omni-poc-mode");
   }
@@ -28664,13 +28667,13 @@ ${hint}` : hint;
     if (!authenticated) {
       throw new Error("\u8BF7\u5148\u4ECE Omni \u4E3B\u7AD9\u767B\u5F55\u540E\u518D\u4F7F\u7528\u751F\u56FE\u529F\u80FD");
     }
-    if (!selectedKeyId) {
-      throw new Error("\u8BF7\u9009\u62E9 Omni API Key");
+    if (!keys.length) {
+      throw new Error("\u6CA1\u6709\u68C0\u6D4B\u5230\u53EF\u8C03\u7528 gpt-image-2 \u7684 API Key");
     }
   }
   function updateOmniLegacyAuthState() {
     const bridge39 = getLegacyBridge();
-    const ready = Boolean(authenticated && selectedKeyId);
+    const ready = Boolean(authenticated && keys.length);
     bridge39.state.authAvailable = ready;
     bridge39.state.authStatus = {
       selected_source: "api",
@@ -28679,13 +28682,13 @@ ${hint}` : hint;
       sources: {}
     };
     if (bridge39.els.apiStatus) {
-      bridge39.els.apiStatus.className = `status-dot ${ready ? "ok" : "error"}`;
+      bridge39.els.apiStatus.className = `status-dot ${sessionConnectionOk ? "ok" : "error"}`;
     }
     if (bridge39.els.runButton) {
       bridge39.els.runButton.disabled = !ready;
     }
     if (bridge39.els.authSourceDetail) {
-      const text = ready ? "Omni API Key" : authenticated ? "\u8BF7\u9009\u62E9 Omni API Key" : "\u8BF7\u4ECE Omni \u4E3B\u7AD9\u767B\u5F55";
+      const text = ready ? "Omni API Key" : authenticated ? "\u6CA1\u6709\u53EF\u7528 Omni API Key" : "\u8BF7\u4ECE Omni \u4E3B\u7AD9\u767B\u5F55";
       bridge39.els.authSourceDetail.textContent = text;
       bridge39.els.authSourceDetail.title = text;
     }
@@ -28711,19 +28714,20 @@ ${hint}` : hint;
       window.localStorage.removeItem(SELECTED_KEY_STORAGE);
       return;
     }
+    const autoOption = document.createElement("option");
+    autoOption.value = "";
+    autoOption.textContent = "\u81EA\u52A8\u9009\u62E9\uFF08\u63A8\u8350\uFF09";
+    select.appendChild(autoOption);
     keys.forEach((key) => {
       const option = document.createElement("option");
       option.value = key.id;
       option.textContent = labelForKey(key);
       select.appendChild(option);
     });
-    if (!keys.some((key) => key.id === selectedKeyId)) {
-      selectedKeyId = keys[0]?.id || "";
+    if (selectedKeyId && !keys.some((key) => key.id === selectedKeyId)) {
+      selectedKeyId = "";
     }
     select.value = selectedKeyId;
-    if (selectedKeyId) {
-      window.localStorage.setItem(SELECTED_KEY_STORAGE, selectedKeyId);
-    }
   }
   function renderSession(root) {
     const status = root.querySelector(".omni-poc-key-status");
@@ -28760,15 +28764,18 @@ ${hint}` : hint;
     try {
       const sessionResponse = await fetch("/api/auth/session", { credentials: "include" });
       const sessionPayload = await sessionResponse.json().catch(() => ({}));
+      sessionConnectionOk = sessionResponse.ok;
       authenticated = Boolean(sessionPayload?.authenticated);
       user = authenticated ? sessionPayload.user || null : null;
       keys = [];
       if (authenticated) {
         const keysResponse = await fetch("/api/omni/keys", { credentials: "include" });
         const keysPayload = await keysResponse.json().catch(() => ({}));
+        sessionConnectionOk = sessionConnectionOk && keysResponse.ok;
         keys = Array.isArray(keysPayload?.keys) ? keysPayload.keys : [];
       }
     } catch {
+      sessionConnectionOk = false;
       authenticated = false;
       user = null;
       keys = [];

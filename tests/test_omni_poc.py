@@ -179,20 +179,21 @@ class OmniPOCGenerationTests(TempDirMixin, TestCase):
         self.assertEqual(request["endpoint"], "/responses")
         self.assertEqual(request["tools"][0]["type"], "web_search")
 
-    def test_generate_rejects_missing_selected_key(self) -> None:
+    def test_generate_rejects_when_auto_select_has_no_usable_key(self) -> None:
         app, _ = self.create_poc_app()
         session_store = app.state.ctx.route_helpers["omni_session_store"]
         session = session_store.create_session(
             {"id": 123, "email": "user@example.test", "username": "user", "balance": 12.5},
             "sub2api-token",
         )
-        response = TestClient(app).post(
-            "/api/generate",
-            cookies={"omni_lens_session": session.id},
-            data={"prompt": "test image", "model": "gpt-image-2"},
-        )
+        with patch("codex_image.webui.omni_session.list_omni_image_keys", return_value=[]):
+            response = TestClient(app).post(
+                "/api/generate",
+                cookies={"omni_lens_session": session.id},
+                data={"prompt": "test image", "model": "gpt-image-2"},
+            )
         self.assertEqual(response.status_code, 400)
-        self.assertIn("请选择 Omni API Key", response.json()["detail"])
+        self.assertIn("没有检测到可调用 gpt-image-2 的 API Key", response.json()["detail"])
 
 
 class OmniPOCQueueRuntimeTests(TempDirMixin, TestCase):
@@ -331,6 +332,61 @@ class OmniPOCValidationEndpointTests(TempDirMixin, TestCase):
         self.assertEqual(calls, ["sk-image-secret"])
         self.assertEqual(payload[0]["id"], "456")
         self.assertTrue(payload[0]["supports_title_model"])
+
+    def test_resolve_omni_image_key_auto_selects_first_usable_full_key(self) -> None:
+        from codex_image.webui.omni_session import resolve_omni_image_key
+
+        config = OmniPOCConfig(
+            enabled=True,
+            base_url="http://127.0.0.1:8080/v1",
+            image_model="gpt-image-2",
+            secret_key=Fernet.generate_key().decode("ascii"),
+            db_path=Path(self.create_temp_dir()) / "omni-poc.db",
+            source_url="https://example.test/source",
+        )
+        store = OmniSessionStore(config)
+        session = store.create_session(
+            {"id": 123, "email": "user@example.test", "username": "user", "balance": 12.5},
+            "sub2api-token",
+        )
+        rows = [
+            {
+                "id": "bad",
+                "name": "bad key",
+                "key": "sk-bad",
+                "status": "active",
+                "group": {"status": "active", "platform": "openai", "allow_image_generation": True, "name": "default"},
+            },
+            {
+                "id": "456",
+                "name": "image key",
+                "key": "sk-image-secret",
+                "status": "active",
+                "group": {"status": "active", "platform": "openai", "allow_image_generation": True, "name": "default"},
+            },
+        ]
+        calls: list[str] = []
+
+        async def fake_list_keys(_config, token):
+            self.assertEqual(token, "sub2api-token")
+            return rows
+
+        async def fake_supported_models(_config, api_key):
+            calls.append(api_key)
+            if api_key == "sk-image-secret":
+                return frozenset({"gpt-image-2", "gpt-5.4-mini"})
+            return frozenset({"gpt-5.4-mini"})
+
+        with (
+            patch("codex_image.webui.omni_session.list_omni_image_keys", fake_list_keys),
+            patch("codex_image.webui.omni_session._key_supported_models", fake_supported_models),
+        ):
+            key = asyncio.run(resolve_omni_image_key(config, store, session, ""))
+
+        self.assertEqual(calls, ["sk-bad", "sk-image-secret"])
+        self.assertEqual(key["id"], "456")
+        self.assertEqual(key["key"], "sk-image-secret")
+        self.assertTrue(key["supports_title_model"])
 
     def test_session_store_encrypts_sub2api_token(self) -> None:
         tmp = Path(self.create_temp_dir())

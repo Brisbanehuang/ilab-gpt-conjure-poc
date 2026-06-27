@@ -9,7 +9,7 @@ from pathlib import Path
 
 
 class WebUIStorageCleanupTests(unittest.TestCase):
-    def test_omni_metadata_gets_temporary_retention_fields(self) -> None:
+    def test_omni_metadata_gets_thirty_day_retention_fields(self) -> None:
         from codex_image.webui.storage import TaskStorage
         from codex_image.webui.task_metadata import _write_queued_metadata
 
@@ -17,7 +17,6 @@ class WebUIStorageCleanupTests(unittest.TestCase):
             "os.environ",
             {
                 "OMNI_OBJECT_STORAGE_DRIVER": "r2",
-                "OMNI_TEMP_IMAGE_TTL_HOURS": "24",
                 "OMNI_SAVED_IMAGE_TTL_DAYS": "30",
             },
         ):
@@ -41,8 +40,8 @@ class WebUIStorageCleanupTests(unittest.TestCase):
 
         self.assertEqual(metadata["owner_id"], "user_123")
         self.assertEqual(metadata["storage_driver"], "r2")
-        self.assertEqual(metadata["retention_policy"], "temporary")
-        self.assertEqual(metadata["expires_at"], "2026-06-27T15:00:00Z")
+        self.assertEqual(metadata["retention_policy"], "30_days")
+        self.assertEqual(metadata["expires_at"], "2026-07-26T15:00:00Z")
 
     def test_r2_output_put_removes_only_transient_local_output(self) -> None:
         from codex_image.client import ImageResult
@@ -99,7 +98,7 @@ class WebUIStorageCleanupTests(unittest.TestCase):
             self.assertFalse(local_output.exists())
             self.assertTrue(metadata_path.exists())
             self.assertTrue(sqlite_path.exists())
-            self.assertEqual(metadata["outputs"][0]["expires_at"], "2026-06-27T15:00:00Z")
+            self.assertEqual(metadata["outputs"][0]["expires_at"], "2026-07-26T15:00:00Z")
 
     def test_cleanup_expired_storage_dry_run_and_delete(self) -> None:
         from codex_image.webui.storage import TaskStorage

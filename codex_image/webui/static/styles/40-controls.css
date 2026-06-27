@@ -516,7 +516,6 @@ svg.button-icon {
 }
 
 .omni-poc-mode .auth-source-switcher,
-.omni-poc-mode #githubLink,
 .omni-poc-mode #authSourceGroup,
 .omni-poc-mode #authSourceDetail,
 .omni-poc-mode #apiSourceSettingsButton,
@@ -534,47 +533,82 @@ svg.button-icon {
   display: inline-flex;
   align-items: center;
   flex-wrap: nowrap;
-  gap: 8px;
-  min-height: 36px;
-  padding: 4px 8px;
-  border: 1px solid rgba(15, 23, 42, 0.12);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.92);
+  gap: 3px;
+  height: var(--top-nav-control-height);
+  min-height: var(--top-nav-control-height);
+  padding: var(--top-nav-control-padding);
+  border: 1px solid color-mix(in srgb, var(--line) 76%, transparent);
+  border-radius: var(--top-nav-control-radius);
+  background: color-mix(in srgb, var(--surface-soft) 72%, transparent);
+  font-size: var(--top-nav-control-font-size);
+  line-height: 1;
 }
 
 .omni-poc-key-label {
-  font-size: 12px;
-  color: #334155;
+  padding: 0 8px;
+  color: var(--text-secondary);
+  white-space: nowrap;
 }
 
 .omni-poc-account {
-  max-width: 180px;
+  max-width: 170px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 12px;
-  color: #475569;
+  color: var(--muted);
 }
 
 .omni-poc-key-select {
-  width: min(520px, 42vw);
-  height: 28px;
-  padding: 0 8px;
-  border: 1px solid rgba(15, 23, 42, 0.16);
-  border-radius: 6px;
+  width: min(360px, 32vw);
+  height: var(--top-nav-segment-height);
+  min-height: var(--top-nav-segment-height);
+  padding: 0 26px 0 10px;
+  border: 0;
+  border-radius: var(--top-nav-control-radius);
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--top-nav-control-font-size);
+  line-height: 1;
 }
 
 .omni-poc-key-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 28px;
-  padding: 0 10px;
-  border: 1px solid rgba(15, 23, 42, 0.16);
-  border-radius: 6px;
-  background: #f8fafc;
-  color: #0f172a;
+  height: var(--top-nav-segment-height);
+  min-height: var(--top-nav-segment-height);
+  padding: 0 13px;
+  border: 0;
+  border-radius: var(--top-nav-control-radius);
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--top-nav-control-font-size);
+  line-height: 1;
   text-decoration: none;
+  white-space: nowrap;
+}
+
+.omni-poc-key-button:hover,
+.omni-poc-key-button:focus-visible,
+.omni-poc-key-select:hover,
+.omni-poc-key-select:focus-visible {
+  background: var(--primary-light);
+  color: var(--primary-strong);
+  outline: none;
+}
+
+.omni-poc-login-link:not(.hidden) {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  box-shadow: 0 5px 14px rgba(40, 116, 85, 0.22);
+}
+
+.omni-poc-login-link:not(.hidden):hover,
+.omni-poc-login-link:not(.hidden):focus-visible {
+  background: var(--primary);
+  color: var(--primary-foreground);
 }
 
 .omni-poc-key-status {
@@ -582,6 +616,5 @@ svg.button-icon {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 12px;
-  color: #475569;
+  color: var(--muted);
 }

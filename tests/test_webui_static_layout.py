@@ -647,7 +647,9 @@ class WebUIStaticLayoutTests(WebUIStaticTestCase):
         styles = Path("codex_image/webui/static/styles.css").read_text(encoding="utf-8")
 
         self.assertIn("<title>OmniAPi Image Studio</title>", html)
+        self.assertIn('<link rel="icon" type="image/svg+xml" href="/static/assets/omniapi-logo.svg" />', html)
         self.assertIn('<div class="brand-lockup">', html)
+        self.assertIn('<img src="/static/assets/omniapi-logo.svg" alt="" />', html)
         self.assertIn('<div class="brand-name">OmniAPi</div>', html)
         self.assertIn('<div class="brand-subtitle">Image Studio</div>', html)
         self.assertIn('aria-label="OmniAPi Image Studio"', html)
@@ -661,10 +663,19 @@ class WebUIStaticLayoutTests(WebUIStaticTestCase):
         self.assertRegex(styles, r"\.brand-mark\s*\{[^}]*height:\s*48px")
         self.assertRegex(styles, r"\.brand-mark\s*\{[^}]*flex:\s*0\s+0\s+48px")
         self.assertRegex(styles, r"\.brand-mark\s*\{[^}]*border-radius:\s*16px")
+        self.assertRegex(styles, r"\.brand-mark\s+img\s*\{[^}]*width:\s*100%")
         self.assertRegex(styles, r"\.brand-name\s*\{[^}]*font-size:\s*17px")
         self.assertRegex(styles, r"\.brand-title\s*\{[^}]*line-height:\s*1\.05")
         self.assertRegex(styles, r"\.brand-subtitle\s*\{[^}]*font-size:\s*13px")
         self.assertRegex(styles, r"\.brand-subtitle\s*\{[^}]*font-weight:\s*700")
+
+    def test_footer_shows_storage_retention_notice(self) -> None:
+        html = Path("codex_image/webui/static/index.html").read_text(encoding="utf-8")
+        styles = Path("codex_image/webui/static/styles.css").read_text(encoding="utf-8")
+
+        self.assertIn('data-i18n="footer.retentionNotice"', html)
+        self.assertIn("图片仅保存 30 天", html)
+        self.assertRegex(styles, r"\.api-retention-note\s*\{[^}]*color:\s*var\(--muted\)")
         self.assertRegex(styles, r"\.brand-subtitle\s*\{[^}]*letter-spacing:\s*0")
         self.assertRegex(styles, r"\.brand-subtitle\s*\{[^}]*text-transform:\s*none")
     def test_sidebar_footer_utilities_are_centered(self) -> None:
@@ -1592,8 +1603,8 @@ class WebUIStaticLayoutTests(WebUIStaticTestCase):
         self.assertIn('title="系统设置"', html)
         self.assertNotIn("双击打开 API 设置", html)
         self.assertIn('id="githubLink"', html)
-        self.assertIn('href="https://github.com/kadevin/ilab-gpt-conjure"', html)
-        self.assertIn('aria-label="GitHub"', html)
+        self.assertIn('href="https://api.brislouise.online/dashboard"', html)
+        self.assertIn('aria-label="Omni 主站 Dashboard"', html)
         self.assertIn('target="_blank"', html)
         self.assertIn('rel="noreferrer"', html)
         nav_actions = html[html.index('<div class="nav-actions">'):html.index('<div id="taskNotificationCenter"')]

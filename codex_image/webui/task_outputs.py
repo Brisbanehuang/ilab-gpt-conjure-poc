@@ -376,7 +376,7 @@ def _stored_output_records(
 def _apply_omni_retention_metadata(metadata: dict[str, Any], params: dict[str, Any], created_at: str) -> None:
     if not params.get("omni_poc"):
         return
-    policy = "saved" if metadata.get("archived_at") else "temporary"
+    policy = "30_days"
     expires_at = retention_expires_at(str(metadata.get("created_at") or created_at), policy=policy)
     metadata["owner_id"] = owner_id_from_params(params)
     metadata["storage_driver"] = load_object_storage_config().driver

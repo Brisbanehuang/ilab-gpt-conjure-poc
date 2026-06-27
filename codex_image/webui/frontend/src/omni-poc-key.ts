@@ -23,6 +23,7 @@ let authenticated = false;
 let selectedKeyId = window.localStorage.getItem(SELECTED_KEY_STORAGE)?.trim() || "";
 let keys: OmniKey[] = [];
 let user: OmniUser | null = null;
+let sessionConnectionOk = true;
 
 export function isOmniPocMode(): boolean {
   return enabled || document.documentElement.classList.contains("omni-poc-mode");
@@ -41,14 +42,14 @@ export function requireOmniApiKeyBeforeSubmit(): void {
   if (!authenticated) {
     throw new Error("请先从 Omni 主站登录后再使用生图功能");
   }
-  if (!selectedKeyId) {
-    throw new Error("请选择 Omni API Key");
+  if (!keys.length) {
+    throw new Error("没有检测到可调用 gpt-image-2 的 API Key");
   }
 }
 
 export function updateOmniLegacyAuthState(): void {
   const bridge = getLegacyBridge();
-  const ready = Boolean(authenticated && selectedKeyId);
+  const ready = Boolean(authenticated && keys.length);
   bridge.state.authAvailable = ready;
   bridge.state.authStatus = {
     selected_source: "api",
@@ -57,13 +58,13 @@ export function updateOmniLegacyAuthState(): void {
     sources: {},
   };
   if (bridge.els.apiStatus) {
-    bridge.els.apiStatus.className = `status-dot ${ready ? "ok" : "error"}`;
+    bridge.els.apiStatus.className = `status-dot ${sessionConnectionOk ? "ok" : "error"}`;
   }
   if (bridge.els.runButton) {
     bridge.els.runButton.disabled = !ready;
   }
   if (bridge.els.authSourceDetail) {
-    const text = ready ? "Omni API Key" : authenticated ? "请选择 Omni API Key" : "请从 Omni 主站登录";
+    const text = ready ? "Omni API Key" : authenticated ? "没有可用 Omni API Key" : "请从 Omni 主站登录";
     bridge.els.authSourceDetail.textContent = text;
     bridge.els.authSourceDetail.title = text;
   }
@@ -92,19 +93,20 @@ function renderKeyOptions(select: HTMLSelectElement): void {
     window.localStorage.removeItem(SELECTED_KEY_STORAGE);
     return;
   }
+  const autoOption = document.createElement("option");
+  autoOption.value = "";
+  autoOption.textContent = "自动选择（推荐）";
+  select.appendChild(autoOption);
   keys.forEach((key) => {
     const option = document.createElement("option");
     option.value = key.id;
     option.textContent = labelForKey(key);
     select.appendChild(option);
   });
-  if (!keys.some((key) => key.id === selectedKeyId)) {
-    selectedKeyId = keys[0]?.id || "";
+  if (selectedKeyId && !keys.some((key) => key.id === selectedKeyId)) {
+    selectedKeyId = "";
   }
   select.value = selectedKeyId;
-  if (selectedKeyId) {
-    window.localStorage.setItem(SELECTED_KEY_STORAGE, selectedKeyId);
-  }
 }
 
 function renderSession(root: HTMLElement): void {
@@ -145,15 +147,18 @@ async function refreshSessionAndKeys(root: HTMLElement): Promise<void> {
   try {
     const sessionResponse = await fetch("/api/auth/session", { credentials: "include" });
     const sessionPayload = await sessionResponse.json().catch(() => ({}));
+    sessionConnectionOk = sessionResponse.ok;
     authenticated = Boolean(sessionPayload?.authenticated);
     user = authenticated ? sessionPayload.user || null : null;
     keys = [];
     if (authenticated) {
       const keysResponse = await fetch("/api/omni/keys", { credentials: "include" });
       const keysPayload = await keysResponse.json().catch(() => ({}));
+      sessionConnectionOk = sessionConnectionOk && keysResponse.ok;
       keys = Array.isArray(keysPayload?.keys) ? keysPayload.keys : [];
     }
   } catch {
+    sessionConnectionOk = false;
     authenticated = false;
     user = null;
     keys = [];

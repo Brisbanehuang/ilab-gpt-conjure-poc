@@ -263,20 +263,24 @@ async def usable_key_dtos(config: OmniPOCConfig, token: str) -> list[dict[str, A
 
 async def resolve_omni_image_key(config: OmniPOCConfig, session_store: OmniSessionStore, session: OmniSession, key_id: str) -> dict[str, Any]:
     clean_key_id = str(key_id or "").strip()
-    if not clean_key_id:
-        raise ValueError("请选择 Omni API Key")
+    auto_select = clean_key_id.lower() == "auto" or not clean_key_id
     token = session_store.decrypt_token(session)
     rows = await list_omni_image_keys(config, token)
     for key in rows:
-        if str(key.get("id") or "") != clean_key_id:
+        if not auto_select and str(key.get("id") or "") != clean_key_id:
             continue
         api_key = str(key.get("key") or "").strip()
         if not api_key or not is_openai_image_key_candidate(key):
+            if auto_select:
+                continue
             break
         supported_models = await _key_supported_models(config, api_key)
         if config.image_model not in supported_models:
+            if auto_select:
+                continue
             break
         key = dict(key)
         key["supports_title_model"] = DEFAULT_TITLE_MODEL in supported_models if is_openai_text_key_candidate(key) else False
         return key
-    raise ValueError("选择的 Omni API Key 不可用或不属于当前用户")
+    detail = "没有检测到可调用 gpt-image-2 的 API Key" if auto_select else "选择的 Omni API Key 不可用或不属于当前用户"
+    raise ValueError(detail)

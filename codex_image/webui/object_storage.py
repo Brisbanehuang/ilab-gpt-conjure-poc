@@ -28,7 +28,7 @@ class ObjectStorageConfig:
     secret_access_key: str = ""
     bucket: str = ""
     region: str = "auto"
-    temp_image_ttl_hours: int = 24
+    temp_image_ttl_hours: int = 720
     saved_image_ttl_days: int = 30
     cleanup_interval_seconds: int = 3600
     max_bytes_per_user: int | None = None
@@ -75,10 +75,7 @@ def content_type_for_format(output_format: str) -> str:
 def retention_expires_at(created_at: str, *, policy: str, config: ObjectStorageConfig | None = None) -> str:
     storage_config = config or load_object_storage_config()
     base = _parse_datetime(created_at) or datetime.now(UTC)
-    if policy == "saved":
-        expires_at = base + timedelta(days=storage_config.saved_image_ttl_days)
-    else:
-        expires_at = base + timedelta(hours=storage_config.temp_image_ttl_hours)
+    expires_at = base + timedelta(days=storage_config.saved_image_ttl_days)
     return expires_at.isoformat().replace("+00:00", "Z")
 
 
@@ -92,7 +89,7 @@ def load_object_storage_config(env: Mapping[str, str] | None = None) -> ObjectSt
         secret_access_key=str(payload.get("R2_SECRET_ACCESS_KEY") or "").strip(),
         bucket=str(payload.get("R2_BUCKET") or "").strip(),
         region=str(payload.get("R2_REGION") or "auto").strip() or "auto",
-        temp_image_ttl_hours=_int_env(payload.get("OMNI_TEMP_IMAGE_TTL_HOURS"), 24),
+        temp_image_ttl_hours=_int_env(payload.get("OMNI_TEMP_IMAGE_TTL_HOURS"), 720),
         saved_image_ttl_days=_int_env(payload.get("OMNI_SAVED_IMAGE_TTL_DAYS"), 30),
         cleanup_interval_seconds=_int_env(payload.get("OMNI_R2_CLEANUP_INTERVAL_SECONDS"), 3600),
         max_bytes_per_user=_optional_int_env(payload.get("OMNI_R2_MAX_BYTES_PER_USER")),

@@ -1159,6 +1159,10 @@
   background: var(--accent);
 }
 
+.api-retention-note {
+  color: var(--muted);
+}
+
 .version-info {
   appearance: none;
   border: 0;

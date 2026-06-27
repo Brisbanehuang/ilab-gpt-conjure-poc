@@ -282,6 +282,47 @@ class WebUITaskTests(unittest.TestCase):
         self.assertEqual(response.content, b"r2-image")
         self.assertEqual(fake.key, storage_key)
 
+    def test_delete_completed_task_removes_r2_objects(self) -> None:
+        from codex_image.webui.app import create_app
+
+        class FakeObjectStorage:
+            def __init__(self) -> None:
+                self.deleted: list[str] = []
+
+            async def delete(self, key: str) -> None:
+                self.deleted.append(key)
+
+        fake = FakeObjectStorage()
+        task_id = "20260505010203-abcdef01"
+        storage_key = "users/user_123/images/2026/0505/010203-task/outputs/01-title.png"
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            metadata_path(root, task_id).parent.mkdir(parents=True, exist_ok=True)
+            metadata_path(root, task_id).write_text(
+                json.dumps(
+                    {
+                        "task_id": task_id,
+                        "status": "completed",
+                        "outputs": [
+                            {
+                                "index": 1,
+                                "status": "completed",
+                                "storage_driver": "r2",
+                                "storage_key": storage_key,
+                                "url": f"/api/tasks/{task_id}/outputs/1",
+                            }
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            app = create_app(output_root=root, auth_checker=lambda: True, auto_start_queue=False)
+            with patch("codex_image.webui.routes.tasks.object_storage_from_env", return_value=fake):
+                response = TestClient(app).delete(f"/api/tasks/{task_id}")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(fake.deleted, [storage_key])
+
     def test_task_reveal_output_endpoint_opens_output_directory(self) -> None:
         from codex_image.webui.app import create_app
 
@@ -418,6 +459,43 @@ class WebUITaskTests(unittest.TestCase):
             self.assertTrue((root / "thumbnails" / "2026-05-05" / f"{task_id}-image-1-thumb.jpg").is_file())
             self.assertTrue((root / "thumbnails" / "2026-05-05" / f"{task_id}-image-2-thumb.jpg").is_file())
             self.assertFalse((root / "thumbnails" / "2026-05-05" / f"{task_id}-image-3-thumb.jpg").exists())
+
+    def test_delete_unselected_outputs_removes_r2_objects(self) -> None:
+        from codex_image.webui.app import create_app
+
+        class FakeObjectStorage:
+            def __init__(self) -> None:
+                self.deleted: list[str] = []
+
+            async def delete(self, key: str) -> None:
+                self.deleted.append(key)
+
+        fake = FakeObjectStorage()
+        task_id = "20260505010203-abcdef01"
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            metadata_path(root, task_id).parent.mkdir(parents=True, exist_ok=True)
+            metadata_path(root, task_id).write_text(
+                json.dumps(
+                    {
+                        "task_id": task_id,
+                        "status": "completed",
+                        "selected_output_indexes": [1],
+                        "output_urls": [output_url(task_id, 1), output_url(task_id, 2)],
+                        "outputs": [
+                            {"index": 1, "status": "completed", "storage_driver": "r2", "storage_key": "keep", "url": output_url(task_id, 1)},
+                            {"index": 2, "status": "completed", "storage_driver": "r2", "storage_key": "delete", "url": output_url(task_id, 2)},
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            app = create_app(output_root=root, auth_checker=lambda: True, auto_start_queue=False)
+            with patch("codex_image.webui.routes.tasks.object_storage_from_env", return_value=fake):
+                response = TestClient(app).post(f"/api/tasks/{task_id}/outputs/delete-unselected")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(fake.deleted, ["delete"])
 
     def test_task_thumbnail_route_backfills_legacy_output_thumbnail(self) -> None:
         from codex_image.webui.app import create_app

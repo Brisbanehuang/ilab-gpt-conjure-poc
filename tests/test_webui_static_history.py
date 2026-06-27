@@ -26,6 +26,7 @@ class WebUIStaticHistoryTests(unittest.TestCase):
         styles = Path("codex_image/webui/static/styles/90-history.css").read_text(encoding="utf-8")
 
         self.assertIn("<title>历史库 - OmniAPi Image Studio</title>", html)
+        self.assertIn('<link rel="icon" type="image/svg+xml" href="/static/assets/omniapi-logo.svg" />', html)
         self.assertIn("<strong>OmniAPi Image Studio</strong>", html)
         self.assertNotIn("Omni Lens", html)
         self.assertNotIn("BYOK STUDIO", html)
@@ -115,8 +116,6 @@ class WebUIStaticHistoryTests(unittest.TestCase):
 
         for marker in [
             'id="historyOrientationList"',
-            'id="historyBackendList"',
-            'id="historyProviderList"',
             'id="historyPromptModeList"',
             'id="historyQualityList"',
             'id="historyRatioList"',
@@ -139,6 +138,8 @@ class WebUIStaticHistoryTests(unittest.TestCase):
         self.assertNotIn('<select id="historySort"', html)
         self.assertNotIn('id="historyStatusList"', html)
         self.assertNotIn('id="historySizeList"', html)
+        self.assertNotIn('id="historyBackendList"', html)
+        self.assertNotIn('id="historyProviderList"', html)
 
         for marker in [
             "selectedTaskIds: new Set<string>()",
@@ -426,6 +427,10 @@ class WebUIStaticHistoryTests(unittest.TestCase):
             self.assertIn(marker, html)
         self.assertNotIn('data-i18n="history.status"', html)
         self.assertNotIn('data-i18n="history.size"', html)
+        self.assertNotIn('data-i18n="history.backend"', html)
+        self.assertNotIn('data-i18n="history.provider"', html)
+        self.assertNotIn('id="historyBackendList"', html)
+        self.assertNotIn('id="historyProviderList"', html)
         self.assertNotIn('<button id="historyLoadSentinel"', html)
         self.assertNotIn('class="brand-mark"', html)
         self.assertNotIn("⌘", html)

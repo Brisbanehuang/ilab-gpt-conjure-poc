@@ -97,6 +97,7 @@ class WebUIStaticI18nTests(WebUIStaticTestCase):
 
         self.assertIn('className = "omni-poc-key-control"', source)
         self.assertIn('document.querySelector(".nav-actions")', source)
+        self.assertIn("自动选择（推荐）", source)
         self.assertNotIn("使用你在 Omni 主站登录后的 API Key", source)
         self.assertNotIn("Key 不会保存在浏览器", source)
         self.assertNotIn("omni-poc-source-link", source)
@@ -104,7 +105,10 @@ class WebUIStaticI18nTests(WebUIStaticTestCase):
         self.assertNotIn(".omni-poc-key-notice", styles)
         self.assertNotIn(".omni-poc-source-link", styles)
         self.assertIn(".omni-poc-mode .auth-source-switcher", styles)
-        self.assertIn(".omni-poc-mode #githubLink", styles)
+        self.assertNotIn(".omni-poc-mode #githubLink", styles)
+        self.assertIn("sessionConnectionOk ? \"ok\" : \"error\"", source)
+        self.assertRegex(styles, r"\.omni-poc-login-link:not\(\.hidden\)\s*\{[^}]*background:\s*var\(--primary\)")
+        self.assertRegex(styles, r"\.omni-poc-login-link:not\(\.hidden\)\s*\{[^}]*color:\s*var\(--primary-foreground\)")
 
     def test_i18n_source_exposes_locales_and_dom_translation(self) -> None:
         source_path = Path("codex_image/webui/frontend/src/i18n.ts")

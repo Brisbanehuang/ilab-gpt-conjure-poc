@@ -19,6 +19,7 @@ from codex_image.webui.task_metadata import (
     _downloadable_output_paths,
     _output_record_filename,
     _output_thumbnail_fields,
+    _positive_int,
     _retryable_failed_output_indexes,
     _safe_output_path,
     _set_task_output_selected,
@@ -282,10 +283,12 @@ def register_task_routes(app: FastAPI, ctx: WebUIContext) -> None:
             raise HTTPException(status_code=409, detail=str(exc)) from exc
 
     @app.post("/api/tasks/{task_id}/outputs/delete-unselected")
-    def delete_unselected_task_outputs(task_id: str) -> dict[str, Any]:
+    async def delete_unselected_task_outputs(task_id: str) -> dict[str, Any]:
         try:
             metadata = ctx.storage.read_metadata(task_id)
             _ensure_outputs_mutable(task_id, metadata)
+            removed_keys = _storage_keys_for_unselected_outputs(metadata)
+            await _delete_r2_objects(removed_keys)
             metadata = _delete_unselected_task_outputs(ctx.storage, task_id, metadata)
             return {
                 "task": _with_file_urls(
@@ -387,10 +390,12 @@ def register_task_routes(app: FastAPI, ctx: WebUIContext) -> None:
         }
 
     @app.delete("/api/tasks/{task_id}")
-    def delete_task(task_id: str) -> dict[str, Any]:
+    async def delete_task(task_id: str) -> dict[str, Any]:
         if task_id in ctx.active_task_ids or h["queue_has_running_task"](task_id):
             raise HTTPException(status_code=409, detail="Running task cannot be deleted")
         try:
+            metadata = ctx.storage.read_metadata(task_id)
+            await _delete_r2_objects(_storage_keys_for_metadata(metadata))
             ctx.queue_storage.remove_waiting(task_id)
             ctx.storage.delete_task(task_id)
         except (FileNotFoundError, ValueError) as exc:
@@ -404,6 +409,56 @@ def register_task_routes(app: FastAPI, ctx: WebUIContext) -> None:
             raise ValueError("Queued task outputs cannot be changed")
         if metadata.get("status") in {"running", "submitting", "queued"}:
             raise ValueError("Unfinished task outputs cannot be changed")
+
+
+def _storage_keys_for_metadata(metadata: dict[str, Any]) -> list[str]:
+    keys: list[str] = []
+    for collection_key in ("outputs", "input_sources"):
+        records = metadata.get(collection_key)
+        if not isinstance(records, list):
+            continue
+        for record in records:
+            if isinstance(record, dict) and str(record.get("storage_driver") or "") == "r2" and record.get("storage_key"):
+                keys.append(str(record["storage_key"]))
+    return _dedupe_keys(keys)
+
+
+def _storage_keys_for_unselected_outputs(metadata: dict[str, Any]) -> list[str]:
+    selected_indexes = set(_positive_int(index) for index in metadata.get("selected_output_indexes", []) if _positive_int(index) is not None)
+    if not selected_indexes:
+        return []
+    keys: list[str] = []
+    for record in _visible_completed_output_records(metadata):
+        index = _positive_int(record.get("index"))
+        if index is None or index in selected_indexes:
+            continue
+        if str(record.get("storage_driver") or "") == "r2" and record.get("storage_key"):
+            keys.append(str(record["storage_key"]))
+    return _dedupe_keys(keys)
+
+
+def _dedupe_keys(keys: list[str]) -> list[str]:
+    seen: set[str] = set()
+    result: list[str] = []
+    for key in keys:
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        result.append(key)
+    return result
+
+
+async def _delete_r2_objects(keys: list[str]) -> None:
+    if not keys:
+        return
+    object_storage = object_storage_from_env()
+    if object_storage is None:
+        raise HTTPException(status_code=503, detail="Object storage is not configured")
+    try:
+        for key in keys:
+            await object_storage.delete(key)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail="Could not delete stored image") from exc
 
 
 def _open_path_in_file_manager(path: Path) -> None:

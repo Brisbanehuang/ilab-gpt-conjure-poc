@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-label="OmniAPI green network logo">
+  <defs>
+    <radialGradient id="bg" cx="38%" cy="18%" r="92%">
+      <stop offset="0%" stop-color="#5f8374"/>
+      <stop offset="38%" stop-color="#224f45"/>
+      <stop offset="72%" stop-color="#073837"/>
+      <stop offset="100%" stop-color="#071e22"/>
+    </radialGradient>
+    <linearGradient id="line" x1="168" y1="232" x2="856" y2="792" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#e9f5eb" stop-opacity="0.95"/>
+      <stop offset="45%" stop-color="#8fb79e" stop-opacity="0.82"/>
+      <stop offset="100%" stop-color="#dff3e5" stop-opacity="0.92"/>
+    </linearGradient>
+    <linearGradient id="lineSoft" x1="168" y1="232" x2="856" y2="792" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#cce5d4" stop-opacity="0.45"/>
+      <stop offset="50%" stop-color="#86b498" stop-opacity="0.32"/>
+      <stop offset="100%" stop-color="#cde8d8" stop-opacity="0.40"/>
+    </linearGradient>
+    <radialGradient id="core" cx="42%" cy="36%" r="70%">
+      <stop offset="0%" stop-color="#f1fff4"/>
+      <stop offset="32%" stop-color="#c9ead3"/>
+      <stop offset="70%" stop-color="#90bea0"/>
+      <stop offset="100%" stop-color="#648f76"/>
+    </radialGradient>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="18" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.55  0 0 0 0 0.88  0 0 0 0 0.67  0 0 0 0.55 0" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="#001617" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <rect width="1024" height="1024" rx="170" fill="url(#bg)"/>
+
+  <!-- subtle central halo -->
+  <circle cx="512" cy="512" r="245" fill="#78b891" opacity="0.10" filter="url(#softGlow)"/>
+
+  <!-- outer hexagon links -->
+  <g fill="none" stroke="url(#lineSoft)" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M384 280 L640 280 L824 512 L640 744 L384 744 L200 512 Z" stroke-width="7"/>
+  </g>
+
+  <!-- main spokes -->
+  <g stroke="url(#line)" stroke-linecap="round" filter="url(#shadow)">
+    <line x1="512" y1="512" x2="384" y2="280" stroke-width="24" opacity="0.82"/>
+    <line x1="512" y1="512" x2="640" y2="280" stroke-width="24" opacity="0.82"/>
+    <line x1="512" y1="512" x2="824" y2="512" stroke-width="18" opacity="0.82"/>
+    <line x1="512" y1="512" x2="640" y2="744" stroke-width="24" opacity="0.82"/>
+    <line x1="512" y1="512" x2="384" y2="744" stroke-width="24" opacity="0.82"/>
+    <line x1="512" y1="512" x2="200" y2="512" stroke-width="18" opacity="0.82"/>
+  </g>
+
+  <!-- center ring and core -->
+  <g filter="url(#shadow)">
+    <circle cx="512" cy="512" r="110" fill="none" stroke="url(#line)" stroke-width="42" opacity="0.94"/>
+    <circle cx="512" cy="512" r="48" fill="url(#core)" filter="url(#softGlow)"/>
+  </g>
+
+  <!-- outer nodes -->
+  <g filter="url(#shadow)">
+    <g>
+      <circle cx="384" cy="280" r="49" fill="none" stroke="url(#line)" stroke-width="17"/>
+      <circle cx="384" cy="280" r="21" fill="url(#core)"/>
+      <line x1="398" y1="297" x2="426" y2="348" stroke="url(#line)" stroke-width="11" stroke-linecap="round" opacity="0.75"/>
+    </g>
+    <g>
+      <circle cx="640" cy="280" r="49" fill="none" stroke="url(#line)" stroke-width="17"/>
+      <circle cx="640" cy="280" r="21" fill="url(#core)"/>
+      <line x1="628" y1="298" x2="599" y2="348" stroke="url(#line)" stroke-width="11" stroke-linecap="round" opacity="0.75"/>
+    </g>
+    <g>
+      <circle cx="824" cy="512" r="49" fill="none" stroke="url(#line)" stroke-width="17"/>
+      <circle cx="824" cy="512" r="21" fill="url(#core)"/>
+      <line x1="803" y1="512" x2="755" y2="512" stroke="url(#line)" stroke-width="11" stroke-linecap="round" opacity="0.75"/>
+    </g>
+    <g>
+      <circle cx="640" cy="744" r="49" fill="none" stroke="url(#line)" stroke-width="17"/>
+      <circle cx="640" cy="744" r="21" fill="url(#core)"/>
+      <line x1="627" y1="727" x2="599" y2="676" stroke="url(#line)" stroke-width="11" stroke-linecap="round" opacity="0.75"/>
+    </g>
+    <g>
+      <circle cx="384" cy="744" r="49" fill="none" stroke="url(#line)" stroke-width="17"/>
+      <circle cx="384" cy="744" r="21" fill="url(#core)"/>
+      <line x1="397" y1="727" x2="426" y2="676" stroke="url(#line)" stroke-width="11" stroke-linecap="round" opacity="0.75"/>
+    </g>
+    <g>
+      <circle cx="200" cy="512" r="49" fill="none" stroke="url(#line)" stroke-width="17"/>
+      <circle cx="200" cy="512" r="21" fill="url(#core)"/>
+      <line x1="221" y1="512" x2="269" y2="512" stroke="url(#line)" stroke-width="11" stroke-linecap="round" opacity="0.75"/>
+    </g>
+  </g>
+
+  <!-- soft highlight vignette -->
+  <path d="M170 0h684c94 0 170 76 170 170v18C855 127 697 96 514 96 333 96 174 127 0 189v-19C0 76 76 0 170 0Z" fill="#ffffff" opacity="0.055"/>
+</svg>
