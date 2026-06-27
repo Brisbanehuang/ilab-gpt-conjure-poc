@@ -513,4 +513,5 @@ async def _execute_stored_task(
         params,
         output_paths,
         output_records,
+        reference_asset_storage,
     )

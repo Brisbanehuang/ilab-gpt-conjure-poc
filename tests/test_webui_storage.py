@@ -20,7 +20,7 @@ def _png_bytes(size: tuple[int, int] = (400, 600)) -> bytes:
 
 class WebUIStorageTests(unittest.TestCase):
     def test_readable_object_keys_use_owner_date_task_and_safe_title(self) -> None:
-        from codex_image.webui.object_storage import output_object_key
+        from codex_image.webui.object_storage import input_object_key, output_object_key
 
         task_id = "20260626144923-a63df6c2"
 
@@ -41,6 +41,14 @@ class WebUIStorageTests(unittest.TestCase):
         self.assertEqual(
             output_object_key(owner_id="user_123", task_id=task_id, title="", index=1, ext="png"),
             "users/user_123/images/2026/0626/144923-20260626144923-a63df6c2/outputs/01-output.png",
+        )
+        self.assertEqual(
+            input_object_key(owner_id="user_123", task_id=task_id, filename="../参考 图.PNG", index=1, ext="png"),
+            "users/user_123/images/2026/0626/144923-20260626144923-a63df6c2/inputs/01-参考图.png",
+        )
+        self.assertEqual(
+            input_object_key(owner_id="user_123", task_id=task_id, filename="", index=2, ext=".webp"),
+            "users/user_123/images/2026/0626/144923-20260626144923-a63df6c2/inputs/02-input.webp",
         )
 
     def test_owner_id_for_session_uses_sub2api_user_id_only(self) -> None:
@@ -120,6 +128,69 @@ class WebUIStorageTests(unittest.TestCase):
         self.assertEqual(metadata["outputs"][0]["storage_driver"], "r2")
         self.assertEqual(metadata["outputs"][0]["storage_key"], fake.puts[0][0])
         self.assertEqual(metadata["outputs"][0]["url"], f"/api/tasks/{task_id}/outputs/1")
+
+    def test_complete_task_stores_omni_reference_assets_in_task_r2_inputs(self) -> None:
+        from codex_image.client import ImageResult
+        from codex_image.webui.object_storage import StoredObject
+        from codex_image.webui.storage import ReferenceAssetStorage, TaskStorage
+        from codex_image.webui.task_metadata import _complete_task, _write_queued_metadata
+
+        class FakeObjectStorage:
+            def __init__(self) -> None:
+                self.puts: list[tuple[str, bytes, str]] = []
+
+            async def put(self, key: str, data: bytes, content_type: str) -> StoredObject:
+                self.puts.append((key, data, content_type))
+                return StoredObject(driver="r2", key=key, size=len(data), content_type=content_type)
+
+        fake = FakeObjectStorage()
+        task_id = "20260627173625-4c1c1b7e"
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            storage = TaskStorage(input_root=root / "inputs", output_root=root / "outputs", source_data_root=root / "source-data")
+            reference_storage = ReferenceAssetStorage(root / "reference-assets").scoped("user_123")
+            reference_asset = reference_storage.create_or_touch("参考 图.png", b"reference-bytes", "image/png")
+            storage._task_source_data_dir(task_id).mkdir(parents=True, exist_ok=True)
+            _write_queued_metadata(
+                storage,
+                task_id,
+                created_at="2026-06-27T17:36:25+00:00",
+                mode="generate",
+                prompt="用参考图生成",
+                prompt_for_model="用参考图生成",
+                params={"omni_poc": True, "sub2api_user_id": 123, "output_format": "png", "n": 1},
+                input_files=[],
+                mask_file=None,
+                gallery_refs=[],
+                reference_assets=[reference_asset],
+                title="参考任务",
+            )
+            with unittest.mock.patch("codex_image.webui.task_outputs.object_storage_from_env", return_value=fake):
+                metadata = _complete_task(
+                    storage,
+                    task_id,
+                    "2026-06-27T17:36:25+00:00",
+                    "generate",
+                    "用参考图生成",
+                    "用参考图生成",
+                    ImageResult(b"png-bytes", "revised", "png", "1024x1024", "auto", "low", {}),
+                    [],
+                    [],
+                    [reference_asset],
+                    {},
+                    {"omni_poc": True, "sub2api_user_id": 123, "output_format": "png", "n": 1},
+                    reference_asset_storage=reference_storage,
+                )
+
+        input_key = "users/user_123/images/2026/0627/173625-20260627173625-4c1c1b7e/inputs/01-参考图.png"
+        self.assertIn((input_key, b"reference-bytes", "image/png"), fake.puts)
+        self.assertEqual(metadata["reference_assets"][0]["storage_driver"], "r2")
+        self.assertEqual(metadata["reference_assets"][0]["storage_key"], input_key)
+        self.assertEqual(metadata["reference_assets"][0]["image_url"], f"/api/tasks/{task_id}/inputs/1")
+        self.assertEqual(metadata["input_sources"][0]["storage_key"], input_key)
+        self.assertEqual(metadata["input_sources"][0]["image_url"], f"/api/tasks/{task_id}/inputs/1")
+        self.assertEqual(metadata["input_sources"][0]["thumbnail_url"], f"/api/tasks/{task_id}/inputs/1")
+        self.assertEqual(metadata["input_sources"][0]["expires_at"], "2026-07-27T17:36:25Z")
 
     def test_enriched_r2_outputs_use_output_route_for_thumbnail_url(self) -> None:
         from codex_image.webui.task_enrichment import _with_file_urls

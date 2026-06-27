@@ -17,6 +17,10 @@ def _input_thumbnail_route_url(task_id: str, input_index: int) -> str:
     return f"/api/tasks/{quote(task_id, safe='')}/inputs/{input_index}/thumbnail"
 
 
+def _input_route_url(task_id: str, input_index: int) -> str:
+    return f"/api/tasks/{quote(task_id, safe='')}/inputs/{input_index}"
+
+
 def _input_thumbnail_urls(task_id: str, input_files: list[str]) -> list[str]:
     if not task_id:
         return []
@@ -120,6 +124,11 @@ def _enrich_reference_assets(reference_assets: Any, storage: ReferenceAssetStora
             continue
         asset_id = str(item.get("id") or "")
         fallback = dict(item)
+        if fallback.get("storage_key"):
+            fallback["missing"] = False
+            fallback.setdefault("image_url", "")
+            enriched.append(fallback)
+            continue
         try:
             stored = storage.read_item(asset_id) if storage is not None else fallback
             if storage is not None:
@@ -129,7 +138,13 @@ def _enrich_reference_assets(reference_assets: Any, storage: ReferenceAssetStora
             fallback["image_url"] = ""
             enriched.append(fallback)
             continue
-        enriched.append(_reference_asset_response(stored))
+        response = _reference_asset_response(stored)
+        for key in ("storage_driver", "storage_key", "content_type", "bytes", "expires_at", "thumbnail_url", "source_index"):
+            if fallback.get(key) is not None:
+                response[key] = fallback[key]
+        if fallback.get("storage_key") and fallback.get("image_url"):
+            response["image_url"] = fallback["image_url"]
+        enriched.append(response)
     return enriched
 
 
@@ -151,8 +166,8 @@ def _input_sources(
             start=1,
         )
     ]
-    sources.extend(
-        {
+    for source_offset, item in enumerate(reference_assets or [], start=len(sources) + 1):
+        source = {
             "kind": "asset",
             "id": item.get("id"),
             "filename": item.get("filename"),
@@ -160,8 +175,14 @@ def _input_sources(
             "image_url": item.get("image_url", ""),
             "missing": bool(item.get("missing")),
         }
-        for item in (reference_assets or [])
-    )
+        if item.get("storage_key"):
+            source["source_index"] = item.get("source_index") or source_offset
+            source["image_url"] = item.get("image_url") or _input_route_url(task_id, int(source["source_index"]))
+            source["thumbnail_url"] = item.get("thumbnail_url") or source["image_url"]
+            for key in ("storage_driver", "storage_key", "content_type", "bytes", "expires_at"):
+                if item.get(key) is not None:
+                    source[key] = item[key]
+        sources.append(source)
     sources.extend(
         {
             "kind": "gallery",

@@ -51,6 +51,7 @@ class ReferenceAssetStorage:
             metadata = {
                 "id": asset_id,
                 "sha256": asset_id,
+                "original_filename": filename or "image.png",
                 "filename": _safe_filename(filename),
                 "stored_filename": stored_filename,
                 "mime_type": content_type or _guess_mime_type(stored_filename),

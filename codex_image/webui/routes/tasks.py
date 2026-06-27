@@ -202,6 +202,35 @@ def register_task_routes(app: FastAPI, ctx: WebUIContext) -> None:
             headers={"Cache-Control": "public, max-age=31536000, immutable"},
         )
 
+    @app.get("/api/tasks/{task_id}/inputs/{input_index}", response_model=None)
+    async def get_task_input(task_id: str, input_index: int, request: Request):
+        try:
+            metadata = _read_owned_metadata(ctx, task_id, _require_omni_owner_id(ctx, request))
+        except (FileNotFoundError, ValueError) as exc:
+            raise HTTPException(status_code=404, detail="Task not found") from exc
+        if input_index < 1:
+            raise HTTPException(status_code=404, detail="Input not found")
+
+        input_sources = metadata.get("input_sources") if isinstance(metadata.get("input_sources"), list) else []
+        record = input_sources[input_index - 1] if input_index <= len(input_sources) and isinstance(input_sources[input_index - 1], dict) else None
+        if record is not None and str(record.get("storage_driver") or "") == "r2" and record.get("storage_key"):
+            object_storage = object_storage_from_env()
+            if object_storage is None:
+                raise HTTPException(status_code=404, detail="Object storage is not configured")
+            try:
+                data = await object_storage.get(str(record["storage_key"]))
+            except Exception as exc:
+                raise HTTPException(status_code=404, detail="Input not found") from exc
+            return StreamingResponse(BytesIO(data), media_type=str(record.get("content_type") or record.get("mime_type") or "application/octet-stream"))
+
+        input_files = metadata.get("input_files") if isinstance(metadata.get("input_files"), list) else []
+        if input_index > len(input_files):
+            raise HTTPException(status_code=404, detail="Input not found")
+        input_path = ctx.storage.input_path(str(input_files[input_index - 1]))
+        if not input_path.is_file():
+            raise HTTPException(status_code=404, detail="Input not found")
+        return FileResponse(input_path)
+
     @app.get("/api/tasks/{task_id}/outputs/{output_index}", response_model=None)
     async def get_task_output(task_id: str, output_index: int, request: Request):
         try:

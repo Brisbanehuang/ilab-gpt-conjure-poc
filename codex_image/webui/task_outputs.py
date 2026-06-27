@@ -13,13 +13,14 @@ from codex_image.client import ImageResult
 
 from .object_storage import (
     content_type_for_format,
+    input_object_key,
     load_object_storage_config,
     object_storage_from_env,
     output_object_key,
     owner_id_from_params,
     retention_expires_at,
 )
-from .storage import TaskStorage, utc_now
+from .storage import ReferenceAssetStorage, TaskStorage, _guess_mime_type, utc_now
 from .task_enrichment import _input_sources, _input_urls
 from .thumbnails import create_image_thumbnail, thumbnail_needs_refresh
 
@@ -369,6 +370,67 @@ def _stored_output_records(
             if expires_at:
                 record["expires_at"] = expires_at
             _delete_transient_file(path, storage)
+        records.append(record)
+    return records
+
+
+def _input_route_url(task_id: str, input_index: int) -> str:
+    return f"/api/tasks/{quote(task_id, safe='')}/inputs/{input_index}"
+
+
+def _stored_reference_asset_records(
+    task_id: str,
+    metadata: dict[str, Any],
+    params: dict[str, Any],
+    reference_assets: list[dict[str, Any]] | None,
+    reference_asset_storage: ReferenceAssetStorage | None,
+    *,
+    input_file_count: int,
+) -> list[dict[str, Any]]:
+    assets = [dict(item) for item in (reference_assets or []) if isinstance(item, dict)]
+    if not assets:
+        return []
+    object_storage = object_storage_from_env() if params.get("omni_poc") else None
+    existing_by_id = {
+        str(item.get("id")): item
+        for item in metadata.get("reference_assets", [])
+        if isinstance(item, dict) and item.get("id")
+    }
+    expires_at = str(metadata.get("expires_at") or retention_expires_at(str(metadata.get("created_at") or utc_now()), policy="30_days"))
+    records: list[dict[str, Any]] = []
+    for offset, asset in enumerate(assets, start=1):
+        asset_id = str(asset.get("id") or "")
+        source_index = input_file_count + offset
+        existing = existing_by_id.get(asset_id, {})
+        record = {**asset, **{key: value for key, value in existing.items() if key.startswith("storage_") or key in {"content_type", "bytes", "expires_at", "source_index"}}}
+        if record.get("storage_key"):
+            record["source_index"] = record.get("source_index") or source_index
+            record["image_url"] = _input_route_url(task_id, int(record["source_index"]))
+            record["thumbnail_url"] = record["image_url"]
+            records.append(record)
+            continue
+        if object_storage is None or reference_asset_storage is None or not asset_id:
+            records.append(record)
+            continue
+        image_path = reference_asset_storage.image_path(asset_id)
+        filename = str(asset.get("original_filename") or asset.get("filename") or image_path.name)
+        ext = image_path.suffix.lstrip(".") or filename.rsplit(".", 1)[-1] or "png"
+        content_type = str(asset.get("mime_type") or _guess_mime_type(image_path.name))
+        data = image_path.read_bytes()
+        key = input_object_key(owner_id=owner_id_from_params(params), task_id=task_id, filename=filename, index=source_index, ext=ext)
+        stored = _run_async_storage_call(object_storage.put(key, data, content_type))
+        record.update(
+            {
+                "storage_driver": stored.driver,
+                "storage_key": stored.key,
+                "content_type": stored.content_type,
+                "bytes": stored.size,
+                "expires_at": expires_at,
+                "source_index": source_index,
+                "image_url": _input_route_url(task_id, source_index),
+                "thumbnail_url": _input_route_url(task_id, source_index),
+            }
+        )
         records.append(record)
     return records
 
@@ -978,6 +1040,7 @@ def _finalize_generated_task(
     params: dict[str, Any],
     output_paths: list[Path],
     output_records: list[dict[str, Any]],
+    reference_asset_storage: ReferenceAssetStorage | None = None,
 ) -> dict[str, Any]:
     del request_payload
     if not results or not output_paths:
@@ -991,6 +1054,14 @@ def _finalize_generated_task(
     first_output_path = output_paths[0]
     total_count = int(params.get("n") or len(output_records) or len(results) or 1)
     metadata = storage.read_metadata(task_id)
+    reference_assets = _stored_reference_asset_records(
+        task_id,
+        metadata,
+        params,
+        reference_assets,
+        reference_asset_storage,
+        input_file_count=len(input_names),
+    )
     stored_records = _stored_output_records(storage, task_id, metadata, params, output_paths, results, source_records=completed_records)
     if output_records:
         records_by_index = {
@@ -1071,6 +1142,7 @@ def _complete_task(
     reference_assets: list[dict[str, Any]] | None,
     request_payload: dict[str, Any],
     params: dict[str, Any],
+    reference_asset_storage: ReferenceAssetStorage | None = None,
 ) -> dict[str, Any]:
     result_list = results if isinstance(results, list) else [results]
     output_paths: list[Path] = []
@@ -1104,6 +1176,14 @@ def _complete_task(
     input_names = [path.name for path in input_files]
     total_count = int(params.get("n") or len(result_list) or 1)
     metadata = storage.read_metadata(task_id)
+    reference_assets = _stored_reference_asset_records(
+        task_id,
+        metadata,
+        params,
+        reference_assets,
+        reference_asset_storage,
+        input_file_count=len(input_names),
+    )
     output_records = _stored_output_records(storage, task_id, metadata, params, output_paths, result_list)
     metadata.update(
         {

@@ -6,6 +6,7 @@ import os
 import re
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from typing import Any, Mapping, Protocol
 from urllib.parse import quote
 
@@ -63,6 +64,16 @@ def output_object_key(*, owner_id: str, task_id: str, title: str, index: int, ex
     safe_ext = _safe_ext(ext)
     safe_title = _safe_title(title, fallback="output")
     return f"users/{_safe_owner(owner_id)}/images/{date[:4]}/{compact_day}/{time_part}-{clean_task_id}/outputs/{int(index):02d}-{safe_title}.{safe_ext}"
+
+
+def input_object_key(*, owner_id: str, task_id: str, filename: str, index: int, ext: str) -> str:
+    clean_task_id = str(task_id or "").strip()
+    date = _task_date(clean_task_id)
+    compact_day = date[5:7] + date[8:10]
+    time_part = clean_task_id[8:14] if len(clean_task_id) >= 14 else "000000"
+    safe_ext = _safe_ext(ext)
+    safe_title = _safe_title(Path(str(filename or "")).stem, fallback="input")
+    return f"users/{_safe_owner(owner_id)}/images/{date[:4]}/{compact_day}/{time_part}-{clean_task_id}/inputs/{int(index):02d}-{safe_title}.{safe_ext}"
 
 
 def content_type_for_format(output_format: str) -> str:
