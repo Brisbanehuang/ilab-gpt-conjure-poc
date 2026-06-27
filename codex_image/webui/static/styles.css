@@ -6740,7 +6740,7 @@ body.lightbox-open {
 .error-preview {
   flex-direction: column;
   align-items: stretch;
-  justify-content: center;
+  justify-content: space-between;
   gap: 12px;
   padding: 24px;
   color: var(--danger);
@@ -6748,14 +6748,62 @@ body.lightbox-open {
   background: var(--danger-soft);
   line-height: 1.55;
   text-align: left;
-  white-space: pre-wrap;
-  overflow: auto;
+  overflow: hidden;
   overflow-wrap: anywhere;
   word-break: break-word;
 }
 
 .error-preview p {
   margin: 0;
+}
+
+.error-preview-summary {
+  display: grid;
+  gap: 8px;
+}
+
+.error-preview-summary strong {
+  color: var(--danger);
+  font-size: 14px;
+}
+
+.error-preview-details {
+  max-height: min(42vh, 420px);
+  min-height: 0;
+  border: 1px solid color-mix(in srgb, var(--danger) 22%, var(--line));
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--surface) 54%, var(--danger-soft));
+  color: var(--danger);
+  overflow: hidden;
+}
+
+.error-preview-details summary {
+  padding: 9px 10px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.error-preview-details-body {
+  max-height: min(34vh, 340px);
+  margin: 0;
+  padding: 0 10px 10px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  color: var(--danger);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.error-preview-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 2px;
 }
 
 .waiting-preview {

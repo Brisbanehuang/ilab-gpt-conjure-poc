@@ -8,6 +8,7 @@ const els = bridge.els;
 let previewGridEventsBound = false;
 let pendingPreviewRenderToken = 0;
 const PREVIEW_FINAL_STATUSES = new Set(["completed", "failed", "partial_failed", "cancelled"]);
+const ERROR_PREVIEW_SUMMARY_LIMIT = 180;
 
 function legacyMethod(name: string, ...args: any[]): any {
   const method = getLegacyBridge().methods[name];
@@ -116,8 +117,7 @@ function renderPreview(task: any = null) {
     clearPreviewGridLayout();
     els.previewGrid.innerHTML = `
       <div class="empty-preview error-preview">
-        <p>${escapeHtml(taskFailureMessage(selected) || translate("preview.taskFailed"))}</p>
-        ${retryFailureSummaryButton(selected)}
+        ${failedPreviewContent(selected)}
       </div>
     `;
     bindPreviewRetryButtons();
@@ -501,6 +501,11 @@ function handlePreviewGridClick(event: any) {
   const target = event.target instanceof Element ? event.target : null;
   if (!target) return;
   if (target.closest("[data-download-output-url]")) return;
+  const copyErrorButton = target.closest("[data-preview-copy-error]") as HTMLElement | null;
+  if (copyErrorButton) {
+    void copyPreviewError(copyErrorButton.dataset.previewCopyError || "");
+    return;
+  }
   const retryButton = target.closest("[data-preview-retry-failed-task-id]") as HTMLElement | null;
   if (retryButton) {
     retryFailedTask(retryButton.dataset.previewRetryFailedTaskId);
@@ -555,6 +560,16 @@ function handlePreviewGridClick(event: any) {
 
 function bindPreviewRetryButtons() {
   bindPreviewGridEvents();
+}
+
+async function copyPreviewError(message: string) {
+  if (!message) return;
+  try {
+    await navigator.clipboard.writeText(message);
+    setStatus(translate("preview.errorCopied"), "ok");
+  } catch {
+    setStatus(translate("preview.errorCopyFailed"), "error");
+  }
 }
 
 function updatePreviewDownloadActions(task: any) {
@@ -818,7 +833,7 @@ function failureSummaryCard(task: any, visibleOutputCount: any) {
   const failed = Number.parseInt(task?.failed_count ?? "", 10);
   const failedCount = Number.isNaN(failed) ? Math.max(0, taskTotalCount(task) - generated) : failed;
   const total = taskTotalCount(task);
-  const message = escapeHtml(taskFailureMessage(task) || translate("preview.partialFailed"));
+  const message = taskFailureMessage(task) || translate("preview.partialFailed");
   const retryState = taskRetryStateText(task);
   const retryStateHtml = retryState ? `<p data-preview-retry-state>${escapeHtml(retryState)}</p>` : "";
   return `
@@ -826,8 +841,58 @@ function failureSummaryCard(task: any, visibleOutputCount: any) {
       <strong>${escapeHtml(task.status === "partial_failed" ? translate("preview.partialFailed") : translate("preview.taskFailed"))}</strong>
       <p>${escapeHtml(formatTranslation("preview.failureLine", { generated, total, failed: failedCount }))}</p>
       ${retryStateHtml}
-      <p>${message}</p>
-      ${retryFailureSummaryButton(task)}
+      <p>${escapeHtml(failedPreviewSummary(message))}</p>
+      ${failedPreviewDetails(message)}
+      ${previewFailureActions(task, message)}
+    </div>
+  `;
+}
+
+function failedPreviewContent(task: any) {
+  const message = taskFailureMessage(task) || translate("preview.taskFailed");
+  return `
+    <div class="error-preview-summary">
+      <strong>${escapeHtml(translate("preview.taskFailed"))}</strong>
+      <p>${escapeHtml(failedPreviewSummary(message))}</p>
+    </div>
+    ${failedPreviewDetails(message)}
+    ${previewFailureActions(task, message)}
+  `;
+}
+
+function failedPreviewSummary(message: string) {
+  const normalized = String(message || "").replace(/\s+/g, " ").trim();
+  if (!normalized) return translate("preview.taskFailed");
+  if (normalized.includes("without image_generation_call") || normalized.includes("completed without image")) {
+    return translate("preview.noImageResult");
+  }
+  return normalized.length > ERROR_PREVIEW_SUMMARY_LIMIT
+    ? `${normalized.slice(0, ERROR_PREVIEW_SUMMARY_LIMIT - 1)}…`
+    : normalized;
+}
+
+function failedPreviewDetails(message: string) {
+  const clean = String(message || "").trim();
+  if (!clean || clean === failedPreviewSummary(clean)) return "";
+  return `
+    <details class="error-preview-details">
+      <summary>${escapeHtml(translate("preview.errorDetails"))}</summary>
+      <pre class="error-preview-details-body">${escapeHtml(clean)}</pre>
+    </details>
+  `;
+}
+
+function previewFailureActions(task: any, message: string) {
+  const actions = [];
+  const copyPayload = escapeHtml(message || "");
+  if (message) {
+    actions.push(`<button class="ghost-button text-sm" type="button" data-preview-copy-error="${copyPayload}">${escapeHtml(translate("preview.copyError"))}</button>`);
+  }
+  const retryActions = retryFailureSummaryButton(task);
+  return `
+    <div class="error-preview-actions">
+      ${actions.join("")}
+      ${retryActions}
     </div>
   `;
 }
