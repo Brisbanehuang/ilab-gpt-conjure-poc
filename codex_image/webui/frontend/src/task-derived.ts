@@ -190,13 +190,31 @@ function taskThumbnailRoute(task: any, index: any) {
   return `/api/tasks/${encodeURIComponent(task.task_id)}/outputs/${outputIndex}/thumbnail`;
 }
 
+function normalizeTaskThumbnailUrl(task: any, url: any, index: any) {
+  const clean = String(url || "").trim();
+  if (!clean) return "";
+  if (clean.startsWith("/api/tasks/")) return clean;
+  if (clean.startsWith("/outputs/")) {
+    const outputIndex = taskOutputIndexFromUrl(clean) || positiveInt(index);
+    return outputIndex === null ? "" : taskThumbnailRoute(task, outputIndex);
+  }
+  return clean;
+}
+
+function taskThumbnailUrlForRecord(task: any, record: any, index: any) {
+  const rawUrl = record?.thumbnail_url
+    || outputFileUrl(record?.thumbnail_file)
+    || (record?.url || record?.file ? taskThumbnailRoute(task, index) : "");
+  return normalizeTaskThumbnailUrl(task, rawUrl, index);
+}
+
 function taskThumbnailUrls(task: any) {
   if (!task) return [];
   const deletedIndexes = taskDeletedOutputIndexes(task);
   const urls: string[] = [];
   const pushUrl = (url: any, index: any) => {
-    const clean = String(url || "").trim();
     const outputIndex = positiveInt(index);
+    const clean = normalizeTaskThumbnailUrl(task, url, outputIndex);
     if (!clean || (outputIndex !== null && deletedIndexes.has(outputIndex)) || urls.includes(clean)) return;
     urls.push(clean);
   };
@@ -213,7 +231,7 @@ function taskThumbnailUrls(task: any) {
       if (!record || typeof record !== "object" || taskOutputRecordIsDeleted(record)) return;
       const index = positiveInt(record.index) || fallbackIndex + 1;
       if (deletedIndexes.has(index) || record.status !== "completed") return;
-      const recordUrl = record.thumbnail_url || outputFileUrl(record.thumbnail_file) || (record.url || record.file ? taskThumbnailRoute(task, index) : "");
+      const recordUrl = taskThumbnailUrlForRecord(task, record, index);
       pushUrl(recordUrl, index);
     });
     if (urls.length) return urls;

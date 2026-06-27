@@ -774,9 +774,15 @@ function syncPreviewImageOrientation() {
 
 function promptPopoverData(task: any, index: any) {
   const originalPrompt = task.prompt || task.prompt_for_model || "";
-  const submittedPrompt = task.prompt_for_model || originalPrompt || "";
-  const optimizedPrompt = task.revised_prompts?.[index] || task.revised_prompt || "";
+  const optimizedPrompt = taskOptimizedPrompt(task, index);
+  const submittedPrompt = optimizedPrompt || task.prompt_for_model || originalPrompt || "";
   return { originalPrompt, submittedPrompt, optimizedPrompt };
+}
+
+function taskOptimizedPrompt(task: any, index: any) {
+  const outputIndex = Number.isFinite(Number(index)) ? Number(index) : 0;
+  const output = Array.isArray(task?.outputs) ? task.outputs[outputIndex] : null;
+  return task.revised_prompts?.[outputIndex] || output?.revised_prompt || task.revised_prompt || "";
 }
 
 function runningProgressCard(task: any, visibleOutputCount: any) {

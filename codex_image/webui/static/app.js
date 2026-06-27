@@ -38809,18 +38809,37 @@ ${galleryText}`;
     const bridge39 = getLegacyBridge();
     const urls = bridge39.methods.taskThumbnailUrls?.(task);
     if (Array.isArray(urls) && urls[0]) return String(urls[0]);
-    if (Array.isArray(task.thumbnail_urls) && task.thumbnail_urls[0]) return String(task.thumbnail_urls[0]);
-    const output = Array.isArray(task.outputs) ? task.outputs.find((record) => record?.status === "completed") : null;
-    if (output?.thumbnail_url) return String(output.thumbnail_url);
-    if (output?.thumbnail_file) return outputFileUrl(output.thumbnail_file);
-    if (output?.url || output?.file) {
-      const index = positiveNumber(output.index) || 1;
-      return `/api/tasks/${encodeURIComponent(task.task_id)}/outputs/${index}/thumbnail`;
+    if (Array.isArray(task.thumbnail_urls) && task.thumbnail_urls[0]) {
+      return normalizeNotificationThumbnailUrl(task, task.thumbnail_urls[0], 1);
+    }
+    const outputs = Array.isArray(task.outputs) ? task.outputs : [];
+    const output = outputs.find((record) => record?.status === "completed");
+    if (output) {
+      const index = positiveNumber(output.index) || outputs.indexOf(output) + 1 || 1;
+      const thumbnailUrl = taskThumbnailUrlForNotification(task, output, index);
+      if (thumbnailUrl) return thumbnailUrl;
     }
     if (Array.isArray(task.output_urls) && task.output_urls.some(Boolean)) {
-      return `/api/tasks/${encodeURIComponent(task.task_id)}/outputs/1/thumbnail`;
+      return taskOutputThumbnailRoute(task, 1);
     }
     return void 0;
+  }
+  function taskOutputThumbnailRoute(task, index) {
+    return `/api/tasks/${encodeURIComponent(task.task_id)}/outputs/${index}/thumbnail`;
+  }
+  function normalizeNotificationThumbnailUrl(task, value, index) {
+    const url = String(value || "").trim();
+    if (!url) return "";
+    if (url.startsWith("/api/tasks/")) return url;
+    if (url.startsWith("/outputs/")) {
+      const outputIndex = outputIndexFromUrl(url) || index;
+      return taskOutputThumbnailRoute(task, outputIndex);
+    }
+    return url;
+  }
+  function taskThumbnailUrlForNotification(task, output, index) {
+    const rawUrl = output?.thumbnail_url || outputFileUrl(output?.thumbnail_file) || (output?.url || output?.file ? taskOutputThumbnailRoute(task, index) : "");
+    return normalizeNotificationThumbnailUrl(task, rawUrl, index);
   }
   function taskNotificationItemHtml(notification) {
     const unreadClass = notification.unread ? " unread" : "";
@@ -38920,6 +38939,10 @@ ${galleryText}`;
     if (filename.startsWith("/outputs/")) return filename;
     const clean = filename.split("/").filter(Boolean).map(encodeURIComponent).join("/");
     return clean ? `/outputs/${clean}` : "";
+  }
+  function outputIndexFromUrl(value) {
+    const match = String(value || "").match(/-image-(\d+)(?=\.[a-z0-9]+(?:[?#].*)?$|$)/i);
+    return positiveNumber(match?.[1]);
   }
   function completedOutputCount(task) {
     if (Array.isArray(task.outputs)) {
@@ -39122,13 +39145,27 @@ ${galleryText}`;
     if (!task?.task_id || outputIndex === null) return "";
     return `/api/tasks/${encodeURIComponent(task.task_id)}/outputs/${outputIndex}/thumbnail`;
   }
+  function normalizeTaskThumbnailUrl(task, url, index) {
+    const clean = String(url || "").trim();
+    if (!clean) return "";
+    if (clean.startsWith("/api/tasks/")) return clean;
+    if (clean.startsWith("/outputs/")) {
+      const outputIndex = taskOutputIndexFromUrl(clean) || positiveInt(index);
+      return outputIndex === null ? "" : taskThumbnailRoute(task, outputIndex);
+    }
+    return clean;
+  }
+  function taskThumbnailUrlForRecord(task, record, index) {
+    const rawUrl = record?.thumbnail_url || outputFileUrl2(record?.thumbnail_file) || (record?.url || record?.file ? taskThumbnailRoute(task, index) : "");
+    return normalizeTaskThumbnailUrl(task, rawUrl, index);
+  }
   function taskThumbnailUrls2(task) {
     if (!task) return [];
     const deletedIndexes = taskDeletedOutputIndexes(task);
     const urls = [];
     const pushUrl = (url, index) => {
-      const clean = String(url || "").trim();
       const outputIndex = positiveInt(index);
+      const clean = normalizeTaskThumbnailUrl(task, url, outputIndex);
       if (!clean || outputIndex !== null && deletedIndexes.has(outputIndex) || urls.includes(clean)) return;
       urls.push(clean);
     };
@@ -39143,7 +39180,7 @@ ${galleryText}`;
         if (!record || typeof record !== "object" || taskOutputRecordIsDeleted(record)) return;
         const index = positiveInt(record.index) || fallbackIndex + 1;
         if (deletedIndexes.has(index) || record.status !== "completed") return;
-        const recordUrl = record.thumbnail_url || outputFileUrl2(record.thumbnail_file) || (record.url || record.file ? taskThumbnailRoute(task, index) : "");
+        const recordUrl = taskThumbnailUrlForRecord(task, record, index);
         pushUrl(recordUrl, index);
       });
       if (urls.length) return urls;
@@ -40365,9 +40402,14 @@ ${galleryText}`;
   }
   function promptPopoverData(task, index) {
     const originalPrompt = task.prompt || task.prompt_for_model || "";
-    const submittedPrompt = task.prompt_for_model || originalPrompt || "";
-    const optimizedPrompt = task.revised_prompts?.[index] || task.revised_prompt || "";
+    const optimizedPrompt = taskOptimizedPrompt(task, index);
+    const submittedPrompt = optimizedPrompt || task.prompt_for_model || originalPrompt || "";
     return { originalPrompt, submittedPrompt, optimizedPrompt };
+  }
+  function taskOptimizedPrompt(task, index) {
+    const outputIndex = Number.isFinite(Number(index)) ? Number(index) : 0;
+    const output = Array.isArray(task?.outputs) ? task.outputs[outputIndex] : null;
+    return task.revised_prompts?.[outputIndex] || output?.revised_prompt || task.revised_prompt || "";
   }
   function runningProgressCard(task, visibleOutputCount) {
     const elapsed = elapsedTimerSpan2("running", taskProgressStartValue3(task));
