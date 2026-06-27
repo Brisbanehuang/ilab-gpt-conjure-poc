@@ -364,7 +364,7 @@ function firstTaskThumbnailUrl(task: WebUITask): string | undefined {
     if (thumbnailUrl) return thumbnailUrl;
   }
   if (Array.isArray(task.output_urls) && task.output_urls.some(Boolean)) {
-    return taskOutputThumbnailRoute(task, 1);
+    return normalizeNotificationThumbnailUrl(task, task.output_urls[0], 1);
   }
   return undefined;
 }
@@ -385,7 +385,7 @@ function normalizeNotificationThumbnailUrl(task: WebUITask, value: unknown, inde
 }
 
 function taskThumbnailUrlForNotification(task: WebUITask, output: any, index: number): string {
-  const rawUrl = output?.thumbnail_url || outputFileUrl(output?.thumbnail_file) || (output?.url || output?.file ? taskOutputThumbnailRoute(task, index) : "");
+  const rawUrl = output?.thumbnail_url || outputFileUrl(output?.thumbnail_file) || output?.url || (output?.file ? taskOutputThumbnailRoute(task, index) : "");
   return normalizeNotificationThumbnailUrl(task, rawUrl, index);
 }
 
@@ -397,9 +397,10 @@ function taskNotificationItemHtml(notification: TaskNotification): string {
 }
 
 function taskNotificationInnerHtml(notification: TaskNotification): string {
+  const fallback = escapeHtml(statusGlyph(notification.status));
   const thumbnail = notification.thumbnail_url
-    ? `<img class="task-notification-thumb" src="${escapeHtml(notification.thumbnail_url)}" alt="">`
-    : `<span class="task-notification-thumb task-notification-thumb-placeholder" aria-hidden="true">${escapeHtml(statusGlyph(notification.status))}</span>`;
+    ? `<span class="task-notification-thumb task-notification-thumb-image" data-fallback="${fallback}" aria-hidden="true"><img src="${escapeHtml(notification.thumbnail_url)}" alt="" onerror="this.parentElement?.classList.add('image-load-failed');this.hidden=true"></span>`
+    : `<span class="task-notification-thumb task-notification-thumb-placeholder" aria-hidden="true">${fallback}</span>`;
   return `${thumbnail}
     <span class="task-notification-body">
       <span class="task-notification-title">${escapeHtml(taskNotificationDisplayTitle(notification))}</span>

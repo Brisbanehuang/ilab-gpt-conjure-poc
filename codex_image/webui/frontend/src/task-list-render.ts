@@ -942,8 +942,8 @@ function taskThumbHtml(task: any, className: any = "task-thumb") {
     const imageToImageLabel = escapeHtml(translate("taskCard.imageToImageThumb"));
     return `
       <div class="${safeClassName} task-thumb-stack" aria-label="${imageToImageLabel}">
-        <img class="task-thumb-reference" src="${escapeHtml(inputPreviewUrl)}" alt="" loading="lazy" decoding="async">
-        <img class="task-thumb-output" src="${escapeHtml(imageUrl)}" alt="" loading="lazy" decoding="async">
+        <img class="task-thumb-reference" src="${escapeHtml(inputPreviewUrl)}" alt="" loading="lazy" decoding="async" onerror="this.hidden=true">
+        <img class="task-thumb-output" src="${escapeHtml(imageUrl)}" alt="" loading="lazy" decoding="async" onerror="this.hidden=true">
         ${loadingSpinner}
       </div>
     `;
@@ -953,7 +953,7 @@ function taskThumbHtml(task: any, className: any = "task-thumb") {
     const textBadge = escapeHtml(translate("taskCard.textBadge"));
     return `
       <div class="${safeClassName} task-thumb-single" aria-label="${textToImageLabel}">
-        <img class="task-thumb-single-image" src="${escapeHtml(imageUrl)}" alt="" loading="lazy" decoding="async">
+        <img class="task-thumb-single-image" src="${escapeHtml(imageUrl)}" alt="" loading="lazy" decoding="async" onerror="this.hidden=true">
         <span class="task-thumb-mode-badge" aria-hidden="true">${textBadge}</span>
       </div>
     `;

@@ -35690,8 +35690,8 @@ ${galleryText}`;
       const imageToImageLabel = escapeHtml13(translate("taskCard.imageToImageThumb"));
       return `
       <div class="${safeClassName} task-thumb-stack" aria-label="${imageToImageLabel}">
-        <img class="task-thumb-reference" src="${escapeHtml13(inputPreviewUrl)}" alt="" loading="lazy" decoding="async">
-        <img class="task-thumb-output" src="${escapeHtml13(imageUrl)}" alt="" loading="lazy" decoding="async">
+        <img class="task-thumb-reference" src="${escapeHtml13(inputPreviewUrl)}" alt="" loading="lazy" decoding="async" onerror="this.hidden=true">
+        <img class="task-thumb-output" src="${escapeHtml13(imageUrl)}" alt="" loading="lazy" decoding="async" onerror="this.hidden=true">
         ${loadingSpinner}
       </div>
     `;
@@ -35701,7 +35701,7 @@ ${galleryText}`;
       const textBadge = escapeHtml13(translate("taskCard.textBadge"));
       return `
       <div class="${safeClassName} task-thumb-single" aria-label="${textToImageLabel}">
-        <img class="task-thumb-single-image" src="${escapeHtml13(imageUrl)}" alt="" loading="lazy" decoding="async">
+        <img class="task-thumb-single-image" src="${escapeHtml13(imageUrl)}" alt="" loading="lazy" decoding="async" onerror="this.hidden=true">
         <span class="task-thumb-mode-badge" aria-hidden="true">${textBadge}</span>
       </div>
     `;
@@ -38820,7 +38820,7 @@ ${galleryText}`;
       if (thumbnailUrl) return thumbnailUrl;
     }
     if (Array.isArray(task.output_urls) && task.output_urls.some(Boolean)) {
-      return taskOutputThumbnailRoute(task, 1);
+      return normalizeNotificationThumbnailUrl(task, task.output_urls[0], 1);
     }
     return void 0;
   }
@@ -38838,7 +38838,7 @@ ${galleryText}`;
     return url;
   }
   function taskThumbnailUrlForNotification(task, output, index) {
-    const rawUrl = output?.thumbnail_url || outputFileUrl(output?.thumbnail_file) || (output?.url || output?.file ? taskOutputThumbnailRoute(task, index) : "");
+    const rawUrl = output?.thumbnail_url || outputFileUrl(output?.thumbnail_file) || output?.url || (output?.file ? taskOutputThumbnailRoute(task, index) : "");
     return normalizeNotificationThumbnailUrl(task, rawUrl, index);
   }
   function taskNotificationItemHtml(notification) {
@@ -38848,7 +38848,8 @@ ${galleryText}`;
   </button>`;
   }
   function taskNotificationInnerHtml(notification) {
-    const thumbnail = notification.thumbnail_url ? `<img class="task-notification-thumb" src="${escapeHtml17(notification.thumbnail_url)}" alt="">` : `<span class="task-notification-thumb task-notification-thumb-placeholder" aria-hidden="true">${escapeHtml17(statusGlyph(notification.status))}</span>`;
+    const fallback = escapeHtml17(statusGlyph(notification.status));
+    const thumbnail = notification.thumbnail_url ? `<span class="task-notification-thumb task-notification-thumb-image" data-fallback="${fallback}" aria-hidden="true"><img src="${escapeHtml17(notification.thumbnail_url)}" alt="" onerror="this.parentElement?.classList.add('image-load-failed');this.hidden=true"></span>` : `<span class="task-notification-thumb task-notification-thumb-placeholder" aria-hidden="true">${fallback}</span>`;
     return `${thumbnail}
     <span class="task-notification-body">
       <span class="task-notification-title">${escapeHtml17(taskNotificationDisplayTitle(notification))}</span>
@@ -39156,7 +39157,7 @@ ${galleryText}`;
     return clean;
   }
   function taskThumbnailUrlForRecord(task, record, index) {
-    const rawUrl = record?.thumbnail_url || outputFileUrl2(record?.thumbnail_file) || (record?.url || record?.file ? taskThumbnailRoute(task, index) : "");
+    const rawUrl = record?.thumbnail_url || outputFileUrl2(record?.thumbnail_file) || record?.url || (record?.file ? taskThumbnailRoute(task, index) : "");
     return normalizeTaskThumbnailUrl(task, rawUrl, index);
   }
   function taskThumbnailUrls2(task) {
@@ -39187,7 +39188,7 @@ ${galleryText}`;
     }
     taskOutputUrls2(task).forEach((url, fallbackIndex) => {
       const index = taskOutputIndexFromUrl(url) || fallbackIndex + 1;
-      pushUrl(taskThumbnailRoute(task, index), index);
+      pushUrl(url, index);
     });
     return urls;
   }

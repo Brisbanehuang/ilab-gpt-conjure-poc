@@ -599,6 +599,26 @@ class WebUIStaticTaskTests(WebUIStaticTestCase):
         self.assertIn("const outputThumbnailUrl = taskThumbnailUrls(task)[0]", render_source)
         self.assertIn("const imageUrl = outputThumbnailUrl || outputUrl || task.preview_url || inputPreviewUrl", render_source)
         self.assertNotIn("const imageUrl = outputUrl || task.preview_url || inputPreviewUrl", render_source)
+    def test_r2_output_routes_are_not_rewritten_to_thumbnail_routes_in_frontend_fallbacks(self) -> None:
+        derived_source = self._task_derived_source()
+        notification_source = Path("codex_image/webui/frontend/src/task-notifications.ts").read_text(encoding="utf-8")
+
+        self.assertIn("|| record?.url", derived_source)
+        self.assertIn("pushUrl(url, index)", derived_source)
+        self.assertNotIn("pushUrl(taskThumbnailRoute(task, index), index)", derived_source)
+        self.assertIn("|| output?.url", notification_source)
+        self.assertIn("normalizeNotificationThumbnailUrl(task, task.output_urls[0], 1)", notification_source)
+        self.assertNotIn("return taskOutputThumbnailRoute(task, 1);", notification_source)
+    def test_failed_reference_and_notification_images_do_not_show_native_broken_icon(self) -> None:
+        render_source = self._task_list_render_source()
+        notification_source = Path("codex_image/webui/frontend/src/task-notifications.ts").read_text(encoding="utf-8")
+        styles = Path("codex_image/webui/static/styles.css").read_text(encoding="utf-8")
+
+        self.assertRegex(render_source, r'class="task-thumb-reference"[^>]*onerror="this\.hidden=true"')
+        self.assertIn("task-notification-thumb-image", notification_source)
+        self.assertIn("data-fallback", notification_source)
+        self.assertIn("image-load-failed", notification_source)
+        self.assertRegex(styles, r"\.task-notification-thumb-image\.image-load-failed::before\s*\{[^}]*content:\s*attr\(data-fallback\)")
     def test_history_task_thumbnails_lazy_load_images(self) -> None:
         source = self._task_list_render_source()
         styles = Path("codex_image/webui/static/styles.css").read_text(encoding="utf-8")

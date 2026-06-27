@@ -204,7 +204,8 @@ function normalizeTaskThumbnailUrl(task: any, url: any, index: any) {
 function taskThumbnailUrlForRecord(task: any, record: any, index: any) {
   const rawUrl = record?.thumbnail_url
     || outputFileUrl(record?.thumbnail_file)
-    || (record?.url || record?.file ? taskThumbnailRoute(task, index) : "");
+    || record?.url
+    || (record?.file ? taskThumbnailRoute(task, index) : "");
   return normalizeTaskThumbnailUrl(task, rawUrl, index);
 }
 
@@ -239,7 +240,7 @@ function taskThumbnailUrls(task: any) {
 
   taskOutputUrls(task).forEach((url: any, fallbackIndex: any) => {
     const index = taskOutputIndexFromUrl(url) || fallbackIndex + 1;
-    pushUrl(taskThumbnailRoute(task, index), index);
+    pushUrl(url, index);
   });
   return urls;
 }
