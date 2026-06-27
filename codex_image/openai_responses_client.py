@@ -239,6 +239,30 @@ class OpenAIResponsesImageClient:
         return CodexImageClient._format_response_terminal_error(event)
 
     @staticmethod
+    def _format_missing_image_call_error(output: Any) -> str:
+        return CodexImageClient._format_missing_image_call_error(output)
+
+    @staticmethod
+    def _extract_output_failure_message(output: Any) -> str:
+        return CodexImageClient._extract_output_failure_message(output)
+
+    @staticmethod
+    def _extract_message_text_parts(item: dict[str, Any]) -> list[str]:
+        return CodexImageClient._extract_message_text_parts(item)
+
+    @staticmethod
+    def _extract_tool_failure_message(item: dict[str, Any]) -> str:
+        return CodexImageClient._extract_tool_failure_message(item)
+
+    @staticmethod
+    def _extract_text_fields(payload: dict[str, Any], field_names: tuple[str, ...]) -> list[str]:
+        return CodexImageClient._extract_text_fields(payload, field_names)
+
+    @staticmethod
+    def _join_unique_text_parts(parts: list[str]) -> str:
+        return CodexImageClient._join_unique_text_parts(parts)
+
+    @staticmethod
     def _extract_image_call(output: Any) -> dict[str, Any] | None:
         return CodexImageClient._extract_image_call(output)
 

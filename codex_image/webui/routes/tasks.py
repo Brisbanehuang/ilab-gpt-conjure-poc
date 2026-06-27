@@ -10,9 +10,10 @@ import zipfile
 from fastapi import Body, FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse, StreamingResponse
 
+from codex_image.webui.auth_routing import _backend_for_api_mode
 from codex_image.webui.context import WebUIContext
 from codex_image.webui.object_storage import object_storage_from_env, owner_id_for_session
-from codex_image.webui.omni_session import SESSION_COOKIE_NAME
+from codex_image.webui.omni_session import SESSION_COOKIE_NAME, OmniSession, resolve_omni_image_key
 from codex_image.webui.storage import utc_now
 from codex_image.webui.task_metadata import (
     _accept_partial_task_successes,
@@ -325,7 +326,7 @@ def register_task_routes(app: FastAPI, ctx: WebUIContext) -> None:
             raise HTTPException(status_code=404, detail="Task not found") from exc
 
     @app.post("/api/tasks/{task_id}/retry-failed")
-    def retry_failed_task(task_id: str, request: Request, payload: dict[str, Any] | None = Body(None)) -> dict[str, Any]:
+    async def retry_failed_task(task_id: str, request: Request, payload: dict[str, Any] | None = Body(None)) -> dict[str, Any]:
         try:
             metadata = _read_owned_metadata(ctx, task_id, _require_omni_owner_id(ctx, request))
         except FileNotFoundError as exc:
@@ -352,7 +353,10 @@ def register_task_routes(app: FastAPI, ctx: WebUIContext) -> None:
         metadata["retry_failed_slots"] = retry_slots
         metadata["retry_requested_at"] = now
         metadata["error"] = ""
-        h["apply_retry_api_provider"](task_id, metadata, str((payload or {}).get("api_provider_id") or "").strip() or None)
+        if _is_omni_poc_task(metadata):
+            await _prepare_omni_retry(ctx, request, task_id, metadata)
+        else:
+            h["apply_retry_api_provider"](task_id, metadata, str((payload or {}).get("api_provider_id") or "").strip() or None)
         ctx.storage.write_metadata(task_id, metadata)
         if ctx.queue_manager is not None:
             ctx.queue_manager.attempts.pop(task_id, None)
@@ -430,6 +434,13 @@ def _storage_keys_for_metadata(metadata: dict[str, Any]) -> list[str]:
 
 
 def _require_omni_owner_id(ctx: WebUIContext, request: Request) -> str | None:
+    session = _omni_session_for_request(ctx, request)
+    if session is None:
+        return None
+    return owner_id_for_session(session)
+
+
+def _omni_session_for_request(ctx: WebUIContext, request: Request) -> OmniSession | None:
     config = ctx.route_helpers.get("omni_poc_config")
     session_store = ctx.route_helpers.get("omni_session_store")
     if config is None or session_store is None or not getattr(config, "enabled", False):
@@ -437,7 +448,45 @@ def _require_omni_owner_id(ctx: WebUIContext, request: Request) -> str | None:
     session = session_store.get_session(str(request.cookies.get(SESSION_COOKIE_NAME) or ""))
     if session is None:
         raise HTTPException(status_code=401, detail="请先登录 OmniAPI 后再查看图片。")
-    return owner_id_for_session(session)
+    return session
+
+
+async def _prepare_omni_retry(ctx: WebUIContext, request: Request, task_id: str, metadata: dict[str, Any]) -> None:
+    config = ctx.route_helpers.get("omni_poc_config")
+    session_store = ctx.route_helpers.get("omni_session_store")
+    secret_store = ctx.route_helpers.get("omni_task_secret_store")
+    if config is None or session_store is None or secret_store is None or not getattr(config, "enabled", False):
+        raise HTTPException(status_code=500, detail="Omni POC is not configured")
+    session = _omni_session_for_request(ctx, request)
+    if session is None:
+        raise HTTPException(status_code=401, detail="请先登录 OmniAPI 后再查看图片。")
+    params = dict(metadata.get("params") or {})
+    key_id = str(params.get("sub2api_api_key_id") or "").strip()
+    try:
+        omni_key = await resolve_omni_image_key(config, session_store, session, key_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    secret_store.put_task_key(task_id, str(omni_key.get("key") or ""))
+
+    api_mode = "responses" if bool(params.get("web_search")) else str(params.get("api_mode") or "images")
+    if api_mode not in {"images", "responses"}:
+        api_mode = "images"
+    params["api_provider_id"] = "omni-poc"
+    params["api_provider_name"] = "Omni API Key"
+    params["api_mode"] = api_mode
+    params["sub2api_api_key_id"] = str(omni_key.get("id") or key_id)
+    params["sub2api_user_id"] = session.sub2api_user_id
+    if api_mode == "responses":
+        params.pop("api_images_concurrency", None)
+    metadata["params"] = params
+    metadata["requested_backend"] = _backend_for_api_mode(api_mode)
+    metadata["api_provider_id"] = "omni-poc"
+    metadata["api_provider_name"] = "Omni API Key"
+
+
+def _is_omni_poc_task(metadata: dict[str, Any]) -> bool:
+    params = metadata.get("params") if isinstance(metadata.get("params"), dict) else {}
+    return bool(params.get("omni_poc"))
 
 
 def _read_owned_task_card(ctx: WebUIContext, task_id: str, owner_id: str | None) -> dict[str, Any]:

@@ -625,6 +625,36 @@ class ClientTests(unittest.TestCase):
         self.assertIn("First call web_search", payload["instructions"])
         self.assertIn("explicit exception to original or strict prompt-fidelity rules", payload["instructions"])
 
+    def test_openai_responses_client_formats_missing_image_call_error(self) -> None:
+        output = [
+            {
+                "type": "message",
+                "content": [{"type": "output_text", "text": "The upstream model did not create an image."}],
+            }
+        ]
+        event = {"type": "response.completed", "response": {"output": output}}
+        transport = FakeTransport(
+            [
+                FakeResponse(
+                    status=200,
+                    body=f"data: {json.dumps(event)}\n\n".encode("utf-8"),
+                    headers={"Content-Type": "text/event-stream"},
+                )
+            ]
+        )
+
+        from codex_image.client import OpenAIResponsesImageClient
+
+        client = OpenAIResponsesImageClient(
+            api_key="test-api-key-responses-secret",
+            base_url="https://api.example.com/v1",
+            image_model="gpt-image-2",
+            transport=transport,
+        )
+
+        with self.assertRaisesRegex(RuntimeError, "The upstream model did not create an image"):
+            client.generate_image(prompt="draw with web context", web_search=True)
+
     def test_openai_responses_client_posts_edit_request_with_images_and_mask(self) -> None:
         image_b64 = base64.b64encode(b"responses-edited-image").decode("ascii")
         transport = FakeTransport(

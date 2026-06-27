@@ -179,6 +179,79 @@ class OmniPOCGenerationTests(TempDirMixin, TestCase):
         self.assertEqual(request["endpoint"], "/responses")
         self.assertEqual(request["tools"][0]["type"], "web_search")
 
+    def test_retry_failed_omni_web_search_rebinds_task_key_and_preserves_responses_mode(self) -> None:
+        app, _ = self.create_poc_app()
+        storage = app.state.ctx.storage
+        session_store = app.state.ctx.route_helpers["omni_session_store"]
+        session = session_store.create_session(
+            {"id": 123, "email": "user@example.test", "username": "user", "balance": 12.5},
+            "sub2api-token",
+        )
+        task_id = "20260627134442-2623bc89"
+        storage.write_metadata(
+            task_id,
+            {
+                "task_id": task_id,
+                "created_at": "2026-06-27T13:44:42+00:00",
+                "updated_at": "2026-06-27T13:45:00+00:00",
+                "mode": "generate",
+                "status": "failed",
+                "prompt": "联网搜索生成图片",
+                "owner_id": "user_123",
+                "params": {
+                    "omni_poc": True,
+                    "api_provider_id": "omni-poc",
+                    "api_mode": "images",
+                    "web_search": True,
+                    "sub2api_user_id": 123,
+                    "sub2api_api_key_id": "456",
+                    "model": "gpt-image-2",
+                    "n": 1,
+                },
+                "outputs": [{"index": 1, "status": "failed", "error": "temporary responses parse error"}],
+                "error": "temporary responses parse error",
+                "last_error": "temporary responses parse error",
+                "total_count": 1,
+                "failed_count": 1,
+            },
+        )
+        storage.write_request(
+            task_id,
+            {
+                "endpoint": "/responses",
+                "tools": [{"type": "web_search"}, {"type": "image_generation"}],
+            },
+        )
+        self.assertIsNone(app.state.ctx.route_helpers["omni_task_secret_store"].get_task_key(task_id))
+
+        with patch(
+            "codex_image.webui.omni_session.list_omni_image_keys",
+            return_value=[
+                {
+                    "id": "456",
+                    "key": "sk-retry-secret",
+                    "status": "active",
+                    "group": {"status": "active", "platform": "openai", "allow_image_generation": True},
+                }
+            ],
+        ), patch(
+            "codex_image.webui.omni_session._key_supported_models",
+            return_value=frozenset({"gpt-image-2", "gpt-5.4-mini"}),
+        ):
+            response = TestClient(app).post(
+                f"/api/tasks/{task_id}/retry-failed",
+                cookies={"omni_lens_session": session.id},
+            )
+
+        self.assertEqual(response.status_code, 200, response.text)
+        metadata = storage.read_metadata(task_id)
+        self.assertEqual(metadata["status"], "queued")
+        self.assertEqual(metadata["params"]["api_provider_id"], "omni-poc")
+        self.assertEqual(metadata["params"]["api_mode"], "responses")
+        self.assertTrue(metadata["params"]["web_search"])
+        self.assertEqual(metadata["requested_backend"], "openai_responses")
+        self.assertEqual(app.state.ctx.route_helpers["omni_task_secret_store"].get_task_key(task_id), "sk-retry-secret")
+
     def test_generate_rejects_when_auto_select_has_no_usable_key(self) -> None:
         app, _ = self.create_poc_app()
         session_store = app.state.ctx.route_helpers["omni_session_store"]
