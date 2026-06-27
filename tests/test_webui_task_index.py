@@ -47,6 +47,38 @@ class WebUITaskIndexTests(unittest.TestCase):
         self.assertEqual(tasks[0]["params"]["size"], "2160x3840")
         self.assertNotIn("request", tasks[1])
 
+    def test_index_uses_output_route_for_r2_thumbnail_even_with_legacy_local_fields(self) -> None:
+        with TemporaryDirectory() as tmp:
+            index = SQLiteTaskIndex(Path(tmp) / "tasks.db")
+            index.upsert(
+                {
+                    "task_id": "r2-task",
+                    "created_at": "2026-06-27T16:02:06+00:00",
+                    "updated_at": "2026-06-27T16:03:27+00:00",
+                    "status": "completed",
+                    "params": {"omni_poc": True},
+                    "output_urls": ["/api/tasks/r2-task/outputs/1"],
+                    "outputs": [
+                        {
+                            "index": 1,
+                            "status": "completed",
+                            "file": "2026-06-27/r2-task-image-1.png",
+                            "url": "/api/tasks/r2-task/outputs/1",
+                            "thumbnail_file": "thumbnails/2026-06-27/r2-task-image-1-thumb.jpg",
+                            "thumbnail_url": "/outputs/thumbnails/2026-06-27/r2-task-image-1-thumb.jpg",
+                            "storage_driver": "r2",
+                            "storage_key": "users/user_9/images/2026/0627/160206-r2-task/outputs/01-output.png",
+                        }
+                    ],
+                }
+            )
+
+            tasks = index.list_summaries()
+            history = index.query_history(limit=10)
+
+        self.assertEqual(tasks[0]["thumbnail_urls"], ["/api/tasks/r2-task/outputs/1"])
+        self.assertEqual(history["tasks"][0]["thumbnail_url"], "/api/tasks/r2-task/outputs/1")
+
     def test_index_deletes_task(self) -> None:
         with TemporaryDirectory() as tmp:
             index = SQLiteTaskIndex(Path(tmp) / "tasks.db")

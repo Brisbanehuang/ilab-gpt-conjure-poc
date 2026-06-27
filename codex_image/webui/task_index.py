@@ -76,7 +76,7 @@ SUMMARY_KEYS = {
     "assigned_auth_source",
 }
 
-TASK_INDEX_SCHEMA_VERSION = 5
+TASK_INDEX_SCHEMA_VERSION = 6
 RATIO_OTHER_VALUE = "__other__"
 KNOWN_RATIO_ORIENTATIONS = {
     "1:1": "square",
@@ -532,6 +532,10 @@ class SQLiteTaskIndex:
 
 def _summary_for_metadata(metadata: dict[str, Any]) -> dict[str, Any]:
     summary = {key: metadata[key] for key in SUMMARY_KEYS if key in metadata}
+    task_id = str(metadata.get("task_id") or "")
+    thumbnail_url = _first_thumbnail_url(task_id, metadata)
+    if thumbnail_url:
+        summary["thumbnail_urls"] = [thumbnail_url]
     owner_id = _owner_id_for_metadata(metadata)
     if owner_id:
         summary["owner_id"] = owner_id
@@ -668,6 +672,11 @@ def _first_thumbnail_url(task_id: str, metadata: dict[str, Any]) -> str:
     if isinstance(outputs, list):
         for output in outputs:
             if isinstance(output, dict):
+                if str(output.get("storage_driver") or "") == "r2" or output.get("storage_key"):
+                    index = _positive_int(output.get("index"))
+                    url = str(output.get("url") or (f"/api/tasks/{task_id}/outputs/{index}" if task_id and index else ""))
+                    if url:
+                        return url
                 url = str(output.get("thumbnail_url") or output.get("url") or "")
                 if url:
                     return url
@@ -693,6 +702,8 @@ def _first_output_thumbnail_route(task_id: str, metadata: dict[str, Any]) -> str
             if status != "completed":
                 continue
             index = _positive_int(output.get("index")) or fallback_index
+            if str(output.get("storage_driver") or "") == "r2" or output.get("storage_key"):
+                continue
             if (
                 output.get("file")
                 or (index <= len(output_files) and output_files[index - 1])
