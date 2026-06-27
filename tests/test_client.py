@@ -588,14 +588,37 @@ class ClientTests(unittest.TestCase):
         self.assertEqual(payload["tools"][0]["action"], "generate")
         self.assertEqual(payload["tool_choice"], {"type": "image_generation"})
 
-    def test_openai_responses_client_can_enable_web_search_tool(self) -> None:
+    def test_openai_responses_client_uses_web_search_text_before_images_generation(self) -> None:
+        search_output = [
+            {
+                "type": "message",
+                "content": [{"type": "output_text", "text": "Use searched facts, then draw a blue moon poster."}],
+            }
+        ]
+        search_event = {"type": "response.completed", "response": {"output": search_output, "usage": {"total_tokens": 7}}}
+        image_b64 = base64.b64encode(b"image").decode("ascii")
         transport = FakeTransport(
             [
                 FakeResponse(
                     status=200,
-                    body=make_sse_completed_event(image_b64=base64.b64encode(b"image").decode("ascii")),
+                    body=f"data: {json.dumps(search_event)}\n\n".encode("utf-8"),
                     headers={"Content-Type": "text/event-stream"},
-                )
+                ),
+                FakeResponse(
+                    status=200,
+                    body=json.dumps(
+                        {
+                            "data": [
+                                {
+                                    "b64_json": image_b64,
+                                    "revised_prompt": "Use searched facts, then draw a blue moon poster.",
+                                }
+                            ],
+                            "usage": {"total_tokens": 11},
+                        }
+                    ).encode("utf-8"),
+                    headers={"Content-Type": "application/json"},
+                ),
             ]
         )
 
@@ -607,7 +630,7 @@ class ClientTests(unittest.TestCase):
             image_model="gpt-image-2",
             transport=transport,
         )
-        client.generate_image(
+        result = client.generate_image(
             prompt="draw with web context",
             main_model="gpt-5.5",
             model="gpt-image-2",
@@ -617,13 +640,21 @@ class ClientTests(unittest.TestCase):
             web_search=True,
         )
 
-        payload = json.loads(transport.requests[0]["body"].decode("utf-8"))
-        self.assertEqual([tool["type"] for tool in payload["tools"]], ["web_search", "image_generation"])
-        self.assertEqual(payload["tools"][1]["quality"], "low")
-        self.assertEqual(payload["tool_choice"], "required")
-        self.assertFalse(payload["parallel_tool_calls"])
-        self.assertIn("First call web_search", payload["instructions"])
-        self.assertIn("explicit exception to original or strict prompt-fidelity rules", payload["instructions"])
+        self.assertEqual(result.image_bytes, b"image")
+        self.assertEqual(len(transport.requests), 2)
+        search_payload = json.loads(transport.requests[0]["body"].decode("utf-8"))
+        image_payload = json.loads(transport.requests[1]["body"].decode("utf-8"))
+        self.assertEqual(transport.requests[0]["url"], "https://api.example.com/v1/responses")
+        self.assertEqual(transport.requests[1]["url"], "https://api.example.com/v1/images/generations")
+        self.assertEqual(search_payload["model"], "gpt-5.5")
+        self.assertEqual([tool["type"] for tool in search_payload["tools"]], ["web_search"])
+        self.assertEqual(search_payload["tool_choice"], "required")
+        self.assertIn("Use searched facts", image_payload["prompt"])
+        self.assertEqual(image_payload["model"], "gpt-image-2")
+        self.assertEqual(image_payload["size"], "1536x864")
+        self.assertEqual(image_payload["quality"], "low")
+        self.assertEqual(result.tool_usage["web_search"], {"total_tokens": 7})
+        self.assertEqual(result.tool_usage["image_gen"], {"total_tokens": 11})
 
     def test_openai_responses_client_formats_missing_image_call_error(self) -> None:
         output = [
@@ -653,7 +684,7 @@ class ClientTests(unittest.TestCase):
         )
 
         with self.assertRaisesRegex(RuntimeError, "The upstream model did not create an image"):
-            client.generate_image(prompt="draw with web context", web_search=True)
+            client.generate_image(prompt="draw with web context")
 
     def test_openai_responses_client_posts_edit_request_with_images_and_mask(self) -> None:
         image_b64 = base64.b64encode(b"responses-edited-image").decode("ascii")

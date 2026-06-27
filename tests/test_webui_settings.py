@@ -1537,8 +1537,8 @@ class WebUISettingsTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertTrue(body["task"]["params"]["web_search"])
-        self.assertEqual([tool["type"] for tool in body["request"]["tools"]], ["web_search", "image_generation"])
-        self.assertEqual(body["request"]["tools"][1]["quality"], "low")
+        self.assertEqual([tool["type"] for tool in body["request"]["tools"]], ["web_search"])
+        self.assertEqual(body["request"]["tools"][0]["search_context_size"], "low")
         self.assertEqual(body["request"]["tool_choice"], "required")
         self.assertFalse(body["request"]["parallel_tool_calls"])
 

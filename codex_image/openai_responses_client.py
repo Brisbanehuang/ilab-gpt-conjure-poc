@@ -15,6 +15,14 @@ from .codex_responses_client import CodexImageClient
 from .http import Transport, UrllibTransport
 from .openai_images_client import OpenAIImagesImageClient
 
+WEB_SEARCH_PROMPT_INSTRUCTIONS = (
+    "Web search image prompt workflow:\n"
+    "Use web_search to research the user's topic, then return only the final image-generation prompt. "
+    "Do not return JSON unless the user explicitly asked the final image prompt to be JSON. "
+    "Preserve the user's creative directions, layout, text requirements, size/aspect instructions, and hard constraints. "
+    "Add concise factual context from search results only when it helps the requested image."
+)
+
 class OpenAIResponsesImageClient:
     def __init__(
         self,
@@ -51,6 +59,33 @@ class OpenAIResponsesImageClient:
         web_search: bool = False,
         debug_sse_path: str | PathLike[str] | None = None,
     ) -> ImageResult:
+        if web_search:
+            searched_prompt, search_usage = self._request_web_search_prompt(
+                prompt=prompt,
+                instructions=instructions,
+                main_model=main_model,
+                debug_sse_path=debug_sse_path,
+            )
+            result = OpenAIImagesImageClient(
+                api_key=self.api_key,
+                base_url=self.base_url,
+                image_model=self.image_model,
+                transport=self.transport,
+            ).generate_image(
+                prompt=searched_prompt,
+                main_model=main_model,
+                model=model,
+                reference_images=reference_images,
+                size=size,
+                quality=quality,
+                background=background,
+                output_format=output_format,
+                moderation=moderation,
+                output_compression=output_compression,
+                partial_images=partial_images,
+                debug_sse_path=debug_sse_path,
+            )
+            return self._with_combined_tool_usage(result, search_usage)
         action = "edit" if reference_images else "generate"
         payload = self.build_payload(
             prompt=prompt,
@@ -92,6 +127,36 @@ class OpenAIResponsesImageClient:
     ) -> ImageResult:
         if not images:
             raise RuntimeError("edit_image requires at least one input image")
+
+        if web_search:
+            searched_prompt, search_usage = self._request_web_search_prompt(
+                prompt=prompt,
+                instructions=instructions,
+                main_model=main_model,
+                debug_sse_path=debug_sse_path,
+            )
+            result = OpenAIImagesImageClient(
+                api_key=self.api_key,
+                base_url=self.base_url,
+                image_model=self.image_model,
+                transport=self.transport,
+            ).edit_image(
+                prompt=searched_prompt,
+                images=images,
+                mask_image=mask_image,
+                main_model=main_model,
+                model=model,
+                size=size,
+                quality=quality,
+                background=background,
+                output_format=output_format,
+                input_fidelity=input_fidelity,
+                moderation=moderation,
+                output_compression=output_compression,
+                partial_images=partial_images,
+                debug_sse_path=debug_sse_path,
+            )
+            return self._with_combined_tool_usage(result, search_usage)
 
         payload = self.build_payload(
             prompt=prompt,
@@ -164,7 +229,7 @@ class OpenAIResponsesImageClient:
         tools: list[dict[str, Any]] = [tool]
         tool_choice: Any = {"type": "image_generation"}
         if web_search:
-            tools.insert(0, {"type": "web_search", "search_context_size": "low"})
+            tools = [{"type": "web_search", "search_context_size": "low"}]
             tool_choice = "required"
 
         payload: dict[str, Any] = {
@@ -184,10 +249,10 @@ class OpenAIResponsesImageClient:
         }
         if web_search:
             payload["parallel_tool_calls"] = False
-        if instructions:
-            payload["instructions"] = CodexImageClient._instructions_with_web_search(instructions, web_search=web_search)
-        elif web_search:
-            payload["instructions"] = CodexImageClient._instructions_with_web_search("", web_search=True)
+        if web_search:
+            payload["instructions"] = self._web_search_prompt_instructions(instructions)
+        elif instructions:
+            payload["instructions"] = instructions
         return payload
 
     def _request_and_parse(
@@ -209,6 +274,105 @@ class OpenAIResponsesImageClient:
                 f"HTTP {response.status}: {response.body.decode('utf-8', errors='replace')}"
             )
         return self.parse_sse_response(response.body, debug_sse_path=debug_sse_path)
+
+    def _request_web_search_prompt(
+        self,
+        *,
+        prompt: str,
+        instructions: str | None,
+        main_model: str,
+        debug_sse_path: str | PathLike[str] | None,
+    ) -> tuple[str, dict[str, Any]]:
+        payload = self.build_payload(
+            prompt=prompt,
+            instructions=instructions,
+            main_model=main_model,
+            model=self.image_model,
+            output_format="png",
+            web_search=True,
+        )
+        body = json.dumps(self._json_request_payload(payload)).encode("utf-8")
+        response = self.transport.request(
+            method="POST",
+            url=self.responses_url,
+            headers=self._build_headers(),
+            body=body,
+        )
+        if response.status < 200 or response.status >= 300:
+            raise RuntimeError(
+                "OpenAI-compatible web search request failed: "
+                f"HTTP {response.status}: {response.body.decode('utf-8', errors='replace')}"
+            )
+        return self._parse_web_search_prompt_response(response.body, debug_sse_path=debug_sse_path)
+
+    def _parse_web_search_prompt_response(
+        self,
+        body: bytes,
+        *,
+        debug_sse_path: str | PathLike[str] | None = None,
+    ) -> tuple[str, dict[str, Any]]:
+        output_items_by_index: dict[int, dict[str, Any]] = {}
+        output_items_fallback: list[dict[str, Any]] = []
+        for raw_line in body.splitlines():
+            line = raw_line.strip()
+            if not line.startswith(b"data:"):
+                continue
+            payload = line[5:].strip()
+            if not payload or payload == b"[DONE]":
+                continue
+            event = json.loads(payload.decode("utf-8"))
+            if debug_sse_path is not None:
+                CodexImageClient._write_sse_debug_event(debug_sse_path, event)
+            event_type = event.get("type")
+            if event_type == "error":
+                raise RuntimeError(self._format_sse_error(event))
+            if event_type in {"response.failed", "response.incomplete"}:
+                raise RuntimeError(self._format_response_terminal_error(event))
+            if event_type == "response.output_item.done":
+                item = event.get("item")
+                if not isinstance(item, dict):
+                    continue
+                index = event.get("output_index")
+                if isinstance(index, int):
+                    output_items_by_index[index] = item
+                else:
+                    output_items_fallback.append(item)
+                continue
+            if event_type != "response.completed":
+                continue
+            response = event.get("response", {})
+            output = response.get("output") or self._reconstruct_output(output_items_by_index, output_items_fallback)
+            text = self._extract_output_failure_message(output).strip()
+            if not text:
+                raise RuntimeError("OpenAI-compatible web search completed without a prompt")
+            usage = response.get("usage")
+            return text, dict(usage) if isinstance(usage, dict) else {}
+        raise RuntimeError("No response.completed event found in web search SSE stream")
+
+    @staticmethod
+    def _web_search_prompt_instructions(instructions: str | None) -> str:
+        base = str(instructions or "").strip()
+        if base:
+            return f"{base}\n\n{WEB_SEARCH_PROMPT_INSTRUCTIONS}"
+        return WEB_SEARCH_PROMPT_INSTRUCTIONS
+
+    @staticmethod
+    def _with_combined_tool_usage(result: ImageResult, search_usage: dict[str, Any]) -> ImageResult:
+        tool_usage = dict(result.tool_usage or {})
+        if search_usage:
+            tool_usage["web_search"] = search_usage
+        if result.usage:
+            tool_usage["image_gen"] = result.usage
+        return ImageResult(
+            image_bytes=result.image_bytes,
+            revised_prompt=result.revised_prompt,
+            output_format=result.output_format,
+            size=result.size,
+            background=result.background,
+            quality=result.quality,
+            usage=result.usage,
+            tool_usage=tool_usage,
+        )
 
     @staticmethod
     def _json_request_payload(payload: dict[str, Any]) -> dict[str, Any]:
