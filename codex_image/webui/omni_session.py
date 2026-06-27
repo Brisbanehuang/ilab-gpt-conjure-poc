@@ -212,6 +212,10 @@ def is_openai_text_key_candidate(key: dict[str, Any]) -> bool:
 
 
 async def key_supports_model(config: OmniPOCConfig, api_key: str, model_id: str) -> bool:
+    return model_id in await _key_supported_models(config, api_key)
+
+
+async def _key_supported_models(config: OmniPOCConfig, api_key: str) -> frozenset[str]:
     try:
         async with httpx.AsyncClient(timeout=20.0) as client:
             response = await client.get(
@@ -220,9 +224,13 @@ async def key_supports_model(config: OmniPOCConfig, api_key: str, model_id: str)
             )
         payload = response.json()
         models = payload.get("data") if isinstance(payload, dict) else []
-        return any(isinstance(item, dict) and item.get("id") == model_id for item in models)
+        return frozenset(
+            str(item.get("id"))
+            for item in models
+            if isinstance(item, dict) and item.get("id")
+        )
     except Exception:
-        return False
+        return frozenset()
 
 
 def key_dto(key: dict[str, Any], *, supports_image_model: bool, supports_title_model: bool) -> dict[str, Any]:
@@ -245,10 +253,10 @@ async def usable_key_dtos(config: OmniPOCConfig, token: str) -> list[dict[str, A
         api_key = str(key.get("key") or "").strip()
         if not api_key or not is_openai_image_key_candidate(key):
             continue
-        supports_image = await key_supports_model(config, api_key, config.image_model)
-        if not supports_image:
+        supported_models = await _key_supported_models(config, api_key)
+        if config.image_model not in supported_models:
             continue
-        supports_title = await key_supports_model(config, api_key, DEFAULT_TITLE_MODEL) if is_openai_text_key_candidate(key) else False
+        supports_title = DEFAULT_TITLE_MODEL in supported_models if is_openai_text_key_candidate(key) else False
         result.append(key_dto(key, supports_image_model=True, supports_title_model=supports_title))
     return result
 
@@ -265,9 +273,10 @@ async def resolve_omni_image_key(config: OmniPOCConfig, session_store: OmniSessi
         api_key = str(key.get("key") or "").strip()
         if not api_key or not is_openai_image_key_candidate(key):
             break
-        if not await key_supports_model(config, api_key, config.image_model):
+        supported_models = await _key_supported_models(config, api_key)
+        if config.image_model not in supported_models:
             break
         key = dict(key)
-        key["supports_title_model"] = await key_supports_model(config, api_key, DEFAULT_TITLE_MODEL) if is_openai_text_key_candidate(key) else False
+        key["supports_title_model"] = DEFAULT_TITLE_MODEL in supported_models if is_openai_text_key_candidate(key) else False
         return key
     raise ValueError("选择的 Omni API Key 不可用或不属于当前用户")

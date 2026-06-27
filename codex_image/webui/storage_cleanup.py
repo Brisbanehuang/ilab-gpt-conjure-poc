@@ -10,6 +10,7 @@ from typing import Any
 from .object_storage import object_storage_from_env
 from .schemas import DEFAULT_WEBUI_SOURCE_DATA_SUBDIR
 from .storage import TaskStorage
+from .task_outputs import _run_async_storage_call
 
 
 @dataclass
@@ -53,7 +54,7 @@ def cleanup_expired_storage(output_root: Path, *, dry_run: bool = False, now: da
                         continue
                     try:
                         if not dry_run:
-                            object_storage.delete(str(record["storage_key"]))
+                            _run_async_storage_call(object_storage.delete(str(record["storage_key"])))
                         result.deleted_objects += 1
                     except Exception:
                         result.errors += 1

@@ -91,6 +91,21 @@ class WebUIStaticI18nTests(WebUIStaticTestCase):
         self.assertIn('"apiSettings.responses": "联网搜索通道"', public_sources)
         self.assertIn('"taskContext.downloadOutput": "下载"', public_sources)
 
+    def test_omni_key_control_is_compact_without_source_offer_copy(self) -> None:
+        source = Path("codex_image/webui/frontend/src/omni-poc-key.ts").read_text(encoding="utf-8")
+        styles = Path("codex_image/webui/static/styles/40-controls.css").read_text(encoding="utf-8")
+
+        self.assertIn('className = "omni-poc-key-control"', source)
+        self.assertIn('document.querySelector(".nav-actions")', source)
+        self.assertNotIn("使用你在 Omni 主站登录后的 API Key", source)
+        self.assertNotIn("Key 不会保存在浏览器", source)
+        self.assertNotIn("omni-poc-source-link", source)
+        self.assertNotIn("源码", source)
+        self.assertNotIn(".omni-poc-key-notice", styles)
+        self.assertNotIn(".omni-poc-source-link", styles)
+        self.assertIn(".omni-poc-mode .auth-source-switcher", styles)
+        self.assertIn(".omni-poc-mode #githubLink", styles)
+
     def test_i18n_source_exposes_locales_and_dom_translation(self) -> None:
         source_path = Path("codex_image/webui/frontend/src/i18n.ts")
         self.assertTrue(source_path.exists(), "i18n feature module should exist")

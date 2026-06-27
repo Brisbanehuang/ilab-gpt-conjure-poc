@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from pathlib import Path
+import asyncio
 import re
+import threading
 from typing import Any
 from urllib.parse import quote, unquote, urlsplit
 
@@ -293,6 +295,28 @@ def _backend_output_url(task_id: str, output_index: int) -> str:
     return f"/api/tasks/{task_id}/outputs/{output_index}"
 
 
+def _run_async_storage_call(awaitable: Any) -> Any:
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(awaitable)
+
+    result: dict[str, Any] = {}
+
+    def runner() -> None:
+        try:
+            result["value"] = asyncio.run(awaitable)
+        except BaseException as exc:  # pragma: no cover - re-raised in caller thread
+            result["error"] = exc
+
+    thread = threading.Thread(target=runner, daemon=True)
+    thread.start()
+    thread.join()
+    if "error" in result:
+        raise result["error"]
+    return result.get("value")
+
+
 def _stored_output_records(
     storage: TaskStorage,
     task_id: str,
@@ -332,7 +356,7 @@ def _stored_output_records(
                 ext=output_format,
             )
             content_type = content_type_for_format(output_format)
-            stored = object_storage.put(key, path.read_bytes(), content_type)
+            stored = _run_async_storage_call(object_storage.put(key, path.read_bytes(), content_type))
             record.update(
                 {
                     "storage_driver": stored.driver,

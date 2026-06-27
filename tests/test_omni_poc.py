@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import asyncio
 import json
 import shutil
 import tempfile
@@ -290,6 +291,46 @@ class OmniPOCValidationEndpointTests(TempDirMixin, TestCase):
         response = TestClient(app).get("/api/omni/keys")
         self.assertEqual(response.status_code, 401)
         self.assertIn("请先登录 OmniAPI", response.json()["detail"])
+
+    def test_usable_key_listing_checks_models_once_per_key(self) -> None:
+        from codex_image.webui.omni_session import usable_key_dtos
+
+        config = OmniPOCConfig(
+            enabled=True,
+            base_url="http://127.0.0.1:8080/v1",
+            image_model="gpt-image-2",
+            secret_key=Fernet.generate_key().decode("ascii"),
+            db_path=Path(self.create_temp_dir()) / "omni-poc.db",
+            source_url="https://example.test/source",
+        )
+        rows = [
+            {
+                "id": "456",
+                "name": "image key",
+                "key": "sk-image-secret",
+                "status": "active",
+                "group": {"status": "active", "platform": "openai", "allow_image_generation": True, "name": "default"},
+            }
+        ]
+        calls: list[str] = []
+
+        async def fake_list_keys(_config, token):
+            self.assertEqual(token, "sub2api-token")
+            return rows
+
+        async def fake_supported_models(_config, api_key):
+            calls.append(api_key)
+            return frozenset({"gpt-image-2", "gpt-5.4-mini"})
+
+        with (
+            patch("codex_image.webui.omni_session.list_omni_image_keys", fake_list_keys),
+            patch("codex_image.webui.omni_session._key_supported_models", fake_supported_models),
+        ):
+            payload = asyncio.run(usable_key_dtos(config, "sub2api-token"))
+
+        self.assertEqual(calls, ["sk-image-secret"])
+        self.assertEqual(payload[0]["id"], "456")
+        self.assertTrue(payload[0]["supports_title_model"])
 
     def test_session_store_encrypts_sub2api_token(self) -> None:
         tmp = Path(self.create_temp_dir())

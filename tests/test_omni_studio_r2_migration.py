@@ -14,16 +14,16 @@ class FakeStorage:
         self.puts: list[tuple[str, bytes, str]] = []
         self.deletes: list[str] = []
 
-    def get(self, key: str) -> bytes:
+    async def get(self, key: str) -> bytes:
         if key not in self.objects:
             raise FileNotFoundError(key)
         return self.objects[key]
 
-    def put(self, key: str, data: bytes, content_type: str):
+    async def put(self, key: str, data: bytes, content_type: str):
         self.puts.append((key, data, content_type))
         self.objects[key] = data
 
-    def delete(self, key: str) -> None:
+    async def delete(self, key: str) -> None:
         self.deletes.append(key)
 
 
@@ -52,7 +52,7 @@ class OmniStudioR2MigrationTests(unittest.TestCase):
         self.assertEqual(owner_id_for_row(row), "user_123")
         self.assertEqual(
             archive_key_for_row(row),
-            "legacy/omni-image-studio/users/user_123/2026/06/26/150000-a0f4b9a4-0000-4000-8000-000000000001/01-黑神话李清照.png",
+            "legacy/omni-image-studio/users/user_123/2026/0626/150000-a0f4b9a4-0000-4000-8000-000000000001/01-黑神话李清照.png",
         )
 
     def test_archive_key_falls_back_to_legacy_client_owner(self) -> None:
@@ -60,7 +60,7 @@ class OmniStudioR2MigrationTests(unittest.TestCase):
 
         self.assertEqual(owner_id_for_row(row), "legacy_client_browser_client_abc")
         self.assertIn(
-            "legacy/omni-image-studio/users/legacy_client_browser_client_abc/2026/06/26/150000-",
+            "legacy/omni-image-studio/users/legacy_client_browser_client_abc/2026/0626/150000-",
             archive_key_for_row(row),
         )
         self.assertTrue(archive_key_for_row(row).endswith("/01-image.png"))

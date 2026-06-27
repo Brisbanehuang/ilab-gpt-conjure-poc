@@ -1,6 +1,6 @@
 import { getLegacyBridge } from "./state";
 import { translate } from "./i18n";
-import { getSelectedOmniKeyId, omniHeaders, requireOmniApiKeyBeforeSubmit } from "./omni-poc-key";
+import { getSelectedOmniKeyId, isOmniPocMode, omniHeaders, requireOmniApiKeyBeforeSubmit } from "./omni-poc-key";
 
 const bridge = getLegacyBridge();
 const state = bridge.state;
@@ -326,7 +326,7 @@ async function runTask() {
   if (selectedOmniKeyId) form.append("sub2api_key_id", selectedOmniKeyId);
   if (currentAuthSource() === "api") {
     form.append("api_provider_id", currentApiProviderId());
-    form.append("api_mode", currentApiMode());
+    form.append("api_mode", isOmniPocMode() && params.web_search ? "responses" : currentApiMode());
   } else if (currentAuthSource() === "codex") {
     form.append("codex_mode", currentCodexMode());
   }

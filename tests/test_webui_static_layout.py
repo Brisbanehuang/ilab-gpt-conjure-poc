@@ -1908,7 +1908,7 @@ class WebUIStaticLayoutTests(WebUIStaticTestCase):
         self.assertIn("payload.main_model = params.main_model", script)
         self.assertIn('payload.codex_mode = codexMode', script)
         self.assertIn('form.append("codex_mode", currentCodexMode())', script)
-        self.assertIn('form.append("api_mode", currentApiMode())', script)
+        self.assertIn('form.append("api_mode", isOmniPocMode() && params.web_search ? "responses" : currentApiMode())', script)
         self.assertIn('form.append("api_provider_id", currentApiProviderId())', script)
         self.assertIn('form.append("web_search", "true")', script)
         self.assertIn("params.web_search = true", script)

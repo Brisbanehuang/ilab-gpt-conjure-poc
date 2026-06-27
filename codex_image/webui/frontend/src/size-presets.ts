@@ -1,6 +1,7 @@
 import { getLegacyBridge } from "./state";
 import { currentAuthSource } from "./auth-source";
 import { currentApiImageModel, currentApiImagesConcurrency, currentApiMode, currentApiProviderId, currentCodexMode } from "./api-provider-settings";
+import { isOmniPocMode } from "./omni-poc-key";
 import { currentMainModel } from "./main-model-combobox";
 import { currentQuantity } from "./output-controls";
 import { translate } from "./i18n";
@@ -178,6 +179,7 @@ export function currentImageToolModel(): string {
 }
 
 export function webSearchSupportedForCurrentBackend(): boolean {
+  if (isOmniPocMode()) return true;
   const authSource = currentAuthSource();
   if (authSource === "api") return currentApiMode() === "responses";
   if (authSource === "codex") return currentCodexMode() === "responses";

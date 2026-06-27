@@ -242,7 +242,7 @@ class WebUITaskTests(unittest.TestCase):
         from codex_image.webui.app import create_app
 
         class FakeObjectStorage:
-            def get(self, key: str) -> bytes:
+            async def get(self, key: str) -> bytes:
                 self.key = key
                 return b"r2-image"
 

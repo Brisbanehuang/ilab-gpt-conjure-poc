@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import asyncio
 import json
 import os
 import re
@@ -36,7 +37,7 @@ def archive_key_for_row(row: StudioImageRow) -> str:
     ext = _extension_for_row(row)
     return (
         f"legacy/omni-image-studio/users/{owner_id}/"
-        f"{created:%Y/%m/%d}/{created:%H%M%S}-{safe_id}/01-{title}.{ext}"
+        f"{created:%Y/%m%d}/{created:%H%M%S}-{safe_id}/01-{title}.{ext}"
     )
 
 
@@ -83,11 +84,11 @@ def migrate_rows(
             record = manifest_record(row, source_bucket=source_bucket, target_bucket=target_bucket)
             if not dry_run:
                 try:
-                    data = source_storage.get(row.storage_key)
+                    data = asyncio.run(source_storage.get(row.storage_key))
                 except Exception:
                     record["action"] = "missing"
                 else:
-                    target_storage.put(record["archive_key"], data, row.mime_type or "application/octet-stream")
+                    asyncio.run(target_storage.put(record["archive_key"], data, row.mime_type or "application/octet-stream"))
                     record["bytes"] = len(data)
                     record["action"] = "copied"
             records.append(record)

@@ -19,7 +19,6 @@ interface OmniKey {
 }
 
 let enabled = false;
-let sourceUrl = "https://github.com/Brisbanehuang/ilab-gpt-conjure-poc";
 let authenticated = false;
 let selectedKeyId = window.localStorage.getItem(SELECTED_KEY_STORAGE)?.trim() || "";
 let keys: OmniKey[] = [];
@@ -71,8 +70,7 @@ export function updateOmniLegacyAuthState(): void {
 }
 
 function mountPoint(): Element {
-  const bridge = getLegacyBridge();
-  return bridge.els.authSourceGroup?.parentElement || document.querySelector("header") || document.body;
+  return document.querySelector(".nav-actions") || document.querySelector("header") || document.body;
 }
 
 function labelForKey(key: OmniKey): string {
@@ -125,17 +123,16 @@ function renderSession(root: HTMLElement): void {
   }
   if (select) {
     select.disabled = !authenticated || !keys.length;
+    select.classList.toggle("hidden", !authenticated);
     renderKeyOptions(select);
   }
   if (refresh) {
     refresh.disabled = false;
+    refresh.classList.toggle("hidden", !authenticated);
   }
   if (status) {
-    status.textContent = authenticated
-      ? keys.length
-        ? "请选择要用于生成图片的 API Key"
-        : "没有检测到可调用 gpt-image-2 的 API Key"
-      : "请从 Omni 主站进入新版 Image Studio";
+    status.textContent = authenticated ? (keys.length ? "" : "没有检测到可调用 gpt-image-2 的 API Key") : "";
+    status.classList.toggle("hidden", authenticated && keys.length > 0);
   }
   updateOmniLegacyAuthState();
 }
@@ -177,8 +174,6 @@ function renderKeyControl(): void {
     <button class="omni-poc-key-button" type="button" data-action="refresh">刷新</button>
     <a class="omni-poc-key-button omni-poc-login-link" href="${LOGIN_URL}">登录 Omni</a>
     <span class="omni-poc-key-status" aria-live="polite"></span>
-    <span class="omni-poc-key-notice">使用你在 Omni 主站登录后的 API Key；Key 不会保存在浏览器。</span>
-    <a class="omni-poc-source-link" href="${sourceUrl}" target="_blank" rel="noreferrer">源码</a>
   `;
   mountPoint().appendChild(root);
 
@@ -206,7 +201,6 @@ export async function initOmniPocKeyControl(): Promise<void> {
     const data = await response.json();
     if (!data?.omni_poc?.enabled) return;
     enabled = true;
-    sourceUrl = String(data.omni_poc.source_url || sourceUrl);
     document.documentElement.classList.add("omni-poc-mode");
     renderKeyControl();
     updateOmniLegacyAuthState();

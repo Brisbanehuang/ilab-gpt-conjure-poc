@@ -6,6 +6,7 @@ import threading
 import tempfile
 import time
 import unittest
+import unittest.mock
 from pathlib import Path
 
 from PIL import Image
@@ -31,15 +32,15 @@ class WebUIStorageTests(unittest.TestCase):
                 index=1,
                 ext="png",
             ),
-            "users/user_123/images/2026/06/26/144923-20260626144923-a63df6c2/outputs/01-黑神话李清照.png",
+            "users/user_123/images/2026/0626/144923-20260626144923-a63df6c2/outputs/01-黑神话李清照.png",
         )
         self.assertEqual(
             output_object_key(owner_id="user_123", task_id=task_id, title="../../猫:海报", index=2, ext=".webp"),
-            "users/user_123/images/2026/06/26/144923-20260626144923-a63df6c2/outputs/02-猫海报.webp",
+            "users/user_123/images/2026/0626/144923-20260626144923-a63df6c2/outputs/02-猫海报.webp",
         )
         self.assertEqual(
             output_object_key(owner_id="user_123", task_id=task_id, title="", index=1, ext="png"),
-            "users/user_123/images/2026/06/26/144923-20260626144923-a63df6c2/outputs/01-output.png",
+            "users/user_123/images/2026/0626/144923-20260626144923-a63df6c2/outputs/01-output.png",
         )
 
     def test_owner_id_for_session_uses_sub2api_user_id_only(self) -> None:
@@ -68,7 +69,7 @@ class WebUIStorageTests(unittest.TestCase):
             def __init__(self) -> None:
                 self.puts: list[tuple[str, bytes, str]] = []
 
-            def put(self, key: str, data: bytes, content_type: str) -> StoredObject:
+            async def put(self, key: str, data: bytes, content_type: str) -> StoredObject:
                 self.puts.append((key, data, content_type))
                 return StoredObject(driver="r2", key=key, size=len(data), content_type=content_type)
 
@@ -106,7 +107,7 @@ class WebUIStorageTests(unittest.TestCase):
                     {"omni_poc": True, "sub2api_user_id": 123, "output_format": "png", "n": 1},
                 )
 
-        self.assertEqual(fake.puts[0], ("users/user_123/images/2026/06/26/144923-20260626144923-a63df6c2/outputs/01-黑神话李清照.png", b"png-bytes", "image/png"))
+        self.assertEqual(fake.puts[0], ("users/user_123/images/2026/0626/144923-20260626144923-a63df6c2/outputs/01-黑神话李清照.png", b"png-bytes", "image/png"))
         self.assertEqual(metadata["outputs"][0]["storage_driver"], "r2")
         self.assertEqual(metadata["outputs"][0]["storage_key"], fake.puts[0][0])
         self.assertEqual(metadata["outputs"][0]["url"], f"/api/tasks/{task_id}/outputs/1")

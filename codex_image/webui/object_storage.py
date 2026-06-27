@@ -35,9 +35,9 @@ class ObjectStorageConfig:
 
 
 class ObjectStorage(Protocol):
-    def put(self, key: str, data: bytes, content_type: str) -> StoredObject: ...
-    def get(self, key: str) -> bytes: ...
-    def delete(self, key: str) -> None: ...
+    async def put(self, key: str, data: bytes, content_type: str) -> StoredObject: ...
+    async def get(self, key: str) -> bytes: ...
+    async def delete(self, key: str) -> None: ...
 
 
 def owner_id_for_session(session: Any) -> str:
@@ -56,10 +56,11 @@ def owner_id_from_params(params: Mapping[str, Any]) -> str:
 def output_object_key(*, owner_id: str, task_id: str, title: str, index: int, ext: str) -> str:
     clean_task_id = str(task_id or "").strip()
     date = _task_date(clean_task_id)
+    compact_day = date[5:7] + date[8:10]
     time_part = clean_task_id[8:14] if len(clean_task_id) >= 14 else "000000"
     safe_ext = _safe_ext(ext)
     safe_title = _safe_title(title, fallback="output")
-    return f"users/{_safe_owner(owner_id)}/images/{date[:4]}/{date[5:7]}/{date[8:10]}/{time_part}-{clean_task_id}/outputs/{int(index):02d}-{safe_title}.{safe_ext}"
+    return f"users/{_safe_owner(owner_id)}/images/{date[:4]}/{compact_day}/{time_part}-{clean_task_id}/outputs/{int(index):02d}-{safe_title}.{safe_ext}"
 
 
 def content_type_for_format(output_format: str) -> str:
@@ -112,28 +113,29 @@ class R2ObjectStorage:
         self.config = config
         self.endpoint = f"https://{config.account_id}.r2.cloudflarestorage.com"
 
-    def put(self, key: str, data: bytes, content_type: str) -> StoredObject:
+    async def put(self, key: str, data: bytes, content_type: str) -> StoredObject:
         url = self._url(key)
         headers = {"content-type": content_type}
-        response = httpx.put(url, content=data, headers=self._signed_headers("PUT", key, data, headers), timeout=60.0)
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            response = await client.put(url, content=data, headers=self._signed_headers("PUT", key, data, headers))
         response.raise_for_status()
         return StoredObject(driver="r2", key=key, size=len(data), content_type=content_type)
 
-    def get(self, key: str) -> bytes:
-        response = httpx.get(self._url(key), headers=self._signed_headers("GET", key, b"", {}), timeout=60.0)
+    async def get(self, key: str) -> bytes:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            response = await client.get(self._url(key), headers=self._signed_headers("GET", key, b"", {}))
         response.raise_for_status()
         return response.content
 
-    def delete(self, key: str) -> None:
-        response = httpx.delete(self._url(key), headers=self._signed_headers("DELETE", key, b"", {}), timeout=60.0)
+    async def delete(self, key: str) -> None:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            response = await client.delete(self._url(key), headers=self._signed_headers("DELETE", key, b"", {}))
         response.raise_for_status()
 
     def _url(self, key: str) -> str:
         return f"{self.endpoint}/{quote(self.config.bucket, safe='')}/{quote(key, safe='/')}"
 
     def _signed_headers(self, method: str, key: str, body: bytes, headers: dict[str, str]) -> dict[str, str]:
-        from datetime import UTC, datetime
-
         now = datetime.now(UTC)
         amz_date = now.strftime("%Y%m%dT%H%M%SZ")
         date_stamp = now.strftime("%Y%m%d")

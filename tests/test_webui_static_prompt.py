@@ -1208,6 +1208,12 @@ console.log(cases.map((color) => readableTextColor(color)).join("\\n"));
         self.assertIn("function setModeSettingsVariant", script)
         self.assertIn("function isDirectApiMode(authSource = currentAuthSource())", script)
         self.assertIn("function updateModeSpecificSettings(authSource = currentAuthSource())", script)
+        self.assertIn("import { isOmniPocMode } from \"./omni-poc-key\";", script)
+        self.assertRegex(
+            script,
+            r"function updateWebSearchAvailability\(authSource = currentAuthSource\(\)\)[\s\S]*const supported = isOmniPocMode\(\)[\s\S]*true",
+        )
+        self.assertIn("if (isOmniPocMode()) return true;", script)
         self.assertIn('authSource === "api" && currentApiMode() !== "responses"', script)
         self.assertIn('authSource === "codex" && currentCodexMode() !== "responses"', script)
         self.assertIn("setModeSettingsVariant(isDirectApi)", script)

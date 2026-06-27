@@ -207,7 +207,7 @@ def register_task_routes(app: FastAPI, ctx: WebUIContext) -> None:
         )
 
     @app.get("/api/tasks/{task_id}/outputs/{output_index}", response_model=None)
-    def get_task_output(task_id: str, output_index: int):
+    async def get_task_output(task_id: str, output_index: int):
         try:
             metadata = ctx.storage.read_metadata(task_id)
         except (FileNotFoundError, ValueError) as exc:
@@ -224,7 +224,7 @@ def register_task_routes(app: FastAPI, ctx: WebUIContext) -> None:
             if object_storage is None:
                 raise HTTPException(status_code=404, detail="Object storage is not configured")
             try:
-                data = object_storage.get(str(record["storage_key"]))
+                data = await object_storage.get(str(record["storage_key"]))
             except Exception as exc:
                 raise HTTPException(status_code=404, detail="Output not found") from exc
             return StreamingResponse(BytesIO(data), media_type=str(record.get("content_type") or "application/octet-stream"))

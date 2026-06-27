@@ -28642,76 +28642,10 @@ ${hint}` : hint;
     });
   }
 
-  // codex_image/webui/frontend/src/api-mode-settings.ts
-  var bridge7 = getLegacyBridge();
-  var els8 = bridge7.els;
-  function legacyMethod11(name, ...args) {
-    const method = getLegacyBridge().methods[name];
-    if (typeof method !== "function") {
-      throw new Error("Legacy method " + name + " is not initialized");
-    }
-    return method(...args);
-  }
-  function currentAuthSource() {
-    return legacyMethod11("currentAuthSource");
-  }
-  function currentApiMode() {
-    return legacyMethod11("currentApiMode");
-  }
-  function currentCodexMode() {
-    return legacyMethod11("currentCodexMode");
-  }
-  function setModeSpecificElementVisibility(element2, visible) {
-    if (!element2) return;
-    element2.setAttribute("aria-hidden", visible ? "false" : "true");
-    if (visible) {
-      element2.classList.remove("hidden");
-      element2.classList.remove("mode-collapsed");
-      return;
-    }
-    element2.classList.add("mode-collapsed");
-    element2.classList.add("hidden");
-  }
-  function applyModeSettingsVisibility(isDirectApi) {
-    setModeSpecificElementVisibility(els8.modeSpecificSettings, true);
-    setModeSpecificElementVisibility(els8.mainModelField, !isDirectApi);
-    setModeSpecificElementVisibility(els8.apiDirectSettingsNotice, isDirectApi);
-    setModeSpecificElementVisibility(els8.promptFidelityField, true);
-  }
-  function updateWebSearchAvailability(authSource = currentAuthSource()) {
-    const supported = authSource === "api" ? currentApiMode() === "responses" : authSource === "codex" ? currentCodexMode() === "responses" : true;
-    if (els8.webSearch) {
-      const wasChecked = Boolean(els8.webSearch.checked);
-      els8.webSearch.disabled = !supported;
-      if (!supported) els8.webSearch.checked = false;
-      if (wasChecked && !els8.webSearch.checked) {
-        els8.webSearch.dispatchEvent(new Event("input"));
-      }
-    }
-    if (els8.webSearchField) {
-      els8.webSearchField.classList.toggle("is-disabled", !supported);
-      els8.webSearchField.setAttribute("aria-disabled", supported ? "false" : "true");
-    }
-  }
-  function setModeSettingsVariant(isDirectApi) {
-    const slot = els8.modeSettingsSlot;
-    if (slot) {
-      slot.style.height = "";
-      slot.classList.remove("is-transitioning");
-    }
-    applyModeSettingsVisibility(isDirectApi);
-  }
-  function updateModeSpecificSettings(authSource = currentAuthSource()) {
-    const isDirectApi = authSource === "api" && currentApiMode() !== "responses" || authSource === "codex" && currentCodexMode() !== "responses";
-    setModeSettingsVariant(isDirectApi);
-    updateWebSearchAvailability(authSource);
-  }
-
   // codex_image/webui/frontend/src/omni-poc-key.ts
   var SELECTED_KEY_STORAGE = "ilab.omniSelectedKeyId";
   var LOGIN_URL = "https://api.brislouise.online/image-generator";
   var enabled = false;
-  var sourceUrl = "https://github.com/Brisbanehuang/ilab-gpt-conjure-poc";
   var authenticated = false;
   var selectedKeyId = window.localStorage.getItem(SELECTED_KEY_STORAGE)?.trim() || "";
   var keys = [];
@@ -28757,8 +28691,7 @@ ${hint}` : hint;
     }
   }
   function mountPoint() {
-    const bridge39 = getLegacyBridge();
-    return bridge39.els.authSourceGroup?.parentElement || document.querySelector("header") || document.body;
+    return document.querySelector(".nav-actions") || document.querySelector("header") || document.body;
   }
   function labelForKey(key) {
     const group = key.group_name ? ` \xB7 ${key.group_name}` : "";
@@ -28806,13 +28739,16 @@ ${hint}` : hint;
     }
     if (select) {
       select.disabled = !authenticated || !keys.length;
+      select.classList.toggle("hidden", !authenticated);
       renderKeyOptions(select);
     }
     if (refresh) {
       refresh.disabled = false;
+      refresh.classList.toggle("hidden", !authenticated);
     }
     if (status) {
-      status.textContent = authenticated ? keys.length ? "\u8BF7\u9009\u62E9\u8981\u7528\u4E8E\u751F\u6210\u56FE\u7247\u7684 API Key" : "\u6CA1\u6709\u68C0\u6D4B\u5230\u53EF\u8C03\u7528 gpt-image-2 \u7684 API Key" : "\u8BF7\u4ECE Omni \u4E3B\u7AD9\u8FDB\u5165\u65B0\u7248 Image Studio";
+      status.textContent = authenticated ? keys.length ? "" : "\u6CA1\u6709\u68C0\u6D4B\u5230\u53EF\u8C03\u7528 gpt-image-2 \u7684 API Key" : "";
+      status.classList.toggle("hidden", authenticated && keys.length > 0);
     }
     updateOmniLegacyAuthState();
   }
@@ -28852,8 +28788,6 @@ ${hint}` : hint;
     <button class="omni-poc-key-button" type="button" data-action="refresh">\u5237\u65B0</button>
     <a class="omni-poc-key-button omni-poc-login-link" href="${LOGIN_URL}">\u767B\u5F55 Omni</a>
     <span class="omni-poc-key-status" aria-live="polite"></span>
-    <span class="omni-poc-key-notice">\u4F7F\u7528\u4F60\u5728 Omni \u4E3B\u7AD9\u767B\u5F55\u540E\u7684 API Key\uFF1BKey \u4E0D\u4F1A\u4FDD\u5B58\u5728\u6D4F\u89C8\u5668\u3002</span>
-    <a class="omni-poc-source-link" href="${sourceUrl}" target="_blank" rel="noreferrer">\u6E90\u7801</a>
   `;
     mountPoint().appendChild(root);
     root.addEventListener("click", (event) => {
@@ -28879,13 +28813,77 @@ ${hint}` : hint;
       const data = await response.json();
       if (!data?.omni_poc?.enabled) return;
       enabled = true;
-      sourceUrl = String(data.omni_poc.source_url || sourceUrl);
       document.documentElement.classList.add("omni-poc-mode");
       renderKeyControl();
       updateOmniLegacyAuthState();
     } catch {
       return;
     }
+  }
+
+  // codex_image/webui/frontend/src/api-mode-settings.ts
+  var bridge7 = getLegacyBridge();
+  var els8 = bridge7.els;
+  function legacyMethod11(name, ...args) {
+    const method = getLegacyBridge().methods[name];
+    if (typeof method !== "function") {
+      throw new Error("Legacy method " + name + " is not initialized");
+    }
+    return method(...args);
+  }
+  function currentAuthSource() {
+    return legacyMethod11("currentAuthSource");
+  }
+  function currentApiMode() {
+    return legacyMethod11("currentApiMode");
+  }
+  function currentCodexMode() {
+    return legacyMethod11("currentCodexMode");
+  }
+  function setModeSpecificElementVisibility(element2, visible) {
+    if (!element2) return;
+    element2.setAttribute("aria-hidden", visible ? "false" : "true");
+    if (visible) {
+      element2.classList.remove("hidden");
+      element2.classList.remove("mode-collapsed");
+      return;
+    }
+    element2.classList.add("mode-collapsed");
+    element2.classList.add("hidden");
+  }
+  function applyModeSettingsVisibility(isDirectApi) {
+    setModeSpecificElementVisibility(els8.modeSpecificSettings, true);
+    setModeSpecificElementVisibility(els8.mainModelField, !isDirectApi);
+    setModeSpecificElementVisibility(els8.apiDirectSettingsNotice, isDirectApi);
+    setModeSpecificElementVisibility(els8.promptFidelityField, true);
+  }
+  function updateWebSearchAvailability(authSource = currentAuthSource()) {
+    const supported = isOmniPocMode() ? true : authSource === "api" ? currentApiMode() === "responses" : authSource === "codex" ? currentCodexMode() === "responses" : true;
+    if (els8.webSearch) {
+      const wasChecked = Boolean(els8.webSearch.checked);
+      els8.webSearch.disabled = !supported;
+      if (!supported) els8.webSearch.checked = false;
+      if (wasChecked && !els8.webSearch.checked) {
+        els8.webSearch.dispatchEvent(new Event("input"));
+      }
+    }
+    if (els8.webSearchField) {
+      els8.webSearchField.classList.toggle("is-disabled", !supported);
+      els8.webSearchField.setAttribute("aria-disabled", supported ? "false" : "true");
+    }
+  }
+  function setModeSettingsVariant(isDirectApi) {
+    const slot = els8.modeSettingsSlot;
+    if (slot) {
+      slot.style.height = "";
+      slot.classList.remove("is-transitioning");
+    }
+    applyModeSettingsVisibility(isDirectApi);
+  }
+  function updateModeSpecificSettings(authSource = currentAuthSource()) {
+    const isDirectApi = !isOmniPocMode() && (authSource === "api" && currentApiMode() !== "responses" || authSource === "codex" && currentCodexMode() !== "responses");
+    setModeSettingsVariant(isDirectApi);
+    updateWebSearchAvailability(authSource);
   }
 
   // codex_image/webui/frontend/src/auth-source.ts
@@ -34159,6 +34157,7 @@ ${galleryText}`;
     return currentAuthSource2() === "api" ? currentApiImageModel() : els25.model.value;
   }
   function webSearchSupportedForCurrentBackend() {
+    if (isOmniPocMode()) return true;
     const authSource = currentAuthSource2();
     if (authSource === "api") return currentApiMode3() === "responses";
     if (authSource === "codex") return currentCodexMode3() === "responses";
@@ -37254,7 +37253,7 @@ ${galleryText}`;
     if (selectedOmniKeyId) form.append("sub2api_key_id", selectedOmniKeyId);
     if (currentAuthSource3() === "api") {
       form.append("api_provider_id", currentApiProviderId3());
-      form.append("api_mode", currentApiMode4());
+      form.append("api_mode", isOmniPocMode() && params.web_search ? "responses" : currentApiMode4());
     } else if (currentAuthSource3() === "codex") {
       form.append("codex_mode", currentCodexMode4());
     }
@@ -40783,16 +40782,16 @@ ${galleryText}`;
   function isLegacyOutputInputUrl2(url) {
     return typeof url === "string" && /^\/outputs\/[^/]+\/inputs\//.test(url);
   }
-  function historyInputCandidateUrls(sourceUrl2, fallbackUrl) {
+  function historyInputCandidateUrls(sourceUrl, fallbackUrl) {
     const urls = [];
     const addUrl = (url) => {
       if (url && !urls.includes(url)) urls.push(url);
     };
-    if (isLegacyOutputInputUrl2(sourceUrl2)) {
+    if (isLegacyOutputInputUrl2(sourceUrl)) {
       addUrl(fallbackUrl);
-      addUrl(sourceUrl2);
+      addUrl(sourceUrl);
     } else {
-      addUrl(sourceUrl2);
+      addUrl(sourceUrl);
       addUrl(fallbackUrl);
     }
     return urls;
@@ -40825,14 +40824,14 @@ ${galleryText}`;
     }
     return task;
   }
-  async function fetchHistoryInputBlob(candidateUrls, sourceUrl2) {
+  async function fetchHistoryInputBlob(candidateUrls, sourceUrl) {
     for (const url of candidateUrls) {
       const response = await fetch(url);
       if (response.ok) {
         return response.blob();
       }
     }
-    throw new Error(formatTranslation("status.historyInputLoadFailed", { url: candidateUrls[0] || sourceUrl2 }));
+    throw new Error(formatTranslation("status.historyInputLoadFailed", { url: candidateUrls[0] || sourceUrl }));
   }
   async function restoreTaskInputs(task, options = {}) {
     const taskId = options.taskId ?? task?.task_id;

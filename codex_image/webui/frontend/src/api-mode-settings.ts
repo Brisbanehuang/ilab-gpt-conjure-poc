@@ -1,4 +1,5 @@
 import { getLegacyBridge } from "./state";
+import { isOmniPocMode } from "./omni-poc-key";
 
 const bridge = getLegacyBridge();
 const els = bridge.els;
@@ -35,7 +36,9 @@ function applyModeSettingsVisibility(isDirectApi: any): void {
 }
 
 function updateWebSearchAvailability(authSource: any = currentAuthSource()): void {
-  const supported = authSource === "api"
+  const supported = isOmniPocMode()
+    ? true
+    : authSource === "api"
     ? currentApiMode() === "responses"
     : authSource === "codex"
       ? currentCodexMode() === "responses"
@@ -64,8 +67,10 @@ export function setModeSettingsVariant(isDirectApi: any): void {
 }
 
 export function updateModeSpecificSettings(authSource: any = currentAuthSource()): void {
-  const isDirectApi = (authSource === "api" && currentApiMode() !== "responses")
-    || (authSource === "codex" && currentCodexMode() !== "responses");
+  const isDirectApi = !isOmniPocMode() && (
+    (authSource === "api" && currentApiMode() !== "responses")
+    || (authSource === "codex" && currentCodexMode() !== "responses")
+  );
   setModeSettingsVariant(isDirectApi);
   updateWebSearchAvailability(authSource);
 }

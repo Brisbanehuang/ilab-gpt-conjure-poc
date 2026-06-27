@@ -515,6 +515,8 @@ svg.button-icon {
   }
 }
 
+.omni-poc-mode .auth-source-switcher,
+.omni-poc-mode #githubLink,
 .omni-poc-mode #authSourceGroup,
 .omni-poc-mode #authSourceDetail,
 .omni-poc-mode #apiSourceSettingsButton,
@@ -531,7 +533,7 @@ svg.button-icon {
 .omni-poc-key-control {
   display: inline-flex;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 8px;
   min-height: 36px;
   padding: 4px 8px;
@@ -555,8 +557,7 @@ svg.button-icon {
 }
 
 .omni-poc-key-select {
-  width: 280px;
-  max-width: 32vw;
+  width: min(520px, 42vw);
   height: 28px;
   padding: 0 8px;
   border: 1px solid rgba(15, 23, 42, 0.16);
@@ -577,29 +578,10 @@ svg.button-icon {
 }
 
 .omni-poc-key-status {
-  max-width: 220px;
+  max-width: 240px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 12px;
   color: #475569;
-}
-
-.omni-poc-key-notice {
-  max-width: 360px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 11px;
-  color: #64748b;
-}
-
-.omni-poc-source-link {
-  font-size: 12px;
-  color: #2563eb;
-  text-decoration: none;
-}
-
-.omni-poc-source-link:hover {
-  text-decoration: underline;
 }

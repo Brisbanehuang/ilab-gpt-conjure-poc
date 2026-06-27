@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 import json
 import tempfile
 import unittest
+import unittest.mock
 from pathlib import Path
 
 
@@ -50,13 +51,13 @@ class WebUIStorageCleanupTests(unittest.TestCase):
         from codex_image.webui.task_metadata import _complete_task, _write_queued_metadata
 
         class FakeObjectStorage:
-            def delete(self, key: str) -> None:
+            async def delete(self, key: str) -> None:
                 raise AssertionError(key)
 
-            def get(self, key: str) -> bytes:
+            async def get(self, key: str) -> bytes:
                 raise AssertionError(key)
 
-            def put(self, key: str, data: bytes, content_type: str) -> StoredObject:
+            async def put(self, key: str, data: bytes, content_type: str) -> StoredObject:
                 return StoredObject(driver="r2", key=key, size=len(data), content_type=content_type)
 
         with tempfile.TemporaryDirectory() as tmp, unittest.mock.patch.dict("os.environ", {"OMNI_OBJECT_STORAGE_DRIVER": "r2"}):
@@ -108,13 +109,13 @@ class WebUIStorageCleanupTests(unittest.TestCase):
             def __init__(self) -> None:
                 self.deleted: list[str] = []
 
-            def put(self, key: str, data: bytes, content_type: str):
+            async def put(self, key: str, data: bytes, content_type: str):
                 raise AssertionError(key)
 
-            def get(self, key: str) -> bytes:
+            async def get(self, key: str) -> bytes:
                 raise AssertionError(key)
 
-            def delete(self, key: str) -> None:
+            async def delete(self, key: str) -> None:
                 self.deleted.append(key)
 
         fake = FakeObjectStorage()
