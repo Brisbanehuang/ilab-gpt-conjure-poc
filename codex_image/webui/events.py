@@ -10,8 +10,10 @@ from .task_metadata import _gallery_item_response, _with_file_urls
 def queue_snapshot(ctx: WebUIContext, *, owner_id: str | None = None) -> dict[str, Any]:
     state = ctx.queue_storage.read_state()
     active_ids = ctx.route_helpers["visible_running_task_ids"]()
+    gallery_storage = ctx.gallery_storage if owner_id is None else ctx.gallery_storage.scoped(owner_id)
+    reference_asset_storage = ctx.reference_asset_storage if owner_id is None else ctx.reference_asset_storage.scoped(owner_id)
     waiting = [
-        _with_file_urls(task, active_ids, ctx.gallery_storage, ctx.reference_asset_storage, include_request=False)
+        _with_file_urls(task, active_ids, gallery_storage, reference_asset_storage, include_request=False)
         for task in (ctx.storage.read_metadata(task_id) for task_id in state["waiting"] if ctx.storage.metadata_path(task_id).exists())
         if _metadata_owner_id(task) == owner_id or owner_id is None
     ]
@@ -26,8 +28,8 @@ def queue_snapshot(ctx: WebUIContext, *, owner_id: str | None = None) -> dict[st
         task = _with_file_urls(
             metadata,
             active_ids,
-            ctx.gallery_storage,
-            ctx.reference_asset_storage,
+            gallery_storage,
+            reference_asset_storage,
             include_request=False,
         )
         task["channel_id"] = channel_id
@@ -49,9 +51,13 @@ def queue_snapshot(ctx: WebUIContext, *, owner_id: str | None = None) -> dict[st
 
 def event_snapshot(ctx: WebUIContext, *, owner_id: str | None = None) -> dict[str, Any]:
     gallery_storage = ctx.gallery_storage if owner_id is None else ctx.gallery_storage.scoped(owner_id)
+    reference_asset_storage = ctx.reference_asset_storage if owner_id is None else ctx.reference_asset_storage.scoped(owner_id)
     return {
         "type": "snapshot",
-        "tasks": ctx.storage.list_recent_task_cards(limit=200, owner_id=owner_id),
+        "tasks": [
+            _with_file_urls(task, ctx.route_helpers["visible_running_task_ids"](), gallery_storage, reference_asset_storage, include_request=False)
+            for task in ctx.storage.list_recent_task_cards(limit=200, owner_id=owner_id)
+        ],
         "queue": queue_snapshot(ctx, owner_id=owner_id),
         "gallery": [_gallery_item_response(item) for item in gallery_storage.list_items()],
         "auth": ctx.route_helpers["auth_event_payload"](),
@@ -85,13 +91,15 @@ def task_event(ctx: WebUIContext, task_id: str, *, owner_id: str | None = None) 
     metadata = ctx.storage.read_metadata(task_id)
     if owner_id is not None and _metadata_owner_id(metadata) != owner_id:
         return None
+    gallery_storage = ctx.gallery_storage if owner_id is None else ctx.gallery_storage.scoped(owner_id)
+    reference_asset_storage = ctx.reference_asset_storage if owner_id is None else ctx.reference_asset_storage.scoped(owner_id)
     return {
         "type": "task",
         "task": _with_file_urls(
             metadata,
             ctx.route_helpers["visible_running_task_ids"](),
-            ctx.gallery_storage,
-            ctx.reference_asset_storage,
+            gallery_storage,
+            reference_asset_storage,
             include_request=False,
         ),
     }

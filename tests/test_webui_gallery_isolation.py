@@ -70,3 +70,25 @@ class WebUIGalleryIsolationTests(TestCase):
 
         self.assertEqual(response.status_code, 401)
         self.assertIn("请先登录 OmniAPI", response.json()["detail"])
+
+    def test_reference_assets_are_private_to_current_omni_user(self) -> None:
+        user_1 = self.cookie_for_user(1)
+        user_9 = self.cookie_for_user(9)
+        storage = self.app.state.ctx.reference_asset_storage
+        asset = storage.scoped("user_1").create_or_touch("private.png", b"user-1-reference", "image/png")
+        image_url = f"/api/reference-assets/{asset['id']}/image"
+
+        user_1_recent = self.client.get("/api/reference-assets/recent", cookies=user_1)
+        user_9_recent = self.client.get("/api/reference-assets/recent", cookies=user_9)
+        user_9_image = self.client.get(image_url, cookies=user_9)
+        user_9_delete = self.client.delete(f"/api/reference-assets/{asset['id']}", cookies=user_9)
+        user_1_image_after_user_9_delete = self.client.get(image_url, cookies=user_1)
+
+        self.assertEqual(user_1_recent.status_code, 200)
+        self.assertEqual([item["id"] for item in user_1_recent.json()["items"]], [asset["id"]])
+        self.assertEqual(user_9_recent.status_code, 200)
+        self.assertEqual(user_9_recent.json()["items"], [])
+        self.assertEqual(user_9_image.status_code, 404)
+        self.assertEqual(user_9_delete.status_code, 404)
+        self.assertEqual(user_1_image_after_user_9_delete.status_code, 200)
+        self.assertEqual(user_1_image_after_user_9_delete.content, b"user-1-reference")

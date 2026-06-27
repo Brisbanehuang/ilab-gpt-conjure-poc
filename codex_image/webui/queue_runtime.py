@@ -216,10 +216,11 @@ async def execute_task(
         ctx.storage.write_metadata(task_id, metadata)
 
         client = _client_for_queue_channel(ctx, channel, metadata, client_factory_overridden=client_factory_overridden)
+        owner_id = _metadata_owner_id(metadata)
         await _execute_stored_task(
             storage=ctx.storage,
-            gallery_storage=ctx.gallery_storage,
-            reference_asset_storage=ctx.reference_asset_storage,
+            gallery_storage=ctx.gallery_storage if not owner_id else ctx.gallery_storage.scoped(owner_id),
+            reference_asset_storage=ctx.reference_asset_storage if not owner_id else ctx.reference_asset_storage.scoped(owner_id),
             task_id=task_id,
             client=client,
             batch_delay_seconds=batch_delay_seconds,
@@ -263,6 +264,18 @@ async def execute_task(
 def _queue_max_attempts_for_channels(channels: list[QueueChannel]) -> int:
     retry_identities = {(channel.auth_source, channel.account_id) for channel in channels}
     return max(2, len(retry_identities))
+
+
+def _metadata_owner_id(metadata: dict[str, Any]) -> str:
+    owner_id = str(metadata.get("owner_id") or "").strip()
+    if owner_id:
+        return owner_id
+    params = metadata.get("params") if isinstance(metadata.get("params"), dict) else {}
+    try:
+        user_id = int(params.get("sub2api_user_id"))
+    except (TypeError, ValueError):
+        return ""
+    return f"user_{user_id}" if user_id > 0 else ""
 
 
 def install_queue_runtime(

@@ -17,7 +17,8 @@ from codex_image.webui.executor import (
     _resolve_reference_assets,
 )
 from codex_image.webui.omni_poc_limits import validate_upload_limits
-from codex_image.webui.omni_session import SESSION_COOKIE_NAME, resolve_omni_image_key
+from codex_image.webui.object_storage import owner_id_for_session
+from codex_image.webui.omni_session import SESSION_COOKIE_NAME, OmniSession, resolve_omni_image_key
 from codex_image.webui.prompt_ratio import append_ratio_prompt_instruction
 from codex_image.webui.storage import utc_now
 from codex_image.webui.task_metadata import _dedupe_preserve_order, _params, _with_file_urls, _write_queued_metadata
@@ -48,8 +49,16 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
             raise HTTPException(status_code=429, detail="当前排队任务过多，请稍后再试")
         return session
 
-    async def omni_key_from_request(request: Request, sub2api_key_id: str | None) -> dict[str, Any] | None:
-        session = omni_session_from_request(request)
+    def owner_id_from_request_session(session: OmniSession | None) -> str | None:
+        return owner_id_for_session(session) if session is not None else None
+
+    def scoped_gallery_storage(owner_id: str | None):
+        return ctx.gallery_storage if owner_id is None else ctx.gallery_storage.scoped(owner_id)
+
+    def scoped_reference_asset_storage(owner_id: str | None):
+        return ctx.reference_asset_storage if owner_id is None else ctx.reference_asset_storage.scoped(owner_id)
+
+    async def omni_key_from_session(session: OmniSession | None, sub2api_key_id: str | None) -> dict[str, Any] | None:
         if session is None:
             return None
         config = h.get("omni_poc_config")
@@ -118,7 +127,11 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
         reference_asset_ids: list[str] | None = Form(None),
         reference_images: list[UploadFile] | None = File(None),
     ) -> dict[str, Any]:
-        omni_key = await omni_key_from_request(request, sub2api_key_id)
+        session = omni_session_from_request(request)
+        omni_key = await omni_key_from_session(session, sub2api_key_id)
+        owner_id = owner_id_from_request_session(session)
+        gallery_storage = scoped_gallery_storage(owner_id)
+        reference_asset_storage = scoped_reference_asset_storage(owner_id)
         if omni_key is not None:
             h["check_omni_storage_quota"](omni_session_params(request))
             try:
@@ -128,15 +141,15 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
         if omni_key is None and not ctx.auth_checker():
             raise HTTPException(status_code=401, detail="Codex auth is not available")
 
-        gallery_refs, gallery_data_urls = _resolve_gallery_refs(ctx.gallery_storage, gallery_image_ids or [])
-        uploaded_assets = await h["save_reference_assets"](reference_images or [])
-        selected_assets, _ = _resolve_reference_assets(ctx.reference_asset_storage, reference_asset_ids or [])
+        gallery_refs, gallery_data_urls = _resolve_gallery_refs(gallery_storage, gallery_image_ids or [])
+        uploaded_assets = await h["save_reference_assets"](reference_images or [], storage_override=reference_asset_storage)
+        selected_assets, _ = _resolve_reference_assets(reference_asset_storage, reference_asset_ids or [])
         reference_assets = h["dedupe_reference_assets"](uploaded_assets + selected_assets)
         task = ctx.storage.create_task("generate")
         created_at = utc_now()
         input_files: list[Path] = []
         reference_data_urls = [
-            _file_to_data_url(ctx.reference_asset_storage.image_path(str(item["id"])), mime_type=str(item.get("mime_type") or ""))
+            _file_to_data_url(reference_asset_storage.image_path(str(item["id"])), mime_type=str(item.get("mime_type") or ""))
             for item in reference_assets
         ]
         all_reference_data_urls = reference_data_urls + gallery_data_urls
@@ -248,7 +261,7 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
         ctx.queue_storage.enqueue(task.task_id)
         h["ensure_queue_worker_running"]()
         return {
-            "task": _with_file_urls(metadata, ctx.active_task_ids, ctx.gallery_storage, ctx.reference_asset_storage),
+            "task": _with_file_urls(metadata, ctx.active_task_ids, gallery_storage, reference_asset_storage),
             "request": stored_request_payload,
         }
 
@@ -281,7 +294,11 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
         images: list[UploadFile] | None = File(None),
         mask: UploadFile | None = File(None),
     ) -> dict[str, Any]:
-        omni_key = await omni_key_from_request(request, sub2api_key_id)
+        session = omni_session_from_request(request)
+        omni_key = await omni_key_from_session(session, sub2api_key_id)
+        owner_id = owner_id_from_request_session(session)
+        gallery_storage = scoped_gallery_storage(owner_id)
+        reference_asset_storage = scoped_reference_asset_storage(owner_id)
         if omni_key is not None:
             h["check_omni_storage_quota"](omni_session_params(request))
             upload_items = list(images or [])
@@ -296,9 +313,9 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
 
         if not images and not _dedupe_preserve_order(gallery_image_ids or []) and not _dedupe_preserve_order(reference_asset_ids or []):
             raise HTTPException(status_code=400, detail="At least one image is required")
-        gallery_refs, gallery_data_urls = _resolve_gallery_refs(ctx.gallery_storage, gallery_image_ids or [])
-        uploaded_assets = await h["save_reference_assets"](images or [])
-        selected_assets, _ = _resolve_reference_assets(ctx.reference_asset_storage, reference_asset_ids or [])
+        gallery_refs, gallery_data_urls = _resolve_gallery_refs(gallery_storage, gallery_image_ids or [])
+        uploaded_assets = await h["save_reference_assets"](images or [], storage_override=reference_asset_storage)
+        selected_assets, _ = _resolve_reference_assets(reference_asset_storage, reference_asset_ids or [])
         reference_assets = h["dedupe_reference_assets"](uploaded_assets + selected_assets)
         task = ctx.storage.create_task("edit")
         created_at = utc_now()
@@ -307,7 +324,7 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
             raise HTTPException(status_code=400, detail="At least one image is required")
         mask_files = await h["save_uploads"](task.task_id, [mask] if mask is not None else [], kind="mask")
         image_data_urls = [
-            _file_to_data_url(ctx.reference_asset_storage.image_path(str(item["id"])), mime_type=str(item.get("mime_type") or ""))
+            _file_to_data_url(reference_asset_storage.image_path(str(item["id"])), mime_type=str(item.get("mime_type") or ""))
             for item in reference_assets
         ]
         all_image_data_urls = image_data_urls + gallery_data_urls
@@ -429,6 +446,6 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
         ctx.queue_storage.enqueue(task.task_id)
         h["ensure_queue_worker_running"]()
         return {
-            "task": _with_file_urls(metadata, ctx.active_task_ids, ctx.gallery_storage, ctx.reference_asset_storage),
+            "task": _with_file_urls(metadata, ctx.active_task_ids, gallery_storage, reference_asset_storage),
             "request": stored_request_payload,
         }

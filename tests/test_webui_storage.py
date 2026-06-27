@@ -59,6 +59,15 @@ class WebUIStorageTests(unittest.TestCase):
 
         self.assertEqual(owner_id_for_session(session), "user_123")
 
+    def test_owner_id_from_params_rejects_missing_or_invalid_user_id(self) -> None:
+        from codex_image.webui.object_storage import owner_id_from_params
+
+        self.assertEqual(owner_id_from_params({"sub2api_user_id": 123}), "user_123")
+        for params in ({}, {"sub2api_user_id": 0}, {"sub2api_user_id": "bad"}):
+            with self.subTest(params=params):
+                with self.assertRaisesRegex(ValueError, "Sub2API user id is required"):
+                    owner_id_from_params(params)
+
     def test_complete_task_stores_omni_output_with_readable_object_key(self) -> None:
         from codex_image.client import ImageResult
         from codex_image.webui.object_storage import StoredObject

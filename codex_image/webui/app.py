@@ -331,7 +331,7 @@ def create_app(
                 storage, task_id, metadata, api_settings, api_provider_id
             ),
             "save_uploads": lambda task_id, files, kind="input": _save_uploads(storage, task_id, files, kind=kind),
-            "save_reference_assets": lambda files: _save_reference_assets(reference_asset_storage, files),
+            "save_reference_assets": lambda files, storage_override=None: _save_reference_assets(storage_override or reference_asset_storage, files),
             "dedupe_reference_assets": _dedupe_reference_assets,
             "build_image_request_payload": lambda **kwargs: _build_image_request_payload(**kwargs),
             "slim_request_payload": lambda request_payload, **kwargs: _slim_request_payload(request_payload, **kwargs),

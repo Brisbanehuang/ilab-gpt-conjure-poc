@@ -9,6 +9,7 @@ from codex_image.webui.context import WebUIContext
 from codex_image.webui.gallery_storage import GalleryStorage
 from codex_image.webui.object_storage import owner_id_for_session
 from codex_image.webui.omni_session import SESSION_COOKIE_NAME
+from codex_image.webui.reference_assets import ReferenceAssetStorage
 from codex_image.webui.storage import _guess_mime_type
 from codex_image.webui.task_metadata import _gallery_category_response, _gallery_item_response, _reference_asset_response
 
@@ -182,14 +183,16 @@ def register_gallery_routes(app: FastAPI, ctx: WebUIContext) -> None:
         )
 
     @app.get("/api/reference-assets/recent")
-    def list_reference_assets(limit: int = 20) -> dict[str, Any]:
+    def list_reference_assets(request: Request, limit: int = 20) -> dict[str, Any]:
+        reference_asset_storage = _reference_asset_storage_for_request(ctx, request)
         clean_limit = max(0, min(int(limit), 50))
-        return {"items": [_reference_asset_response(item) for item in ctx.reference_asset_storage.list_recent(limit=clean_limit)]}
+        return {"items": [_reference_asset_response(item) for item in reference_asset_storage.list_recent(limit=clean_limit)]}
 
     @app.delete("/api/reference-assets/{asset_id}")
-    def delete_reference_asset(asset_id: str) -> dict[str, bool]:
+    def delete_reference_asset(asset_id: str, request: Request) -> dict[str, bool]:
+        reference_asset_storage = _reference_asset_storage_for_request(ctx, request)
         try:
-            ctx.reference_asset_storage.delete_item(asset_id)
+            reference_asset_storage.delete_item(asset_id)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail="Invalid reference asset id") from exc
         except FileNotFoundError as exc:
@@ -197,10 +200,11 @@ def register_gallery_routes(app: FastAPI, ctx: WebUIContext) -> None:
         return {"ok": True}
 
     @app.get("/api/reference-assets/{asset_id}/image")
-    def get_reference_asset_image(asset_id: str) -> Response:
+    def get_reference_asset_image(asset_id: str, request: Request) -> Response:
+        reference_asset_storage = _reference_asset_storage_for_request(ctx, request)
         try:
-            item = ctx.reference_asset_storage.read_item(asset_id)
-            path = ctx.reference_asset_storage.image_path(asset_id)
+            item = reference_asset_storage.read_item(asset_id)
+            path = reference_asset_storage.image_path(asset_id)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail="Invalid reference asset id") from exc
         except FileNotFoundError as exc:
@@ -211,6 +215,11 @@ def register_gallery_routes(app: FastAPI, ctx: WebUIContext) -> None:
 def _gallery_storage_for_request(ctx: WebUIContext, request: Request) -> GalleryStorage:
     owner_id = _require_omni_owner_id(ctx, request)
     return ctx.gallery_storage if owner_id is None else ctx.gallery_storage.scoped(owner_id)
+
+
+def _reference_asset_storage_for_request(ctx: WebUIContext, request: Request) -> ReferenceAssetStorage:
+    owner_id = _require_omni_owner_id(ctx, request)
+    return ctx.reference_asset_storage if owner_id is None else ctx.reference_asset_storage.scoped(owner_id)
 
 
 def _require_omni_owner_id(ctx: WebUIContext, request: Request) -> str | None:

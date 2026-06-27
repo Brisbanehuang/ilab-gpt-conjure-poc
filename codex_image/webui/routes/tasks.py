@@ -40,7 +40,7 @@ def register_task_routes(app: FastAPI, ctx: WebUIContext) -> None:
         active_ids = h["visible_running_task_ids"]()
         return {
             "tasks": [
-                _with_file_urls(task, active_ids, ctx.gallery_storage, ctx.reference_asset_storage, include_request=False)
+                _with_owned_file_urls(ctx, task, owner_id, active_ids=active_ids, include_request=False)
                 for task in ctx.storage.list_tasks(owner_id=owner_id)
             ]
         }
@@ -113,12 +113,7 @@ def register_task_routes(app: FastAPI, ctx: WebUIContext) -> None:
         try:
             metadata = h["with_stored_request_payload"](task_id, _read_owned_metadata(ctx, task_id, _require_omni_owner_id(ctx, request)))
             return {
-                "task": _with_file_urls(
-                    metadata,
-                    h["visible_running_task_ids"](),
-                    ctx.gallery_storage,
-                    ctx.reference_asset_storage,
-                )
+                "task": _with_owned_file_urls(ctx, metadata, _metadata_owner_id(metadata), active_ids=h["visible_running_task_ids"]())
             }
         except FileNotFoundError as exc:
             raise HTTPException(status_code=404, detail="Task not found") from exc
@@ -132,13 +127,7 @@ def register_task_routes(app: FastAPI, ctx: WebUIContext) -> None:
         metadata["viewed_at"] = utc_now()
         ctx.storage.write_metadata(task_id, metadata)
         return {
-            "task": _with_file_urls(
-                metadata,
-                h["visible_running_task_ids"](),
-                ctx.gallery_storage,
-                ctx.reference_asset_storage,
-                include_request=False,
-            )
+            "task": _with_owned_file_urls(ctx, metadata, _metadata_owner_id(metadata), active_ids=h["visible_running_task_ids"](), include_request=False)
         }
 
     @app.get("/api/tasks/{task_id}/outputs.zip")
@@ -276,12 +265,7 @@ def register_task_routes(app: FastAPI, ctx: WebUIContext) -> None:
             _ensure_outputs_mutable(task_id, metadata)
             metadata = _set_task_output_selected(ctx.storage, task_id, metadata, output_index, bool(payload.get("selected")))
             return {
-                "task": _with_file_urls(
-                    metadata,
-                    h["visible_running_task_ids"](),
-                    ctx.gallery_storage,
-                    ctx.reference_asset_storage,
-                )
+                "task": _with_owned_file_urls(ctx, metadata, _metadata_owner_id(metadata), active_ids=h["visible_running_task_ids"]())
             }
         except FileNotFoundError as exc:
             raise HTTPException(status_code=404, detail="Task not found") from exc
@@ -297,12 +281,7 @@ def register_task_routes(app: FastAPI, ctx: WebUIContext) -> None:
             await _delete_r2_objects(removed_keys)
             metadata = _delete_unselected_task_outputs(ctx.storage, task_id, metadata)
             return {
-                "task": _with_file_urls(
-                    metadata,
-                    h["visible_running_task_ids"](),
-                    ctx.gallery_storage,
-                    ctx.reference_asset_storage,
-                )
+                "task": _with_owned_file_urls(ctx, metadata, _metadata_owner_id(metadata), active_ids=h["visible_running_task_ids"]())
             }
         except FileNotFoundError as exc:
             raise HTTPException(status_code=404, detail="Task not found") from exc
@@ -315,12 +294,7 @@ def register_task_routes(app: FastAPI, ctx: WebUIContext) -> None:
             _read_owned_metadata(ctx, task_id, _require_omni_owner_id(ctx, request))
             metadata = h["set_task_archived"](task_id, bool(payload.get("archived")))
             return {
-                "task": _with_file_urls(
-                    metadata,
-                    h["visible_running_task_ids"](),
-                    ctx.gallery_storage,
-                    ctx.reference_asset_storage,
-                )
+                "task": _with_owned_file_urls(ctx, metadata, _metadata_owner_id(metadata), active_ids=h["visible_running_task_ids"]())
             }
         except FileNotFoundError as exc:
             raise HTTPException(status_code=404, detail="Task not found") from exc
@@ -364,12 +338,7 @@ def register_task_routes(app: FastAPI, ctx: WebUIContext) -> None:
         ctx.queue_storage.enqueue(task_id)
         h["ensure_queue_worker_running"]()
         return {
-            "task": _with_file_urls(
-                metadata,
-                h["visible_running_task_ids"](),
-                ctx.gallery_storage,
-                ctx.reference_asset_storage,
-            )
+            "task": _with_owned_file_urls(ctx, metadata, _metadata_owner_id(metadata), active_ids=h["visible_running_task_ids"]())
         }
 
     @app.post("/api/tasks/{task_id}/accept-successes")
@@ -391,12 +360,7 @@ def register_task_routes(app: FastAPI, ctx: WebUIContext) -> None:
         except ValueError as exc:
             raise HTTPException(status_code=409, detail=str(exc)) from exc
         return {
-            "task": _with_file_urls(
-                metadata,
-                h["visible_running_task_ids"](),
-                ctx.gallery_storage,
-                ctx.reference_asset_storage,
-            )
+            "task": _with_owned_file_urls(ctx, metadata, _metadata_owner_id(metadata), active_ids=h["visible_running_task_ids"]())
         }
 
     @app.delete("/api/tasks/{task_id}")
@@ -513,6 +477,25 @@ def _metadata_owner_id(metadata: dict[str, Any]) -> str:
     return f"user_{user_id}" if user_id > 0 else ""
 
 
+def _with_owned_file_urls(
+    ctx: WebUIContext,
+    metadata: dict[str, Any],
+    owner_id: str | None,
+    *,
+    active_ids: set[str] | None = None,
+    include_request: bool = True,
+) -> dict[str, Any]:
+    gallery_storage = ctx.gallery_storage if not owner_id else ctx.gallery_storage.scoped(owner_id)
+    reference_asset_storage = ctx.reference_asset_storage if not owner_id else ctx.reference_asset_storage.scoped(owner_id)
+    return _with_file_urls(
+        metadata,
+        active_ids,
+        gallery_storage,
+        reference_asset_storage,
+        include_request=include_request,
+    )
+
+
 def _sidebar_card_from_metadata(metadata: dict[str, Any]) -> dict[str, Any]:
     return {
         key: metadata[key]
@@ -572,11 +555,14 @@ async def _delete_r2_objects(keys: list[str]) -> None:
     object_storage = object_storage_from_env()
     if object_storage is None:
         raise HTTPException(status_code=503, detail="Object storage is not configured")
-    try:
-        for key in keys:
+    errors: list[Exception] = []
+    for key in keys:
+        try:
             await object_storage.delete(key)
-    except Exception as exc:
-        raise HTTPException(status_code=502, detail="Could not delete stored image") from exc
+        except Exception as exc:
+            errors.append(exc)
+    if errors:
+        raise HTTPException(status_code=502, detail="Could not delete stored image") from errors[0]
 
 
 def _open_path_in_file_manager(path: Path) -> None:

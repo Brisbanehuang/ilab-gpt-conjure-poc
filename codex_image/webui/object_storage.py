@@ -49,8 +49,10 @@ def owner_id_from_params(params: Mapping[str, Any]) -> str:
     try:
         user_id = int(raw_user_id)
     except (TypeError, ValueError):
-        user_id = 0
-    return f"user_{user_id}" if user_id > 0 else "user_unknown"
+        raise ValueError("Sub2API user id is required") from None
+    if user_id <= 0:
+        raise ValueError("Sub2API user id is required")
+    return f"user_{user_id}"
 
 
 def output_object_key(*, owner_id: str, task_id: str, title: str, index: int, ext: str) -> str:
@@ -127,6 +129,8 @@ class R2ObjectStorage:
     async def delete(self, key: str) -> None:
         async with httpx.AsyncClient(timeout=60.0) as client:
             response = await client.delete(self._url(key), headers=self._signed_headers("DELETE", key, b"", {}))
+        if response.status_code == 404:
+            return
         response.raise_for_status()
 
     def _url(self, key: str) -> str:
@@ -180,7 +184,10 @@ def _task_date(task_id: str) -> str:
 
 
 def _safe_owner(owner_id: str) -> str:
-    return re.sub(r"[^a-zA-Z0-9_-]+", "", str(owner_id or "").strip()) or "user_unknown"
+    clean = re.sub(r"[^a-zA-Z0-9_-]+", "", str(owner_id or "").strip())
+    if not clean:
+        raise ValueError("Object storage owner id is required")
+    return clean
 
 
 def _safe_title(title: str, *, fallback: str) -> str:
