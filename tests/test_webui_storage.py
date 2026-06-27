@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from io import BytesIO
 import json
 import threading
@@ -75,6 +76,101 @@ class WebUIStorageTests(unittest.TestCase):
             with self.subTest(params=params):
                 with self.assertRaisesRegex(ValueError, "Sub2API user id is required"):
                     owner_id_from_params(params)
+
+    def test_r2_config_reads_retry_and_timeout_settings(self) -> None:
+        from codex_image.webui.object_storage import load_object_storage_config
+
+        config = load_object_storage_config(
+            {
+                "OMNI_OBJECT_STORAGE_DRIVER": "r2",
+                "OMNI_R2_REQUEST_TIMEOUT_SECONDS": "12",
+                "OMNI_R2_RETRY_ATTEMPTS": "4",
+                "OMNI_R2_RETRY_BASE_DELAY_SECONDS": "0",
+            }
+        )
+
+        self.assertEqual(config.request_timeout_seconds, 12)
+        self.assertEqual(config.retry_attempts, 4)
+        self.assertEqual(config.retry_base_delay_seconds, 0.0)
+
+    def test_r2_put_retries_transient_status_before_succeeding(self) -> None:
+        import httpx
+        from codex_image.webui.object_storage import ObjectStorageConfig, R2ObjectStorage
+
+        calls: list[tuple[str, str, bytes, float]] = []
+
+        class FakeAsyncClient:
+            def __init__(self, *, timeout: float) -> None:
+                self.timeout = timeout
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, exc_type, exc, tb) -> None:
+                return None
+
+            async def put(self, url: str, *, content: bytes, headers: dict[str, str]):
+                calls.append(("put", url, content, float(self.timeout)))
+                status = 503 if len(calls) == 1 else 200
+                return httpx.Response(status, request=httpx.Request("PUT", url))
+
+        config = ObjectStorageConfig(
+            driver="r2",
+            account_id="account",
+            access_key_id="access",
+            secret_access_key="secret",
+            bucket="bucket",
+            request_timeout_seconds=7,
+            retry_attempts=3,
+            retry_base_delay_seconds=0,
+        )
+
+        with unittest.mock.patch("codex_image.webui.object_storage.httpx.AsyncClient", FakeAsyncClient):
+            stored = asyncio.run(R2ObjectStorage(config).put("users/user_1/image.png", b"data", "image/png"))
+
+        self.assertEqual(stored.key, "users/user_1/image.png")
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(calls[0][3], 7.0)
+
+    def test_r2_get_retries_transport_errors_before_succeeding(self) -> None:
+        import httpx
+        from codex_image.webui.object_storage import ObjectStorageConfig, R2ObjectStorage
+
+        calls: list[str] = []
+
+        class FakeAsyncClient:
+            def __init__(self, *, timeout: float) -> None:
+                self.timeout = timeout
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, exc_type, exc, tb) -> None:
+                return None
+
+            async def get(self, url: str, *, headers: dict[str, str]):
+                calls.append(url)
+                request = httpx.Request("GET", url)
+                if len(calls) == 1:
+                    raise httpx.ConnectError("temporary network failure", request=request)
+                return httpx.Response(200, content=b"image-bytes", request=request)
+
+        config = ObjectStorageConfig(
+            driver="r2",
+            account_id="account",
+            access_key_id="access",
+            secret_access_key="secret",
+            bucket="bucket",
+            request_timeout_seconds=7,
+            retry_attempts=3,
+            retry_base_delay_seconds=0,
+        )
+
+        with unittest.mock.patch("codex_image.webui.object_storage.httpx.AsyncClient", FakeAsyncClient):
+            payload = asyncio.run(R2ObjectStorage(config).get("users/user_1/image.png"))
+
+        self.assertEqual(payload, b"image-bytes")
+        self.assertEqual(len(calls), 2)
 
     def test_complete_task_stores_omni_output_with_readable_object_key(self) -> None:
         from codex_image.client import ImageResult

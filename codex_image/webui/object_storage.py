@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import hmac
 import os
@@ -33,6 +34,9 @@ class ObjectStorageConfig:
     saved_image_ttl_days: int = 30
     cleanup_interval_seconds: int = 3600
     max_bytes_per_user: int | None = None
+    request_timeout_seconds: float = 60.0
+    retry_attempts: int = 3
+    retry_base_delay_seconds: float = 0.5
 
 
 class ObjectStorage(Protocol):
@@ -106,6 +110,9 @@ def load_object_storage_config(env: Mapping[str, str] | None = None) -> ObjectSt
         saved_image_ttl_days=_int_env(payload.get("OMNI_SAVED_IMAGE_TTL_DAYS"), 30),
         cleanup_interval_seconds=_int_env(payload.get("OMNI_R2_CLEANUP_INTERVAL_SECONDS"), 3600),
         max_bytes_per_user=_optional_int_env(payload.get("OMNI_R2_MAX_BYTES_PER_USER")),
+        request_timeout_seconds=_float_env(payload.get("OMNI_R2_REQUEST_TIMEOUT_SECONDS"), 60.0),
+        retry_attempts=_int_env(payload.get("OMNI_R2_RETRY_ATTEMPTS"), 3),
+        retry_base_delay_seconds=_float_env(payload.get("OMNI_R2_RETRY_BASE_DELAY_SECONDS"), 0.5),
     )
 
 
@@ -124,25 +131,57 @@ class R2ObjectStorage:
         self.endpoint = f"https://{config.account_id}.r2.cloudflarestorage.com"
 
     async def put(self, key: str, data: bytes, content_type: str) -> StoredObject:
-        url = self._url(key)
         headers = {"content-type": content_type}
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            response = await client.put(url, content=data, headers=self._signed_headers("PUT", key, data, headers))
+        response = await self._request_with_retries("PUT", key, data, headers)
         response.raise_for_status()
         return StoredObject(driver="r2", key=key, size=len(data), content_type=content_type)
 
     async def get(self, key: str) -> bytes:
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            response = await client.get(self._url(key), headers=self._signed_headers("GET", key, b"", {}))
+        response = await self._request_with_retries("GET", key, b"", {})
         response.raise_for_status()
         return response.content
 
     async def delete(self, key: str) -> None:
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            response = await client.delete(self._url(key), headers=self._signed_headers("DELETE", key, b"", {}))
+        response = await self._request_with_retries("DELETE", key, b"", {})
         if response.status_code == 404:
             return
         response.raise_for_status()
+
+    async def _request_with_retries(
+        self,
+        method: str,
+        key: str,
+        body: bytes,
+        headers: dict[str, str],
+    ) -> httpx.Response:
+        attempts = max(1, int(self.config.retry_attempts))
+        timeout = float(max(1.0, self.config.request_timeout_seconds))
+        for attempt in range(attempts):
+            try:
+                async with httpx.AsyncClient(timeout=timeout) as client:
+                    signed_headers = self._signed_headers(method, key, body, headers)
+                    if method == "PUT":
+                        response = await client.put(self._url(key), content=body, headers=signed_headers)
+                    elif method == "GET":
+                        response = await client.get(self._url(key), headers=signed_headers)
+                    elif method == "DELETE":
+                        response = await client.delete(self._url(key), headers=signed_headers)
+                    else:  # pragma: no cover - private helper only receives known methods
+                        raise ValueError(f"Unsupported R2 method: {method}")
+                if _is_retryable_status(response.status_code) and attempt < attempts - 1:
+                    await self._sleep_before_retry(attempt)
+                    continue
+                return response
+            except httpx.TransportError:
+                if attempt >= attempts - 1:
+                    raise
+                await self._sleep_before_retry(attempt)
+        raise RuntimeError("R2 retry loop exhausted")
+
+    async def _sleep_before_retry(self, attempt: int) -> None:
+        delay = max(0.0, float(self.config.retry_base_delay_seconds)) * (2**attempt)
+        if delay > 0:
+            await asyncio.sleep(delay)
 
     def _url(self, key: str) -> str:
         return f"{self.endpoint}/{quote(self.config.bucket, safe='')}/{quote(key, safe='/')}"
@@ -228,6 +267,18 @@ def _optional_int_env(value: Any) -> int | None:
     except (TypeError, ValueError):
         return None
     return parsed if parsed > 0 else None
+
+
+def _float_env(value: Any, default: float) -> float:
+    try:
+        parsed = float(str(value))
+    except (TypeError, ValueError):
+        return default
+    return parsed if parsed >= 0 else default
+
+
+def _is_retryable_status(status_code: int) -> bool:
+    return status_code in {408, 409, 429, 500, 502, 503, 504}
 
 
 def _parse_datetime(value: Any) -> datetime | None:
