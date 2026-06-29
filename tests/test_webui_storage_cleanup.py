@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from io import BytesIO
 import json
 import tempfile
 import unittest
@@ -48,6 +49,7 @@ class WebUIStorageCleanupTests(unittest.TestCase):
         from codex_image.webui.object_storage import StoredObject
         from codex_image.webui.storage import TaskStorage
         from codex_image.webui.task_metadata import _complete_task, _write_queued_metadata
+        from PIL import Image
 
         class FakeObjectStorage:
             async def delete(self, key: str) -> None:
@@ -58,6 +60,9 @@ class WebUIStorageCleanupTests(unittest.TestCase):
 
             async def put(self, key: str, data: bytes, content_type: str) -> StoredObject:
                 return StoredObject(driver="r2", key=key, size=len(data), content_type=content_type)
+
+        png = BytesIO()
+        Image.new("RGB", (1024, 1024), (120, 180, 160)).save(png, format="PNG")
 
         with tempfile.TemporaryDirectory() as tmp, unittest.mock.patch.dict("os.environ", {"OMNI_OBJECT_STORAGE_DRIVER": "r2"}):
             root = Path(tmp)
@@ -84,7 +89,7 @@ class WebUIStorageCleanupTests(unittest.TestCase):
                     "generate",
                     "猫",
                     "猫",
-                    ImageResult(b"png-bytes", "revised", "png", "1024x1024", "auto", "low", {}),
+                    ImageResult(png.getvalue(), "revised", "png", "1024x1024", "auto", "low", {}),
                     [],
                     [],
                     None,
@@ -92,10 +97,12 @@ class WebUIStorageCleanupTests(unittest.TestCase):
                     {"omni_poc": True, "sub2api_user_id": 123, "output_format": "png", "n": 1},
                 )
                 local_output = storage.output_path(metadata["output_files"][0])
+                thumbnail_path = storage.output_thumbnail_path(task_id, 1)
                 metadata_path = storage.metadata_path(task_id)
                 sqlite_path = storage.source_data_root / "webui-task-index.db"
 
             self.assertFalse(local_output.exists())
+            self.assertTrue(thumbnail_path.exists())
             self.assertTrue(metadata_path.exists())
             self.assertTrue(sqlite_path.exists())
             self.assertEqual(metadata["outputs"][0]["expires_at"], "2026-07-26T15:00:00Z")

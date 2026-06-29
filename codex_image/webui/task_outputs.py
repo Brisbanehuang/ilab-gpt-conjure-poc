@@ -348,6 +348,7 @@ def _stored_output_records(
             "usage": result.usage,
             "tool_usage": result.tool_usage,
         }
+        record.update(_output_thumbnail_fields(storage, task_id, output_index, path))
         if object_storage is not None:
             key = output_object_key(
                 owner_id=owner_id_from_params(params),
@@ -369,6 +370,7 @@ def _stored_output_records(
             )
             if expires_at:
                 record["expires_at"] = expires_at
+            _delete_transient_file(path, storage)
         records.append(record)
     return records
 
