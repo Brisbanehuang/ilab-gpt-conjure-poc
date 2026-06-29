@@ -302,7 +302,7 @@ class WebUIQueueTests(unittest.TestCase):
 
         self.assertLess(elapsed, 0.15)
         self.assertEqual([item["task_id"] for item in state["running"].values()], [task_id])
-    def test_queue_cancel_running_task_unblocks_channel_worker(self) -> None:
+    def test_queue_cancel_running_task_waits_for_paid_request_before_next_task(self) -> None:
         from codex_image.webui.app import create_app
 
         fake = BlockingFirstImageClient()
@@ -319,16 +319,16 @@ class WebUIQueueTests(unittest.TestCase):
                 self.assertTrue(fake.first_call_started.wait(timeout=5))
 
                 deleted = client.delete(f"/api/queue/{first['task_id']}")
-                try:
-                    self.assertTrue(fake.second_call_started.wait(timeout=3))
-                finally:
-                    fake.release_first_call.set()
+                self.assertFalse(fake.second_call_started.wait(timeout=0.2))
+                fake.release_first_call.set()
+                self.assertTrue(fake.second_call_started.wait(timeout=3))
                 cancelled = client.get(f"/api/tasks/{first['task_id']}").json()["task"]
                 next_task = client.get(f"/api/tasks/{second['task_id']}").json()["task"]
 
         self.assertEqual(deleted.status_code, 200)
-        self.assertEqual(cancelled["status"], "failed")
+        self.assertEqual(cancelled["status"], "cancelled")
         self.assertTrue(cancelled["cancel_requested"])
+        self.assertEqual(cancelled["generated_count"], 1)
         self.assertIn(next_task["status"], {"running", "completed"})
     def test_queue_cancel_running_fourth_slot_persists_cancel_and_releases_next_task(self) -> None:
         from codex_image.webui.app import create_app
@@ -355,21 +355,21 @@ class WebUIQueueTests(unittest.TestCase):
                 self.assertTrue(fake.fourth_call_started.wait(timeout=5))
 
                 deleted = client.delete(f"/api/queue/{first['task_id']}")
-                try:
-                    self.assertTrue(fake.second_task_started.wait(timeout=3))
-                finally:
-                    fake.release_fourth_call.set()
+                self.assertFalse(fake.second_task_started.wait(timeout=0.2))
+                fake.release_fourth_call.set()
+                self.assertTrue(fake.second_task_started.wait(timeout=3))
                 cancelled = client.get(f"/api/tasks/{first['task_id']}").json()["task"]
                 next_task = client.get(f"/api/tasks/{second['task_id']}").json()["task"]
                 queue = client.get("/api/queue").json()
 
         self.assertEqual(deleted.status_code, 200)
-        self.assertEqual(cancelled["status"], "failed")
+        self.assertEqual(cancelled["status"], "cancelled")
         self.assertEqual(cancelled["error"], "Task cancelled by user.")
         self.assertTrue(cancelled["cancel_requested"])
+        self.assertEqual(cancelled["generated_count"], 4)
         self.assertFalse(any(task["task_id"] == first["task_id"] for task in queue["running"]))
         self.assertIn(next_task["status"], {"running", "completed"})
-    def test_queue_worker_does_not_overwrite_cancelled_task_when_request_returns(self) -> None:
+    def test_queue_worker_persists_paid_output_when_cancelled_request_returns(self) -> None:
         from codex_image.webui.app import create_app
 
         fake = CancelsTaskBeforeReturningImageClient()
@@ -388,17 +388,18 @@ class WebUIQueueTests(unittest.TestCase):
             task_id = created.json()["task"]["task_id"]
             fake.task_id = task_id
 
-            with self.assertRaises(asyncio.CancelledError):
-                asyncio.run(app.state.queue_manager.run_available_once())
+            asyncio.run(app.state.queue_manager.run_available_once())
             task = client.get(f"/api/tasks/{task_id}").json()["task"]
             output_exists = (root / output_name(task_id)).exists()
             queue_state = app.state.queue_storage.read_state()
 
-        self.assertEqual(task["status"], "failed")
+        self.assertEqual(task["status"], "cancelled")
         self.assertEqual(task["error"], "Task cancelled by user.")
         self.assertTrue(task["cancel_requested"])
-        self.assertNotIn("output_url", task)
-        self.assertFalse(output_exists)
+        self.assertEqual(task["generated_count"], 1)
+        self.assertEqual(task["output_url"], output_url(task_id))
+        self.assertEqual(task["outputs"][0]["status"], "completed")
+        self.assertTrue(output_exists)
         self.assertEqual(queue_state["running"], {})
     def test_startup_recovery_fails_old_running_and_preserves_waiting(self) -> None:
         from codex_image.webui.app import create_app

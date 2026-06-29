@@ -261,7 +261,6 @@ async def _execute_stored_task(
                             output_compression=params.get("output_compression"),
                             debug_sse_path=debug_sse_path,
                         )
-                    _raise_if_task_cancelled(storage, task_id)
                     if not isinstance(result, ImageResult):
                         return {"index": output_number}
                     results.append(result)
@@ -394,7 +393,6 @@ async def _execute_stored_task(
                             output_compression=params.get("output_compression"),
                             debug_sse_path=debug_sse_path,
                         )
-                    _raise_if_task_cancelled(storage, task_id)
                     break
                 except Exception as exc:
                     _raise_if_task_cancelled(storage, task_id)

@@ -21,6 +21,7 @@ from codex_image.webui.object_storage import owner_id_for_session
 from codex_image.webui.omni_session import SESSION_COOKIE_NAME, OmniSession, resolve_omni_image_key
 from codex_image.webui.prompt_ratio import append_ratio_prompt_instruction
 from codex_image.webui.storage import utc_now
+from codex_image.webui.submit_dedupe import submit_fingerprint
 from codex_image.webui.task_metadata import _dedupe_preserve_order, _params, _with_file_urls, _write_queued_metadata
 from codex_image.webui.title_generation import generate_task_title
 
@@ -145,7 +146,6 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
         uploaded_assets = await h["save_reference_assets"](reference_images or [], storage_override=reference_asset_storage)
         selected_assets, _ = _resolve_reference_assets(reference_asset_storage, reference_asset_ids or [])
         reference_assets = h["dedupe_reference_assets"](uploaded_assets + selected_assets)
-        task = ctx.storage.create_task("generate")
         created_at = utc_now()
         input_files: list[Path] = []
         reference_data_urls = [
@@ -214,7 +214,6 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
             stored_request_payload["webui_api_provider_name"] = effective_api_provider_name
         if auth_source == "api" and effective_api_mode == "images":
             stored_request_payload["webui_api_images_concurrency"] = effective_api_images_concurrency
-        ctx.storage.write_request(task.task_id, stored_request_payload)
         params = _params(main_model, model, size, quality, background, output_format, moderation, compression, n)
         if resolution:
             params["resolution"] = resolution
@@ -239,6 +238,31 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
             params["omni_poc"] = True
             params["sub2api_api_key_id"] = str(omni_key.get("id") or sub2api_key_id or "")
             params.update(omni_session_params(request))
+        owner_id_for_dedupe = owner_id_from_request_session(session) or "local"
+        dedupe_key = submit_fingerprint(
+            {
+                "owner_id": owner_id_for_dedupe,
+                "mode": "generate",
+                "prompt": prompt,
+                "prompt_for_model": model_prompt,
+                "params": params,
+                "gallery_refs": [str(ref.get("id") or "") for ref in gallery_refs if isinstance(ref, dict)],
+                "reference_assets": [str(item.get("id") or "") for item in reference_assets if isinstance(item, dict)],
+            }
+        )
+        dedupe_cache = getattr(ctx.app.state, "submit_dedupe_cache", None)
+        if dedupe_cache is not None:
+            existing_task_id = dedupe_cache.get(dedupe_key)
+            if existing_task_id:
+                try:
+                    existing_metadata = ctx.storage.read_metadata(existing_task_id)
+                    existing_payload = _with_file_urls(existing_metadata, ctx.active_task_ids, gallery_storage, reference_asset_storage)
+                    existing_payload["deduplicated"] = True
+                    return {"task": existing_payload, "request": stored_request_payload}
+                except FileNotFoundError:
+                    pass
+        task = ctx.storage.create_task("generate")
+        ctx.storage.write_request(task.task_id, stored_request_payload)
         title = await omni_task_title(omni_key, prompt)
         metadata = _write_queued_metadata(
             ctx.storage,
@@ -257,6 +281,20 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
             max_attempts=ctx.queue_manager.max_attempts if ctx.queue_manager is not None else 1,
             title=title,
         )
+        if dedupe_cache is not None:
+            existing_task_id = dedupe_cache.put_if_absent(dedupe_key, task.task_id)
+            if existing_task_id:
+                try:
+                    existing_metadata = ctx.storage.read_metadata(existing_task_id)
+                    existing_payload = _with_file_urls(existing_metadata, ctx.active_task_ids, gallery_storage, reference_asset_storage)
+                    existing_payload["deduplicated"] = True
+                    try:
+                        ctx.storage.delete_task(task.task_id)
+                    except FileNotFoundError:
+                        pass
+                    return {"task": existing_payload, "request": stored_request_payload}
+                except FileNotFoundError:
+                    dedupe_cache.put(dedupe_key, task.task_id)
         put_omni_task_key(task.task_id, omni_key)
         ctx.queue_storage.enqueue(task.task_id)
         h["ensure_queue_worker_running"]()

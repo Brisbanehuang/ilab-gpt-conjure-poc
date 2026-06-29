@@ -86,6 +86,7 @@ export const HI_DICTIONARY: TranslationDictionary = {
     "taskStatus.runningWithElapsed": "जनरेट हो रहा है · {elapsed}",
     "taskStatus.completed": "पूरा हुआ",
     "taskStatus.partialFailed": "आंशिक रूप से असफल",
+    "taskStatus.cancelled": "रद्द किया गया (अपस्ट्रीम पूर्ण)",
     "taskStatus.failed": "असफल",
     "taskStatus.queued": "कतारबद्ध",
     "taskStatus.unknown": "अज्ञात स्थिति",

@@ -86,6 +86,7 @@ export const JA_DICTIONARY: TranslationDictionary = {
     "taskStatus.runningWithElapsed": "生成中 ·{elapsed}",
     "taskStatus.completed": "完了",
     "taskStatus.partialFailed": "部分的に失敗しました",
+    "taskStatus.cancelled": "キャンセル済み（上流は完了）",
     "taskStatus.failed": "失敗しました",
     "taskStatus.queued": "キューに登録されました",
     "taskStatus.unknown": "不明なステータス",

@@ -86,6 +86,7 @@ export const EN_DICTIONARY: TranslationDictionary = {
     "taskStatus.runningWithElapsed": "Generating · {elapsed}",
     "taskStatus.completed": "Completed",
     "taskStatus.partialFailed": "Partially failed",
+    "taskStatus.cancelled": "Cancelled (upstream completed)",
     "taskStatus.failed": "Failed",
     "taskStatus.queued": "Queued",
     "taskStatus.unknown": "Unknown status",

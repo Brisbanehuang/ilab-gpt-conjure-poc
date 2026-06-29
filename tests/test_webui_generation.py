@@ -126,6 +126,88 @@ class WebUIGenerationTests(unittest.TestCase):
         self.assertEqual(body["request"]["tool_choice"], "required")
         self.assertFalse(body["request"]["parallel_tool_calls"])
 
+    def test_generate_route_deduplicates_identical_short_window_submit(self) -> None:
+        from codex_image.webui.app import create_app
+
+        fake = FakeImageClient()
+        with tempfile.TemporaryDirectory() as tmp:
+            app = create_app(output_root=Path(tmp), client_factory=lambda: fake, auth_checker=lambda: True, auto_start_queue=False)
+            client = TestClient(app)
+            first = client.post(
+                "/api/generate",
+                data={
+                    "prompt": "same prompt",
+                    "model": "gpt-image-2",
+                    "size": "1024x1024",
+                    "quality": "low",
+                    "n": "1",
+                },
+            )
+            second = client.post(
+                "/api/generate",
+                data={
+                    "prompt": "same prompt",
+                    "model": "gpt-image-2",
+                    "size": "1024x1024",
+                    "quality": "low",
+                    "n": "1",
+                },
+            )
+            queue = client.get("/api/queue").json()
+
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(second.status_code, 200)
+        self.assertEqual(second.json()["task"]["task_id"], first.json()["task"]["task_id"])
+        self.assertTrue(second.json()["task"].get("deduplicated"))
+        self.assertEqual(queue["summary"]["waiting_count"], 1)
+        self.assertEqual([task["task_id"] for task in queue["waiting"]], [first.json()["task"]["task_id"]])
+
+    def test_generate_route_allows_identical_submit_after_dedupe_window(self) -> None:
+        from codex_image.webui.app import create_app
+        from codex_image.webui.submit_dedupe import SubmitDedupeCache
+
+        fake = FakeImageClient()
+        with tempfile.TemporaryDirectory() as tmp:
+            app = create_app(output_root=Path(tmp), client_factory=lambda: fake, auth_checker=lambda: True, auto_start_queue=False)
+            app.state.submit_dedupe_cache = SubmitDedupeCache(window_seconds=0)
+            client = TestClient(app)
+            first = client.post(
+                "/api/generate",
+                data={
+                    "prompt": "same prompt after window",
+                    "model": "gpt-image-2",
+                    "size": "1024x1024",
+                    "quality": "low",
+                    "n": "1",
+                },
+            )
+            second = client.post(
+                "/api/generate",
+                data={
+                    "prompt": "same prompt after window",
+                    "model": "gpt-image-2",
+                    "size": "1024x1024",
+                    "quality": "low",
+                    "n": "1",
+                },
+            )
+            queue = client.get("/api/queue").json()
+
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(second.status_code, 200)
+        self.assertNotEqual(second.json()["task"]["task_id"], first.json()["task"]["task_id"])
+        self.assertFalse(second.json()["task"].get("deduplicated", False))
+        self.assertEqual(queue["summary"]["waiting_count"], 2)
+
+    def test_submit_dedupe_cache_put_if_absent_is_atomic(self) -> None:
+        from codex_image.webui.submit_dedupe import SubmitDedupeCache
+
+        cache = SubmitDedupeCache(window_seconds=8)
+
+        self.assertIsNone(cache.put_if_absent("same-key", "task-one"))
+        self.assertEqual(cache.put_if_absent("same-key", "task-two"), "task-one")
+        self.assertEqual(cache.get("same-key"), "task-one")
+
     def test_title_generation_normalizes_and_falls_back_like_omni_studio(self) -> None:
         from codex_image.webui.title_generation import fallback_title, normalize_generated_title
 

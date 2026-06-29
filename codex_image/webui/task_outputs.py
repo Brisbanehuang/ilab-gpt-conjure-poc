@@ -1055,6 +1055,7 @@ def _finalize_generated_task(
     first_output_path = output_paths[0]
     total_count = int(params.get("n") or len(output_records) or len(results) or 1)
     metadata = storage.read_metadata(task_id)
+    was_cancelled = bool(metadata.get("cancel_requested"))
     reference_assets = _stored_reference_asset_records(
         task_id,
         metadata,
@@ -1082,7 +1083,7 @@ def _finalize_generated_task(
             "created_at": created_at,
             "updated_at": utc_now(),
             "mode": mode,
-            "status": "partial_failed" if failed_records else "completed",
+            "status": "cancelled" if was_cancelled else ("partial_failed" if failed_records else "completed"),
             "prompt": prompt,
             "prompt_for_model": prompt_for_model,
             "params": params,
@@ -1118,9 +1119,12 @@ def _finalize_generated_task(
     _apply_api_provider_metadata(metadata, params)
     _apply_omni_retention_metadata(metadata, params, created_at)
     metadata.pop("request", None)
-    metadata.pop("error", None)
+    if not was_cancelled:
+        metadata.pop("error", None)
     _apply_api_images_concurrency_metadata(metadata, params)
-    if failed_records:
+    if was_cancelled:
+        metadata["last_error"] = str(metadata.get("last_error") or metadata.get("error") or "Task cancelled by user.")
+    elif failed_records:
         metadata["last_error"] = _partial_failure_message(len(failed_records), total_count, failed_records[-1].get("error"))
     else:
         metadata.pop("last_error", None)

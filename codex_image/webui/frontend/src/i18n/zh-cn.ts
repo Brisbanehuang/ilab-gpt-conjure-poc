@@ -86,6 +86,7 @@ export const ZH_CN_DICTIONARY: TranslationDictionary = {
     "taskStatus.runningWithElapsed": "生成中 · {elapsed}",
     "taskStatus.completed": "已完成",
     "taskStatus.partialFailed": "部分失败",
+    "taskStatus.cancelled": "已取消（上游已完成）",
     "taskStatus.failed": "失败",
     "taskStatus.queued": "排队中",
     "taskStatus.unknown": "未知状态",

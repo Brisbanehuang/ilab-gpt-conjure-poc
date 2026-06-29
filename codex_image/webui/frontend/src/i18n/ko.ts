@@ -86,6 +86,7 @@ export const KO_DICTIONARY: TranslationDictionary = {
     "taskStatus.runningWithElapsed": "생성 중 ·{elapsed}",
     "taskStatus.completed": "완료됨",
     "taskStatus.partialFailed": "부분적으로 실패함",
+    "taskStatus.cancelled": "취소됨(업스트림 완료)",
     "taskStatus.failed": "실패",
     "taskStatus.queued": "대기 중",
     "taskStatus.unknown": "알 수 없는 상태",

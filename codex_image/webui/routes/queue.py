@@ -115,10 +115,6 @@ def register_queue_routes(app: FastAPI, ctx: WebUIContext) -> None:
             raise HTTPException(status_code=404, detail="Task not found") from exc
         ctx.queue_storage.clear_running(running_channel_id)
         ctx.active_task_ids.discard(task_id)
-        worker_task = ctx.running_worker_tasks.get(task_id)
-        if worker_task is not None and not worker_task.done():
-            worker_task.cancel()
-            await asyncio.sleep(0)
         return {"ok": True, "task_id": task_id, "cancelled": True}
 
 

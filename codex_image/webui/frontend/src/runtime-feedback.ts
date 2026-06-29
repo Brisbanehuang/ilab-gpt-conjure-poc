@@ -62,6 +62,7 @@ export function formatTaskStatus(task: WebUITask | null | undefined): string {
   }
   if (task.status === "completed") return translate("taskStatus.completed");
   if (task.status === "partial_failed") return translate("taskStatus.partialFailed");
+  if (task.status === "cancelled") return translate("taskStatus.cancelled");
   if (task.status === "failed") return translate("taskStatus.failed");
   if (task.status === "queued") return translate("taskStatus.queued");
   return task.status || "";

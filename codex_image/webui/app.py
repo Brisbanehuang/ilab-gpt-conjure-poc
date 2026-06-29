@@ -119,6 +119,7 @@ from .omni_poc_limits import FixedWindowRateLimiter
 from .object_storage import load_object_storage_config, owner_id_from_params
 from .omni_session import OmniSessionStore
 from .routes import register_webui_routes
+from .submit_dedupe import SubmitDedupeCache
 from .task_outputs import _apply_omni_retention_metadata
 from .executor import (
     _call_image_client,
@@ -250,6 +251,7 @@ def create_app(
     app.state.omni_task_secret_store = omni_task_secret_store
     app.state.omni_session_store = omni_session_store
     app.state.omni_submit_limiter = FixedWindowRateLimiter(limit=20, window_seconds=3600)
+    app.state.submit_dedupe_cache = SubmitDedupeCache()
     ctx = WebUIContext(
         app=app,
         storage=storage,

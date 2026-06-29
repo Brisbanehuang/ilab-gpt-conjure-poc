@@ -86,6 +86,7 @@ export const RU_DICTIONARY: TranslationDictionary = {
     "taskStatus.runningWithElapsed": "Генерация · {elapsed}",
     "taskStatus.completed": "Завершено",
     "taskStatus.partialFailed": "Частично не удалось",
+    "taskStatus.cancelled": "Отменено (upstream завершен)",
     "taskStatus.failed": "Не удалось",
     "taskStatus.queued": "В очереди",
     "taskStatus.unknown": "Неизвестный статус",
