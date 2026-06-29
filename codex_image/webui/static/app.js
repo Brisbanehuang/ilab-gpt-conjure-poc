@@ -37363,6 +37363,35 @@ ${galleryText}`;
   var openArchiveModal2 = (...args) => legacyMethod35("openArchiveModal", ...args);
   var taskListControlsInitialized = false;
   var taskListControlEventsBound = false;
+  var taskSearchAcceptManualInput = false;
+  function setTaskSearchLocked(locked) {
+    const input = els34.taskSearch;
+    if (!input) return;
+    if (locked) {
+      input.setAttribute("readonly", "");
+    } else {
+      input.removeAttribute("readonly");
+    }
+  }
+  function isLikelyBrowserAutofillTaskSearchValue(value) {
+    const trimmed = String(value || "").trim();
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed);
+  }
+  function guardTaskSearchAutofill(delays = []) {
+    const input = els34.taskSearch;
+    if (!input) return false;
+    let cleared = false;
+    const clearIfAutofilled = () => {
+      if (taskSearchAcceptManualInput || !isLikelyBrowserAutofillTaskSearchValue(input.value)) return;
+      input.value = "";
+      cleared = true;
+      renderTasks6();
+      void syncTaskSearchHistoryResults();
+    };
+    clearIfAutofilled();
+    delays.forEach((delay) => setTimeout(clearIfAutofilled, delay));
+    return cleared;
+  }
   function bindTaskListControlEvents() {
     if (taskListControlEventsBound) return;
     taskListControlEventsBound = true;
@@ -37375,6 +37404,48 @@ ${galleryText}`;
     els34.batchArchiveButton?.addEventListener("click", archiveSelectedTasks2);
     els34.batchDeleteButton?.addEventListener("click", openBatchDeleteConfirm2);
     els34.batchCancelButton?.addEventListener("click", () => toggleBatchMode2(false));
+    setTaskSearchLocked(true);
+    guardTaskSearchAutofill([80, 240, 720]);
+    window.addEventListener("pageshow", () => guardTaskSearchAutofill([80, 240, 720]));
+    els34.taskSearch.addEventListener("pointerdown", (event) => {
+      const input = els34.taskSearch;
+      if (!input?.readOnly) return;
+      event.preventDefault();
+      setTaskSearchLocked(false);
+      guardTaskSearchAutofill();
+      input.focus({ preventScroll: true });
+    });
+    els34.taskSearch.addEventListener("keydown", (event) => {
+      const input = els34.taskSearch;
+      if (input?.readOnly && !event.metaKey && !event.ctrlKey && !event.altKey) {
+        const key = event.key || "";
+        const isPrintable = key.length === 1;
+        const isClearKey = key === "Backspace" || key === "Delete";
+        if (isPrintable || isClearKey) {
+          event.preventDefault();
+          setTaskSearchLocked(false);
+          taskSearchAcceptManualInput = true;
+          input.value = isClearKey ? "" : key;
+          handleTaskSearchInput();
+        }
+        return;
+      }
+      taskSearchAcceptManualInput = true;
+    });
+    els34.taskSearch.addEventListener("paste", () => {
+      taskSearchAcceptManualInput = true;
+    });
+    els34.taskSearch.addEventListener("drop", () => {
+      taskSearchAcceptManualInput = true;
+    });
+    els34.taskSearch.addEventListener("focus", () => {
+      taskSearchAcceptManualInput = false;
+      guardTaskSearchAutofill([120, 360, 900]);
+    });
+    els34.taskSearch.addEventListener("blur", () => {
+      taskSearchAcceptManualInput = false;
+      setTaskSearchLocked(true);
+    });
     els34.taskSearch.addEventListener("input", handleTaskSearchInput);
     [els34.taskRatioFilter, els34.taskOrientationFilter, els34.taskPromptFidelityFilter, els34.taskResolutionFilter].filter(Boolean).forEach((element2) => {
       element2.addEventListener("change", renderTasks6);
@@ -37382,6 +37453,7 @@ ${galleryText}`;
     bindTaskListEvents();
   }
   function handleTaskSearchInput() {
+    if (!taskSearchAcceptManualInput && guardTaskSearchAutofill([120, 360, 900])) return;
     renderTasks6();
     void syncTaskSearchHistoryResults();
   }

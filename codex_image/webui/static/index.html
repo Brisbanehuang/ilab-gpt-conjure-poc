@@ -63,7 +63,7 @@
         document.documentElement.dataset.locale = locale;
       })();
     </script>
-    <link rel="stylesheet" href="/static/styles.css?v=runtime-368" />
+    <link rel="stylesheet" href="/static/styles.css?v=runtime-369" />
   </head>
   <body>
     <div class="layout-container">
@@ -90,7 +90,7 @@
             </div>
           </div>
           <div class="sidebar-search">
-            <input id="taskSearch" type="search" name="task-search" placeholder="搜索对话..." autocomplete="new-password" autocapitalize="off" spellcheck="false" data-i18n-attr="placeholder:sidebar.searchPlaceholder" />
+            <input id="taskSearch" type="text" name="omni-studio-sidebar-query" inputmode="search" placeholder="搜索对话..." autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-form-type="other" readonly data-i18n-attr="placeholder:sidebar.searchPlaceholder" />
           </div>
           <div class="sidebar-filter-panel" aria-label="任务筛选" data-i18n-attr="aria-label:sidebar.filters">
             <div class="sidebar-filter-grid">
@@ -1190,7 +1190,7 @@
     </div>
 
     <div id="taskNotificationToastRegion" class="task-notification-toast-region" aria-live="polite"></div>
-  <script src="/static/app.js?v=runtime-368"></script>
+  <script src="/static/app.js?v=runtime-369"></script>
     <script>
       (() => {
         document.querySelectorAll(".radio-group").forEach((group) => {

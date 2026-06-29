@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from io import BytesIO
 from pathlib import Path
 import subprocess
@@ -292,7 +293,7 @@ def register_task_routes(app: FastAPI, ctx: WebUIContext) -> None:
                 data = await object_storage.get(str(record["storage_key"]))
             except Exception as exc:
                 raise HTTPException(status_code=404, detail="Output not found") from exc
-            thumbnail_bytes = generate_image_thumbnail_bytes(data)
+            thumbnail_bytes = await asyncio.to_thread(generate_image_thumbnail_bytes, data)
             if thumbnail_bytes is None:
                 raise HTTPException(status_code=404, detail="Thumbnail unavailable")
             local_thumbnail_path = ctx.storage.output_thumbnail_path(task_id, output_index)

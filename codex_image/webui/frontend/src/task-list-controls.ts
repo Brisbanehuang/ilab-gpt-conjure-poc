@@ -34,6 +34,38 @@ const openArchiveModal = (...args: any[]) => legacyMethod("openArchiveModal", ..
 
 let taskListControlsInitialized = false;
 let taskListControlEventsBound = false;
+let taskSearchAcceptManualInput = false;
+
+function setTaskSearchLocked(locked: boolean) {
+  const input = els.taskSearch as HTMLInputElement | null;
+  if (!input) return;
+  if (locked) {
+    input.setAttribute("readonly", "");
+  } else {
+    input.removeAttribute("readonly");
+  }
+}
+
+function isLikelyBrowserAutofillTaskSearchValue(value: string) {
+  const trimmed = String(value || "").trim();
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed);
+}
+
+function guardTaskSearchAutofill(delays: number[] = []) {
+  const input = els.taskSearch as HTMLInputElement | null;
+  if (!input) return false;
+  let cleared = false;
+  const clearIfAutofilled = () => {
+    if (taskSearchAcceptManualInput || !isLikelyBrowserAutofillTaskSearchValue(input.value)) return;
+    input.value = "";
+    cleared = true;
+    renderTasks();
+    void syncTaskSearchHistoryResults();
+  };
+  clearIfAutofilled();
+  delays.forEach((delay) => setTimeout(clearIfAutofilled, delay));
+  return cleared;
+}
 
 function bindTaskListControlEvents() {
   if (taskListControlEventsBound) return;
@@ -48,6 +80,48 @@ function bindTaskListControlEvents() {
   els.batchArchiveButton?.addEventListener("click", archiveSelectedTasks);
   els.batchDeleteButton?.addEventListener("click", openBatchDeleteConfirm);
   els.batchCancelButton?.addEventListener("click", () => toggleBatchMode(false));
+  setTaskSearchLocked(true);
+  guardTaskSearchAutofill([80, 240, 720]);
+  window.addEventListener("pageshow", () => guardTaskSearchAutofill([80, 240, 720]));
+  els.taskSearch.addEventListener("pointerdown", (event: PointerEvent) => {
+    const input = els.taskSearch as HTMLInputElement | null;
+    if (!input?.readOnly) return;
+    event.preventDefault();
+    setTaskSearchLocked(false);
+    guardTaskSearchAutofill();
+    input.focus({ preventScroll: true });
+  });
+  els.taskSearch.addEventListener("keydown", (event: KeyboardEvent) => {
+    const input = els.taskSearch as HTMLInputElement | null;
+    if (input?.readOnly && !event.metaKey && !event.ctrlKey && !event.altKey) {
+      const key = event.key || "";
+      const isPrintable = key.length === 1;
+      const isClearKey = key === "Backspace" || key === "Delete";
+      if (isPrintable || isClearKey) {
+        event.preventDefault();
+        setTaskSearchLocked(false);
+        taskSearchAcceptManualInput = true;
+        input.value = isClearKey ? "" : key;
+        handleTaskSearchInput();
+      }
+      return;
+    }
+    taskSearchAcceptManualInput = true;
+  });
+  els.taskSearch.addEventListener("paste", () => {
+    taskSearchAcceptManualInput = true;
+  });
+  els.taskSearch.addEventListener("drop", () => {
+    taskSearchAcceptManualInput = true;
+  });
+  els.taskSearch.addEventListener("focus", () => {
+    taskSearchAcceptManualInput = false;
+    guardTaskSearchAutofill([120, 360, 900]);
+  });
+  els.taskSearch.addEventListener("blur", () => {
+    taskSearchAcceptManualInput = false;
+    setTaskSearchLocked(true);
+  });
   els.taskSearch.addEventListener("input", handleTaskSearchInput);
   [els.taskRatioFilter, els.taskOrientationFilter, els.taskPromptFidelityFilter, els.taskResolutionFilter]
     .filter(Boolean)
@@ -58,6 +132,7 @@ function bindTaskListControlEvents() {
 }
 
 function handleTaskSearchInput() {
+  if (!taskSearchAcceptManualInput && guardTaskSearchAutofill([120, 360, 900])) return;
   renderTasks();
   void syncTaskSearchHistoryResults();
 }
