@@ -54,8 +54,8 @@ class WebUIStaticI18nTests(WebUIStaticTestCase):
             "保真模式通过本地规则提取标题/字体、目标人群、色彩和限制类硬性约束，再把这些约束作为系统指令传给模型；不会额外调用小模型。",
             zh_dictionary_source,
         )
-        self.assertIn("title:output.modeCreativeHelp", html)
-        self.assertIn("title:output.modeStrictHelp", html)
+        self.assertNotIn("title:output.modeCreativeHelp", html)
+        self.assertNotIn("title:output.modeStrictHelp", html)
 
     def test_omni_public_copy_avoids_legacy_transport_terms(self) -> None:
         public_sources = "\n".join(
