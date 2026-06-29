@@ -537,6 +537,8 @@ def _summary_for_metadata(metadata: dict[str, Any]) -> dict[str, Any]:
     thumbnail_url = _first_thumbnail_url(task_id, metadata)
     if thumbnail_url:
         summary["thumbnail_urls"] = [thumbnail_url]
+    elif "thumbnail_urls" in summary:
+        summary.pop("thumbnail_urls", None)
     owner_id = _owner_id_for_metadata(metadata)
     if owner_id:
         summary["owner_id"] = owner_id
@@ -563,7 +565,7 @@ def _sanitize_r2_summary_outputs(task_id: str, summary: dict[str, Any]) -> None:
             sanitized_outputs.append(output)
             continue
         index = _positive_int(output.get("index")) or fallback_index
-        route = f"/api/tasks/{task_id}/outputs/{index}"
+        route = f"/api/tasks/{task_id}/outputs/{index}/thumbnail"
         sanitized = {**output, "url": route, "thumbnail_url": route}
         sanitized_outputs.append(sanitized)
         changed = True
@@ -699,7 +701,7 @@ def _first_thumbnail_url(task_id: str, metadata: dict[str, Any]) -> str:
             if isinstance(output, dict):
                 if str(output.get("storage_driver") or "") == "r2" or output.get("storage_key"):
                     index = _positive_int(output.get("index"))
-                    url = str(output.get("url") or (f"/api/tasks/{task_id}/outputs/{index}" if task_id and index else ""))
+                    url = str(output.get("thumbnail_url") or (f"/api/tasks/{task_id}/outputs/{index}/thumbnail" if task_id and index else ""))
                     if url:
                         return url
                 url = str(output.get("thumbnail_url") or output.get("url") or "")
@@ -730,7 +732,7 @@ def _first_output_thumbnail_route(task_id: str, metadata: dict[str, Any]) -> str
             index = _positive_int(output.get("index")) or fallback_index
             if str(output.get("storage_driver") or "") == "r2" or output.get("storage_key"):
                 has_r2_output = True
-                continue
+                return f"/api/tasks/{task_id}/outputs/{index}/thumbnail"
             if (
                 output.get("file")
                 or (index <= len(output_files) and output_files[index - 1])
@@ -739,7 +741,7 @@ def _first_output_thumbnail_route(task_id: str, metadata: dict[str, Any]) -> str
             ):
                 return f"/api/tasks/{task_id}/outputs/{index}/thumbnail"
     if has_r2_output:
-        return ""
+        return f"/api/tasks/{task_id}/outputs/1/thumbnail"
     if output_files:
         return f"/api/tasks/{task_id}/outputs/1/thumbnail"
     if output_urls and _is_local_output_url(output_urls[0]):
