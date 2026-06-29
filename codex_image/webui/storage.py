@@ -500,6 +500,7 @@ def _sidebar_input_thumbnail_urls(metadata: dict[str, Any]) -> list[str]:
 
 
 def _first_sidebar_thumbnail_url(metadata: dict[str, Any]) -> str:
+    task_id = str(metadata.get("task_id") or "")
     thumbnail_route = _first_output_thumbnail_route(metadata)
     if thumbnail_route:
         return thumbnail_route
@@ -514,7 +515,9 @@ def _first_sidebar_thumbnail_url(metadata: dict[str, Any]) -> str:
             if not isinstance(output, dict):
                 continue
             if str(output.get("storage_driver") or "") == "r2" and output.get("url"):
-                return str(output["url"])
+                index = _positive_int(output.get("index"))
+                if index:
+                    return f"/api/tasks/{task_id}/outputs/{index}/thumbnail"
             thumbnail_url = output.get("thumbnail_url") or _output_file_url(output.get("thumbnail_file"))
             if thumbnail_url:
                 return thumbnail_url
@@ -544,12 +547,9 @@ def _first_output_thumbnail_route(metadata: dict[str, Any]) -> str:
             if status != "completed":
                 continue
             index = _positive_int(output.get("index")) or fallback_index
-            if (
-                str(output.get("storage_driver") or "") == "r2"
-                or output.get("storage_key")
-            ):
+            if str(output.get("storage_driver") or "") == "r2" or output.get("storage_key"):
                 has_r2_output = True
-                continue
+                return f"/api/tasks/{task_id}/outputs/{index}/thumbnail"
             if (
                 output.get("file")
                 or (index <= len(output_files) and output_files[index - 1])
@@ -558,7 +558,7 @@ def _first_output_thumbnail_route(metadata: dict[str, Any]) -> str:
             ):
                 return f"/api/tasks/{task_id}/outputs/{index}/thumbnail"
     if has_r2_output:
-        return ""
+        return f"/api/tasks/{task_id}/outputs/1/thumbnail"
     if output_files:
         return f"/api/tasks/{task_id}/outputs/1/thumbnail"
     if output_urls and _is_local_output_url(output_urls[0]):

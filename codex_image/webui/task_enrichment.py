@@ -238,15 +238,15 @@ def _task_deleted_output_indexes(metadata: dict[str, Any]) -> set[int]:
 
 
 def _output_record_thumbnail_url(task_id: str, record: dict[str, Any], fallback_index: int) -> str:
+    index = _positive_int(record.get("index")) or fallback_index
+    if task_id and index and (str(record.get("storage_driver") or "") == "r2" or record.get("storage_key")):
+        return _output_route_url(task_id, index)
     existing_url = str(record.get("thumbnail_url") or "").strip()
     if existing_url:
         return existing_url
     thumbnail_file = str(record.get("thumbnail_file") or "").strip()
     if thumbnail_file:
         return _output_static_url(thumbnail_file)
-    index = _positive_int(record.get("index")) or fallback_index
-    if task_id and index and (str(record.get("storage_driver") or "") == "r2" or record.get("storage_key")):
-        return _output_route_url(task_id, index)
     return _thumbnail_route_url(task_id, index) if task_id and index else ""
 
 

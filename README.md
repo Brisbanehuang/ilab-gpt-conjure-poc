@@ -47,6 +47,7 @@ Images API 或 Responses API 形态。
 - 面向 GPT-image-2 的文生图、参考图生成和图像编辑工作流。
 - 支持 Codex Image、Codex Responses 和 OpenAI 兼容 API 接入；公开或共享使用优先选择 API 模式。
 - 多任务并发、本地队列状态、分页历史库、缩略图和结果归档。
+- 输出缩略图本地优先，R2 兜底会回源原图实时生成 JPEG 缩略图并缓存回本地。
 - 独立 `/history` 页面支持 SQLite 分页、搜索、筛选、网格/列表视图和懒加载详情。
 - Codex Responses 和 API Responses 生图可选启用联网搜索；生成页和历史库搜索支持提示词与任务 ID，并可命中历史任务。
 - 单任务多图输出、部分失败处理和失败重试。

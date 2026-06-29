@@ -79,9 +79,39 @@ class WebUITaskIndexTests(unittest.TestCase):
             tasks = index.list_summaries()
             history = index.query_history(limit=10)
 
-        self.assertEqual(tasks[0]["thumbnail_urls"], ["/api/tasks/r2-task/outputs/1"])
-        self.assertEqual(tasks[0]["outputs"][0]["thumbnail_url"], "/api/tasks/r2-task/outputs/1")
-        self.assertEqual(history["tasks"][0]["thumbnail_url"], "/api/tasks/r2-task/outputs/1")
+        self.assertEqual(tasks[0]["thumbnail_urls"], ["/api/tasks/r2-task/outputs/1/thumbnail"])
+        self.assertEqual(tasks[0]["outputs"][0]["thumbnail_url"], "/api/tasks/r2-task/outputs/1/thumbnail")
+        self.assertEqual(history["tasks"][0]["thumbnail_url"], "/api/tasks/r2-task/outputs/1/thumbnail")
+
+    def test_index_ignores_legacy_top_level_thumbnail_for_r2_outputs(self) -> None:
+        with TemporaryDirectory() as tmp:
+            index = SQLiteTaskIndex(Path(tmp) / "tasks.db")
+            index.upsert(
+                {
+                    "task_id": "r2-task",
+                    "created_at": "2026-06-27T16:02:06+00:00",
+                    "updated_at": "2026-06-27T16:03:27+00:00",
+                    "status": "completed",
+                    "params": {"omni_poc": True},
+                    "thumbnail_urls": ["/outputs/thumbnails/2026-06-27/r2-task-image-1-thumb.jpg"],
+                    "outputs": [
+                        {
+                            "index": 1,
+                            "status": "completed",
+                            "thumbnail_url": "/outputs/thumbnails/2026-06-27/r2-task-image-1-thumb.jpg",
+                            "storage_driver": "r2",
+                            "storage_key": "users/user_9/images/2026/0627/160206-r2-task/outputs/01-output.png",
+                        }
+                    ],
+                }
+            )
+
+            tasks = index.list_summaries()
+            history = index.query_history(limit=10)
+
+        self.assertEqual(tasks[0]["thumbnail_urls"], ["/api/tasks/r2-task/outputs/1/thumbnail"])
+        self.assertEqual(tasks[0]["outputs"][0]["thumbnail_url"], "/api/tasks/r2-task/outputs/1/thumbnail")
+        self.assertEqual(history["tasks"][0]["thumbnail_url"], "/api/tasks/r2-task/outputs/1/thumbnail")
 
     def test_index_deletes_task(self) -> None:
         with TemporaryDirectory() as tmp:

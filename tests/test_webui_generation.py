@@ -220,6 +220,37 @@ class WebUIGenerationTests(unittest.TestCase):
         self.assertEqual(metadata["outputs"][0]["thumbnail_file"], output["thumbnail_file"])
         self.assertTrue(thumbnail_file_exists)
 
+    def test_queue_worker_keeps_local_output_file_after_r2_sync(self) -> None:
+        from codex_image.client import ImageResult
+        from codex_image.webui.app import create_app
+
+        class SyncImageClient(FakeImageClient):
+            def generate_image(inner_self, **kwargs: Any):
+                inner_self.generate_calls.append(kwargs)
+                return ImageResult(self._png_bytes(), "revised", "png", kwargs["size"], "auto", kwargs["quality"], {})
+
+        fake = SyncImageClient()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            app = create_app(
+                output_root=root,
+                client_factory=lambda: fake,
+                auth_checker=lambda: True,
+                auth_settings_path=root / "auth-settings.json",
+                batch_delay_seconds=0,
+                auto_start_queue=False,
+            )
+            client = TestClient(app)
+            created = client.post("/api/generate", data={"prompt": "keep local", "size": "1024x1024", "quality": "low"})
+            task_id = created.json()["task"]["task_id"]
+
+            asyncio.run(app.state.queue_manager.run_available_once())
+            task = client.get(f"/api/tasks/{task_id}").json()["task"]
+            output_file = root / task["output_files"][0]
+            thumbnail_file = root / task["outputs"][0]["thumbnail_file"]
+            self.assertTrue(output_file.is_file())
+            self.assertTrue(thumbnail_file.is_file())
+
     def test_queue_worker_persists_web_search_tool_usage(self) -> None:
         from codex_image.client import ImageResult
         from codex_image.webui.app import create_app

@@ -349,7 +349,40 @@ class WebUIStorageTests(unittest.TestCase):
 
             cards = storage.list_recent_task_cards(owner_id="user_9")
 
-        self.assertEqual(cards[0]["thumbnail_urls"], [f"/api/tasks/{task_id}/outputs/1"])
+        self.assertEqual(cards[0]["thumbnail_urls"], [f"/api/tasks/{task_id}/outputs/1/thumbnail"])
+
+    def test_recent_task_card_ignores_legacy_thumbnail_url_for_r2_outputs(self) -> None:
+        from codex_image.webui.storage import TaskStorage
+
+        task_id = "20260627160206-445ec5e7"
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            storage = TaskStorage(input_root=root / "inputs", output_root=root / "outputs", source_data_root=root / "outputs" / "source-data")
+            storage.write_metadata(
+                task_id,
+                {
+                    "task_id": task_id,
+                    "created_at": "2026-06-27T16:02:06+00:00",
+                    "updated_at": "2026-06-27T16:03:28+00:00",
+                    "status": "completed",
+                    "owner_id": "user_9",
+                    "params": {"omni_poc": True},
+                    "thumbnail_urls": ["/outputs/thumbnails/2026-06-27/20260627160206-445ec5e7-image-1-thumb.jpg"],
+                    "outputs": [
+                        {
+                            "index": 1,
+                            "status": "completed",
+                            "thumbnail_url": "/outputs/thumbnails/2026-06-27/20260627160206-445ec5e7-image-1-thumb.jpg",
+                            "storage_driver": "r2",
+                            "storage_key": "users/user_9/images/2026/0627/160206-task/outputs/01-output.png",
+                        }
+                    ],
+                },
+            )
+
+            cards = storage.list_recent_task_cards(owner_id="user_9")
+
+        self.assertEqual(cards[0]["thumbnail_urls"], [f"/api/tasks/{task_id}/outputs/1/thumbnail"])
 
     def test_creates_sharded_task_files_and_lists_newest_first(self) -> None:
         from codex_image.webui.storage import TaskStorage

@@ -369,7 +369,6 @@ def _stored_output_records(
             )
             if expires_at:
                 record["expires_at"] = expires_at
-            _delete_transient_file(path, storage)
         records.append(record)
     return records
 

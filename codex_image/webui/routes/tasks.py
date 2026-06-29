@@ -8,7 +8,7 @@ from typing import Any
 import zipfile
 
 from fastapi import Body, FastAPI, HTTPException, Query, Request
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, Response, StreamingResponse
 
 from codex_image.webui.auth_routing import _backend_for_api_mode
 from codex_image.webui.context import WebUIContext
@@ -28,7 +28,7 @@ from codex_image.webui.task_metadata import (
     _visible_completed_output_records,
     _with_file_urls,
 )
-from codex_image.webui.thumbnails import create_image_thumbnail, thumbnail_needs_refresh
+from codex_image.webui.thumbnails import create_image_thumbnail, generate_image_thumbnail_bytes, thumbnail_needs_refresh
 
 
 def register_task_routes(app: FastAPI, ctx: WebUIContext) -> None:
@@ -244,6 +244,9 @@ def register_task_routes(app: FastAPI, ctx: WebUIContext) -> None:
         record = next((item for item in records if item.get("index") == output_index), None)
         if record is None:
             raise HTTPException(status_code=404, detail="Output not found")
+        output_path = _safe_output_path(ctx.storage, task_id, _output_record_filename(record))
+        if output_path is not None and output_path.is_file():
+            return FileResponse(output_path)
         if str(record.get("storage_driver") or "") == "r2" and record.get("storage_key"):
             object_storage = object_storage_from_env()
             if object_storage is None:
@@ -253,14 +256,10 @@ def register_task_routes(app: FastAPI, ctx: WebUIContext) -> None:
             except Exception as exc:
                 raise HTTPException(status_code=404, detail="Output not found") from exc
             return StreamingResponse(BytesIO(data), media_type=str(record.get("content_type") or "application/octet-stream"))
-
-        output_path = _safe_output_path(ctx.storage, task_id, _output_record_filename(record))
-        if output_path is None or not output_path.is_file():
-            raise HTTPException(status_code=404, detail="Output not found")
-        return FileResponse(output_path)
+        raise HTTPException(status_code=404, detail="Output not found")
 
     @app.get("/api/tasks/{task_id}/outputs/{output_index}/thumbnail")
-    def get_task_output_thumbnail(task_id: str, output_index: int, request: Request) -> FileResponse:
+    async def get_task_output_thumbnail(task_id: str, output_index: int, request: Request):
         try:
             metadata = _read_owned_metadata(ctx, task_id, _require_omni_owner_id(ctx, request))
         except (FileNotFoundError, ValueError) as exc:
@@ -273,19 +272,42 @@ def register_task_routes(app: FastAPI, ctx: WebUIContext) -> None:
         if record is None:
             raise HTTPException(status_code=404, detail="Output not found")
         output_path = _safe_output_path(ctx.storage, task_id, _output_record_filename(record))
-        if output_path is None or not output_path.is_file():
-            raise HTTPException(status_code=404, detail="Output not found")
+        if output_path is not None and output_path.is_file():
+            fields = _output_thumbnail_fields(ctx.storage, task_id, output_index, output_path)
+            thumbnail_file = fields.get("thumbnail_file")
+            if not thumbnail_file:
+                raise HTTPException(status_code=404, detail="Thumbnail unavailable")
+            thumbnail_path = ctx.storage.output_path(thumbnail_file)
+            return FileResponse(
+                thumbnail_path,
+                media_type="image/jpeg",
+                headers={"Cache-Control": "public, max-age=31536000, immutable"},
+            )
 
-        fields = _output_thumbnail_fields(ctx.storage, task_id, output_index, output_path)
-        thumbnail_file = fields.get("thumbnail_file")
-        if not thumbnail_file:
-            raise HTTPException(status_code=404, detail="Thumbnail unavailable")
-        thumbnail_path = ctx.storage.output_path(thumbnail_file)
-        return FileResponse(
-            thumbnail_path,
-            media_type="image/jpeg",
-            headers={"Cache-Control": "public, max-age=31536000, immutable"},
-        )
+        if str(record.get("storage_driver") or "") == "r2" and record.get("storage_key"):
+            object_storage = object_storage_from_env()
+            if object_storage is None:
+                raise HTTPException(status_code=404, detail="Object storage is not configured")
+            try:
+                data = await object_storage.get(str(record["storage_key"]))
+            except Exception as exc:
+                raise HTTPException(status_code=404, detail="Output not found") from exc
+            thumbnail_bytes = generate_image_thumbnail_bytes(data)
+            if thumbnail_bytes is None:
+                raise HTTPException(status_code=404, detail="Thumbnail unavailable")
+            local_thumbnail_path = ctx.storage.output_thumbnail_path(task_id, output_index)
+            try:
+                local_thumbnail_path.parent.mkdir(parents=True, exist_ok=True)
+                local_thumbnail_path.write_bytes(thumbnail_bytes)
+            except OSError:
+                pass
+            return Response(
+                thumbnail_bytes,
+                media_type="image/jpeg",
+                headers={"Cache-Control": "public, max-age=31536000, immutable"},
+            )
+
+        raise HTTPException(status_code=404, detail="Output not found")
 
     @app.patch("/api/tasks/{task_id}/outputs/{output_index}/selected")
     def update_task_output_selection(task_id: str, output_index: int, request: Request, payload: dict[str, Any] = Body(...)) -> dict[str, Any]:

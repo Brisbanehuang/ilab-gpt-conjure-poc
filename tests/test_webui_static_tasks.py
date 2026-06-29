@@ -367,6 +367,15 @@ class WebUIStaticTaskTests(WebUIStaticTestCase):
         self.assertNotIn(".nav-search", styles)
         self.assertIn("taskSearch: document.querySelector(\"#taskSearch\")", script)
         self.assertIn("els.taskSearch.addEventListener(\"input\", handleTaskSearchInput)", script)
+
+    def test_task_search_input_disables_browser_autofill(self) -> None:
+        html = Path("codex_image/webui/static/index.html").read_text(encoding="utf-8")
+        script = self._frontend_script_source()
+
+        self.assertIn('id="taskSearch" type="search" name="task-search"', html)
+        self.assertIn('autocomplete="new-password"', html)
+        self.assertIn('autocapitalize="off"', html)
+        self.assertIn('spellcheck="false"', html)
         self.assertIn("function handleTaskSearchInput()", self._task_list_controls_source())
         self.assertIn("syncTaskSearchHistoryResults", self._task_list_controls_source())
         self.assertIn("async function syncTaskSearchHistoryResults", Path("codex_image/webui/frontend/src/tasks.ts").read_text(encoding="utf-8"))
