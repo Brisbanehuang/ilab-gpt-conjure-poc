@@ -386,6 +386,10 @@ class WebUIStaticTaskTests(WebUIStaticTestCase):
         self.assertIn("syncTaskSearchHistoryResults", task_list_controls_source)
         self.assertIn("function guardTaskSearchAutofill", task_list_controls_source)
         self.assertIn("isLikelyBrowserAutofillTaskSearchValue", task_list_controls_source)
+        self.assertIn("let taskSearchHasUserEdited = false", task_list_controls_source)
+        self.assertIn("if (taskSearchHasUserEdited", task_list_controls_source)
+        self.assertIn("taskSearchHasUserEdited = true", task_list_controls_source)
+        self.assertIn("if (!input.value) taskSearchHasUserEdited = false", task_list_controls_source)
         self.assertIn("setTaskSearchLocked(true)", task_list_controls_source)
         self.assertIn('window.addEventListener("pageshow", () => guardTaskSearchAutofill([80, 240, 720]))', task_list_controls_source)
         self.assertIn("async function syncTaskSearchHistoryResults", Path("codex_image/webui/frontend/src/tasks.ts").read_text(encoding="utf-8"))
@@ -399,6 +403,30 @@ class WebUIStaticTaskTests(WebUIStaticTestCase):
         self.assertIn('"sidebar.searchPlaceholder": "搜索提示词或任务 ID"', script)
         self.assertIn('"sidebar.searchPlaceholder": "Search prompts or task ID"', script)
         self.assertRegex(script, r"const text = `\$\{task\.task_id \|\| \"\"\} \$\{task\.prompt")
+
+    def test_frontend_startup_requests_use_safe_json_parser(self) -> None:
+        http_source = Path("codex_image/webui/frontend/src/api.ts").read_text(encoding="utf-8")
+        task_source = self._task_source()
+        queue_source = self._queue_source()
+        for source_path in [
+            "codex_image/webui/frontend/src/auth-source.ts",
+            "codex_image/webui/frontend/src/recent-assets.ts",
+            "codex_image/webui/frontend/src/gallery.ts",
+            "codex_image/webui/frontend/src/prompt-templates.ts",
+            "codex_image/webui/frontend/src/prompt-snippets.ts",
+        ]:
+            source = Path(source_path).read_text(encoding="utf-8")
+            self.assertIn("safeJson", source)
+
+        self.assertIn("export class JsonResponseParseError", http_source)
+        self.assertIn("export async function safeJson", http_source)
+        self.assertIn("服务暂时不可用，请稍后重试", http_source)
+        self.assertIn("bodySnippet", http_source)
+        self.assertIn('import { safeJson } from "./api"', task_source)
+        self.assertIn('const data = await safeJson(response)', task_source)
+        self.assertNotIn("const data = await response.json();", task_source)
+        self.assertIn('import { safeJson } from "./api"', queue_source)
+        self.assertIn('const data = await safeJson(response)', queue_source)
     def test_sidebar_new_task_button_is_compact_brand_action(self) -> None:
         html = Path("codex_image/webui/static/index.html").read_text(encoding="utf-8")
         styles = Path("codex_image/webui/static/styles.css").read_text(encoding="utf-8")

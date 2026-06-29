@@ -35,6 +35,7 @@ const openArchiveModal = (...args: any[]) => legacyMethod("openArchiveModal", ..
 let taskListControlsInitialized = false;
 let taskListControlEventsBound = false;
 let taskSearchAcceptManualInput = false;
+let taskSearchHasUserEdited = false;
 
 function setTaskSearchLocked(locked: boolean) {
   const input = els.taskSearch as HTMLInputElement | null;
@@ -56,7 +57,7 @@ function guardTaskSearchAutofill(delays: number[] = []) {
   if (!input) return false;
   let cleared = false;
   const clearIfAutofilled = () => {
-    if (taskSearchAcceptManualInput || !isLikelyBrowserAutofillTaskSearchValue(input.value)) return;
+    if (taskSearchHasUserEdited || taskSearchAcceptManualInput || !isLikelyBrowserAutofillTaskSearchValue(input.value)) return;
     input.value = "";
     cleared = true;
     renderTasks();
@@ -101,18 +102,22 @@ function bindTaskListControlEvents() {
         event.preventDefault();
         setTaskSearchLocked(false);
         taskSearchAcceptManualInput = true;
+        taskSearchHasUserEdited = true;
         input.value = isClearKey ? "" : key;
         handleTaskSearchInput();
       }
       return;
     }
     taskSearchAcceptManualInput = true;
+    taskSearchHasUserEdited = true;
   });
   els.taskSearch.addEventListener("paste", () => {
     taskSearchAcceptManualInput = true;
+    taskSearchHasUserEdited = true;
   });
   els.taskSearch.addEventListener("drop", () => {
     taskSearchAcceptManualInput = true;
+    taskSearchHasUserEdited = true;
   });
   els.taskSearch.addEventListener("focus", () => {
     taskSearchAcceptManualInput = false;
@@ -133,6 +138,10 @@ function bindTaskListControlEvents() {
 
 function handleTaskSearchInput() {
   if (!taskSearchAcceptManualInput && guardTaskSearchAutofill([120, 360, 900])) return;
+  const input = els.taskSearch as HTMLInputElement | null;
+  if (!input) return;
+  taskSearchHasUserEdited = Boolean(input.value);
+  if (!input.value) taskSearchHasUserEdited = false;
   renderTasks();
   void syncTaskSearchHistoryResults();
 }

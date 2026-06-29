@@ -1,4 +1,5 @@
 import { getLegacyBridge } from "./state";
+import { safeJson } from "./api";
 import { positionPromptPopoverAtAnchor } from "./prompt-popover-position";
 import { formatTranslation, translate } from "./i18n";
 
@@ -81,7 +82,7 @@ function normalizePromptSnippetTrigger(value: any) {
 async function refreshPromptSnippets() {
   try {
     const response = await fetch(PROMPT_SNIPPETS_ENDPOINT);
-    const data = await response.json();
+    const data = await safeJson(response);
     if (!response.ok) throw new Error(data.detail || translate("snippets.loadFailed"));
     state.promptSnippets = normalizePromptSnippetList(data.snippets);
     updatePromptSnippetSuggest();

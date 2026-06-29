@@ -1,4 +1,5 @@
 import { getLegacyBridge } from "./state";
+import { safeJson } from "./api";
 import { updateModeSpecificSettings } from "./api-mode-settings";
 import { formatTranslation, translate } from "./i18n";
 import { isOmniPocMode, updateOmniLegacyAuthState } from "./omni-poc-key";
@@ -31,7 +32,7 @@ export async function refreshHealth(): Promise<void> {
   }
   try {
     const response = await fetch("/api/health");
-    const data = await response.json();
+    const data = await safeJson(response);
     state.authAvailable = Boolean(data.auth_available);
     state.authStatus = data.auth || null;
     renderAuthSource(state.authStatus);
@@ -59,7 +60,7 @@ export async function setAuthSource(source: any): Promise<void> {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ source }),
     });
-    const data = await response.json();
+    const data = await safeJson(response);
     if (!response.ok) {
       throw new Error(data.detail || translate("auth.switchFailed"));
     }

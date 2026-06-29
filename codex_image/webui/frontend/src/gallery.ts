@@ -1,4 +1,5 @@
 import { getLegacyBridge } from "./state";
+import { safeJson } from "./api";
 import { translate } from "./i18n";
 
 const bridge = getLegacyBridge();
@@ -61,7 +62,7 @@ function filterGalleryItems(category: any = state.activeGalleryCategory) {
 async function refreshGallery() {
   try {
     const response = await fetch("/api/gallery");
-    const data = await response.json();
+    const data = await safeJson(response);
     if (!response.ok) {
       throw new Error(data.detail || translate("gallery.loadFailed"));
     }

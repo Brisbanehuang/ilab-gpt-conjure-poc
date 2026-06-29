@@ -27260,6 +27260,29 @@ ${hint}` : hint;
     });
   }
 
+  // codex_image/webui/frontend/src/api.ts
+  var JsonResponseParseError = class extends Error {
+    constructor(response, bodySnippet) {
+      super("\u670D\u52A1\u6682\u65F6\u4E0D\u53EF\u7528\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5");
+      __publicField(this, "response");
+      __publicField(this, "status");
+      __publicField(this, "bodySnippet");
+      this.name = "JsonResponseParseError";
+      this.response = response;
+      this.status = response.status;
+      this.bodySnippet = bodySnippet;
+    }
+  };
+  async function safeJson(response) {
+    const text = await response.text();
+    if (!text.trim()) return {};
+    try {
+      return JSON.parse(text);
+    } catch {
+      throw new JsonResponseParseError(response, text.slice(0, 240));
+    }
+  }
+
   // codex_image/webui/frontend/src/recent-assets.ts
   var bridge2 = getLegacyBridge();
   var state3 = bridge2.state;
@@ -27300,7 +27323,7 @@ ${hint}` : hint;
     if (!els3.recentAssetList) return;
     try {
       const response = await fetch("/api/reference-assets/recent?limit=50");
-      const data = await response.json();
+      const data = await safeJson(response);
       if (!response.ok) {
         throw new Error(data.detail || translate("recentAssets.loadFailed"));
       }
@@ -28547,7 +28570,7 @@ ${hint}` : hint;
   async function refreshGallery3() {
     try {
       const response = await fetch("/api/gallery");
-      const data = await response.json();
+      const data = await safeJson(response);
       if (!response.ok) {
         throw new Error(data.detail || translate("gallery.loadFailed"));
       }
@@ -28943,7 +28966,7 @@ ${hint}` : hint;
     }
     try {
       const response = await fetch("/api/health");
-      const data = await response.json();
+      const data = await safeJson(response);
       state8.authAvailable = Boolean(data.auth_available);
       state8.authStatus = data.auth || null;
       renderAuthSource(state8.authStatus);
@@ -28970,7 +28993,7 @@ ${hint}` : hint;
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ source })
       });
-      const data = await response.json();
+      const data = await safeJson(response);
       if (!response.ok) {
         throw new Error(data.detail || translate("auth.switchFailed"));
       }
@@ -30946,7 +30969,7 @@ ${hint}` : hint;
   async function refreshPromptSnippets() {
     try {
       const response = await fetch(PROMPT_SNIPPETS_ENDPOINT);
-      const data = await response.json();
+      const data = await safeJson(response);
       if (!response.ok) throw new Error(data.detail || translate("snippets.loadFailed"));
       state12.promptSnippets = normalizePromptSnippetList(data.snippets);
       updatePromptSnippetSuggest();
@@ -31685,7 +31708,7 @@ ${hint}` : hint;
   async function refreshPromptTemplates() {
     try {
       const response = await fetch(PROMPT_TEMPLATES_ENDPOINT);
-      const data = await response.json();
+      const data = await safeJson(response);
       if (!response.ok) throw new Error(data.detail || translate("templates.loadFailed"));
       applyPromptTemplateSettingsResponse(data);
     } catch (error) {
@@ -37364,6 +37387,7 @@ ${galleryText}`;
   var taskListControlsInitialized = false;
   var taskListControlEventsBound = false;
   var taskSearchAcceptManualInput = false;
+  var taskSearchHasUserEdited = false;
   function setTaskSearchLocked(locked) {
     const input = els34.taskSearch;
     if (!input) return;
@@ -37382,7 +37406,7 @@ ${galleryText}`;
     if (!input) return false;
     let cleared = false;
     const clearIfAutofilled = () => {
-      if (taskSearchAcceptManualInput || !isLikelyBrowserAutofillTaskSearchValue(input.value)) return;
+      if (taskSearchHasUserEdited || taskSearchAcceptManualInput || !isLikelyBrowserAutofillTaskSearchValue(input.value)) return;
       input.value = "";
       cleared = true;
       renderTasks6();
@@ -37425,18 +37449,22 @@ ${galleryText}`;
           event.preventDefault();
           setTaskSearchLocked(false);
           taskSearchAcceptManualInput = true;
+          taskSearchHasUserEdited = true;
           input.value = isClearKey ? "" : key;
           handleTaskSearchInput();
         }
         return;
       }
       taskSearchAcceptManualInput = true;
+      taskSearchHasUserEdited = true;
     });
     els34.taskSearch.addEventListener("paste", () => {
       taskSearchAcceptManualInput = true;
+      taskSearchHasUserEdited = true;
     });
     els34.taskSearch.addEventListener("drop", () => {
       taskSearchAcceptManualInput = true;
+      taskSearchHasUserEdited = true;
     });
     els34.taskSearch.addEventListener("focus", () => {
       taskSearchAcceptManualInput = false;
@@ -37454,6 +37482,10 @@ ${galleryText}`;
   }
   function handleTaskSearchInput() {
     if (!taskSearchAcceptManualInput && guardTaskSearchAutofill([120, 360, 900])) return;
+    const input = els34.taskSearch;
+    if (!input) return;
+    taskSearchHasUserEdited = Boolean(input.value);
+    if (!input.value) taskSearchHasUserEdited = false;
     renderTasks6();
     void syncTaskSearchHistoryResults();
   }
@@ -37668,7 +37700,7 @@ ${galleryText}`;
     const requestSeq = ++state32.queueRequestSeq;
     try {
       const response = await fetch("/api/queue");
-      const data = await response.json();
+      const data = await safeJson(response);
       if (requestSeq !== state32.queueRequestSeq) return;
       if (!response.ok) {
         throw new Error(data.detail || translate("queue.readFailed"));
@@ -40702,6 +40734,7 @@ ${galleryText}`;
   var renderArchiveButton4 = (...args) => legacyMethod39("renderArchiveButton", ...args);
   var renderArchiveModal4 = (...args) => legacyMethod39("renderArchiveModal", ...args);
   var renderPreview6 = (...args) => legacyMethod39("renderPreview", ...args);
+  var setStatus21 = (...args) => legacyMethod39("setStatus", ...args);
   var migrateLegacyArchivedTasks2 = (...args) => legacyMethod39("migrateLegacyArchivedTasks", ...args);
   var revokeTaskUploadPreviewUrls3 = (...args) => legacyMethod39("revokeTaskUploadPreviewUrls", ...args);
   var taskHasViewableUpdate2 = (...args) => legacyMethod39("taskHasViewableUpdate", ...args);
@@ -40712,10 +40745,16 @@ ${galleryText}`;
   var taskSearchHistoryTimerId = 0;
   async function refreshTasks({ migrateLegacyArchives = false } = {}) {
     const requestSeq = ++state29.tasksRequestSeq;
-    const response = await fetch("/api/tasks/recent?limit=200");
-    const data = await response.json();
-    if (requestSeq !== state29.tasksRequestSeq) return;
-    await applyTasksSnapshot(data.tasks || [], { migrateLegacyArchives, requestSeq });
+    try {
+      const response = await fetch("/api/tasks/recent?limit=200");
+      const data = await safeJson(response);
+      if (requestSeq !== state29.tasksRequestSeq) return;
+      if (!response.ok) throw new Error(data.detail || "Task list read failed");
+      await applyTasksSnapshot(data.tasks || [], { migrateLegacyArchives, requestSeq });
+    } catch (error) {
+      if (requestSeq !== state29.tasksRequestSeq) return;
+      setStatus21(error.message || "\u670D\u52A1\u6682\u65F6\u4E0D\u53EF\u7528\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5", "error");
+    }
   }
   async function applyTasksSnapshot(tasks, { migrateLegacyArchives = false, requestSeq = state29.tasksRequestSeq } = {}) {
     const previousLocalPendingTasks = state29.tasks.filter((task) => task?.local_pending);
@@ -40893,7 +40932,7 @@ ${galleryText}`;
     }
     return method(...args);
   }
-  function setStatus21(message, type) {
+  function setStatus22(message, type) {
     legacyMethod40("setStatus", message, type);
   }
   function closePromptPopover8() {
@@ -40964,9 +41003,9 @@ ${galleryText}`;
     updateTaskSelectionVisuals3(taskId);
     renderPreview7(task);
     if (task.status === "failed") {
-      setStatus21(taskFailureMessage4(task) || translate("taskActions.failedFallback"), "error");
+      setStatus22(taskFailureMessage4(task) || translate("taskActions.failedFallback"), "error");
     } else if (task.status !== "running") {
-      setStatus21(formatTranslation("status.loadedTask", { taskId }), "ok");
+      setStatus22(formatTranslation("status.loadedTask", { taskId }), "ok");
     }
   }
   function isLegacyOutputInputUrl2(url) {
@@ -41036,7 +41075,7 @@ ${galleryText}`;
       let uploadInputIndex = 0;
       const uploadSources = task.input_sources.filter((source) => source?.kind === "upload" && source.image_url);
       if (uploadSources.length && selectedTaskInputRestoreCurrent(taskId, restoreSeq)) {
-        setStatus21(translate("status.loadingHistoryInputs"), "");
+        setStatus22(translate("status.loadingHistoryInputs"), "");
       }
       try {
         for (const [index, source] of task.input_sources.entries()) {
@@ -41072,7 +41111,7 @@ ${galleryText}`;
       return applyTaskInputRestoreSources(gallerySources, taskId, restoreSeq);
     }
     if (selectedTaskInputRestoreCurrent(taskId, restoreSeq)) {
-      setStatus21(translate("status.loadingHistoryInputs"), "");
+      setStatus22(translate("status.loadingHistoryInputs"), "");
     }
     const inputNames = Array.isArray(task.input_files) ? task.input_files : [];
     const files = [];
@@ -41104,14 +41143,14 @@ ${galleryText}`;
     if (task.summary_only) {
       const detailSeq = ++state30.taskInputRestoreSeq;
       updateTaskSelectionVisuals3(taskId);
-      setStatus21(translate("status.loadingHistoryInputs"), "");
+      setStatus22(translate("status.loadingHistoryInputs"), "");
       try {
         const fullTask = await loadFullTaskDetail(taskId);
         if (!selectedTaskInputRestoreCurrent(taskId, detailSeq)) return;
         task = replaceSelectedTaskDetail(taskId, fullTask);
       } catch (error) {
         if (!selectedTaskInputRestoreCurrent(taskId, detailSeq)) return;
-        setStatus21(error.message || translate("notifications.taskMissing"), "error");
+        setStatus22(error.message || translate("notifications.taskMissing"), "error");
         return;
       }
     }
@@ -41126,7 +41165,7 @@ ${galleryText}`;
       revokeUploadPreviewUrls2(state30.images);
       state30.images = [];
       renderImageStrip6();
-      setStatus21(error.message, "error");
+      setStatus22(error.message, "error");
       return;
     }
     if (!selectedTaskInputRestoreCurrent(taskId, restoreSeq)) return;
@@ -41161,16 +41200,16 @@ ${galleryText}`;
         revokeUploadPreviewUrls2(state30.images);
         state30.images = [];
         renderImageStrip6();
-        setStatus21(error.message || translate("referenceCollector.addFailed"), "error");
+        setStatus22(error.message || translate("referenceCollector.addFailed"), "error");
         return;
       }
       if (!selectedTaskInputRestoreCurrent(taskId, restoreSeq)) return;
       applySelectedTaskRequestPreview(task);
       renderSelectedTask(task, taskId);
-      setStatus21(formatTranslation("status.reusedTask", { taskId }), "ok");
+      setStatus22(formatTranslation("status.reusedTask", { taskId }), "ok");
     } catch (error) {
       localStorage.removeItem(HISTORY_TASK_REUSE_HANDOFF_KEY);
-      setStatus21(error.message || translate("taskContext.actionFailed"), "error");
+      setStatus22(error.message || translate("taskContext.actionFailed"), "error");
     }
   }
   function initTaskSelectionFeature() {
@@ -41596,7 +41635,7 @@ ${galleryText}`;
     const current = String(els41.statusText.textContent || "").trim();
     const waitingLabels = [translate("status.waiting", "zh-CN"), translate("status.waiting", "en")];
     if (waitingLabels.includes(current)) {
-      setStatus22(translate("status.waiting"), "");
+      setStatus23(translate("status.waiting"), "");
     }
   }
   function bindShellUiEvents() {
@@ -41804,7 +41843,7 @@ ${galleryText}`;
     }
     document.title = status ? `${status} \xB7 ${getLegacyBridge().constants.defaultDocumentTitle}` : getLegacyBridge().constants.defaultDocumentTitle;
   }
-  function setStatus22(message, type) {
+  function setStatus23(message, type) {
     if (!els41.statusText) return;
     els41.statusText.textContent = message;
     els41.statusText.className = `status-text ${type || ""}`;
@@ -41848,12 +41887,12 @@ ${galleryText}`;
     renderTasks9();
     renderPreview8();
     updateRequestPreview13();
-    setStatus22(translate("status.waiting"), "");
+    setStatus23(translate("status.waiting"), "");
   }
   async function copyJson() {
     if (!els41.requestJson) return;
     await navigator.clipboard.writeText(els41.requestJson.textContent);
-    setStatus22(translate("status.jsonCopied"), "ok");
+    setStatus23(translate("status.jsonCopied"), "ok");
   }
   function initShellUiFeature() {
     if (shellUiInitialized) return;
@@ -41880,7 +41919,7 @@ ${galleryText}`;
       schedulePreviewPanelHeightSync,
       syncPreviewPanelHeight,
       updateDocumentTitle: updateDocumentTitle2,
-      setStatus: setStatus22,
+      setStatus: setStatus23,
       resetForm,
       copyJson
     });

@@ -1,5 +1,6 @@
 import { getEls } from "./dom";
 import { formatTranslation, LOCALE_CHANGE_EVENT, translate } from "./i18n";
+import { safeJson } from "./api";
 import { getLegacyBridge, getState } from "./state";
 import type { QueueState, RealtimePayload, WebUITask } from "./types";
 
@@ -143,7 +144,7 @@ export async function refreshQueue(): Promise<void> {
   const requestSeq = ++state.queueRequestSeq;
   try {
     const response = await fetch("/api/queue");
-    const data = await response.json();
+    const data = await safeJson(response);
     if (requestSeq !== state.queueRequestSeq) return;
     if (!response.ok) {
       throw new Error(data.detail || translate("queue.readFailed"));

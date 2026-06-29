@@ -1,4 +1,5 @@
 import { getLegacyBridge } from "./state";
+import { safeJson } from "./api";
 
 const bridge = getLegacyBridge();
 const state = bridge.state;
@@ -18,6 +19,7 @@ const renderTasks = (...args: any[]) => legacyMethod("renderTasks", ...args);
 const renderArchiveButton = (...args: any[]) => legacyMethod("renderArchiveButton", ...args);
 const renderArchiveModal = (...args: any[]) => legacyMethod("renderArchiveModal", ...args);
 const renderPreview = (...args: any[]) => legacyMethod("renderPreview", ...args);
+const setStatus = (...args: any[]) => legacyMethod("setStatus", ...args);
 const migrateLegacyArchivedTasks = (...args: any[]) => legacyMethod("migrateLegacyArchivedTasks", ...args);
 const revokeTaskUploadPreviewUrls = (...args: any[]) => legacyMethod("revokeTaskUploadPreviewUrls", ...args);
 const taskHasViewableUpdate = (...args: any[]) => legacyMethod("taskHasViewableUpdate", ...args);
@@ -29,10 +31,16 @@ let taskSearchHistoryTimerId = 0;
 
 async function refreshTasks({ migrateLegacyArchives = false }: any = {}) {
   const requestSeq = ++state.tasksRequestSeq;
-  const response = await fetch("/api/tasks/recent?limit=200");
-  const data = await response.json();
-  if (requestSeq !== state.tasksRequestSeq) return;
-  await applyTasksSnapshot(data.tasks || [], { migrateLegacyArchives, requestSeq });
+  try {
+    const response = await fetch("/api/tasks/recent?limit=200");
+    const data = await safeJson(response);
+    if (requestSeq !== state.tasksRequestSeq) return;
+    if (!response.ok) throw new Error(data.detail || "Task list read failed");
+    await applyTasksSnapshot(data.tasks || [], { migrateLegacyArchives, requestSeq });
+  } catch (error: any) {
+    if (requestSeq !== state.tasksRequestSeq) return;
+    setStatus(error.message || "服务暂时不可用，请稍后重试", "error");
+  }
 }
 
 async function applyTasksSnapshot(tasks: any, { migrateLegacyArchives = false, requestSeq = state.tasksRequestSeq }: any = {}) {
