@@ -6,7 +6,7 @@ import { currentMainModel } from "./main-model-combobox";
 import { currentQuantity } from "./output-controls";
 import { translate } from "./i18n";
 
-export const DEFAULT_RESOLUTION = "standard";
+export const DEFAULT_RESOLUTION = "2k";
 export const DEFAULT_RATIO = "1:1";
 export const DEFAULT_ORIENTATION = "square";
 

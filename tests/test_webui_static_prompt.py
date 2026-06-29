@@ -57,6 +57,12 @@ class WebUIStaticPromptTests(WebUIStaticTestCase):
         script = self._frontend_script_source()
 
         self.assertIn('id="promptFidelity"', html)
+        self.assertIn('class="field-label-with-help"', html)
+        self.assertIn('class="field-help-button"', html)
+        self.assertIn('data-i18n-attr="aria-label:output.promptModeHelpLabel;title:output.promptModeHelp"', html)
+        self.assertIn("原始：逐字使用，不改写。适合精确指令。", html)
+        self.assertIn("保真：适当润色，保留关键约束。适合中文描述。（默认）", html)
+        self.assertIn("创意：自由发挥，适合找灵感。", html)
         self.assertRegex(
             html,
             r'data-val="original" type="button"[^>]*>原始模式</button>\s*<button class="radio-btn active" data-val="strict" type="button"[^>]*>保真模式</button>',
@@ -1083,8 +1089,8 @@ console.log(cases.map((color) => readableTextColor(color)).join("\\n"));
         self.assertIn('id="mainModelToggle"', html)
         self.assertIn('id="mainModelOptions"', html)
         self.assertIn('role="listbox"', html)
-        self.assertIn('/static/app.js?v=runtime-369', html)
-        self.assertIn('/static/styles.css?v=runtime-369', html)
+        self.assertIn('/static/app.js?v=runtime-370', html)
+        self.assertIn('/static/styles.css?v=runtime-370', html)
         self.assertIn("mainModel: document.querySelector", script)
         self.assertIn("mainModelCombobox: document.querySelector", script)
         self.assertIn("mainModelToggle: document.querySelector", script)
@@ -1269,4 +1275,4 @@ console.log(cases.map((color) => readableTextColor(color)).join("\\n"));
         self.assertNotIn("input_fidelity: state.mode", script)
         self.assertNotIn('payload.input_fidelity', script)
         self.assertNotIn('form.append("input_fidelity"', script)
-        self.assertIn('els.size.value = "1024x1024"', script)
+        self.assertIn('els.size.value = "2048x2048"', script)

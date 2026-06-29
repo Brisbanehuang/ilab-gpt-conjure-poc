@@ -63,7 +63,7 @@
         document.documentElement.dataset.locale = locale;
       })();
     </script>
-    <link rel="stylesheet" href="/static/styles.css?v=runtime-369" />
+    <link rel="stylesheet" href="/static/styles.css?v=runtime-370" />
   </head>
   <body>
     <div class="layout-container">
@@ -453,7 +453,18 @@
                     </div>
 
                     <div id="promptFidelityField" class="field">
-                      <span data-i18n="output.promptMode">提示词模式</span>
+                      <div class="field-label-with-help">
+                        <span data-i18n="output.promptMode">提示词模式</span>
+                        <button
+                          class="field-help-button"
+                          type="button"
+                          aria-label="提示词模式说明"
+                          title="原始：逐字使用，不改写。适合精确指令。
+保真：适当润色，保留关键约束。适合中文描述。（默认）
+创意：自由发挥，适合找灵感。"
+                          data-i18n-attr="aria-label:output.promptModeHelpLabel;title:output.promptModeHelp"
+                        >?</button>
+                      </div>
                       <div class="radio-group" id="promptFidelityGroup">
                         <button class="radio-btn" data-val="original" type="button" data-i18n="output.modeOriginal">原始模式</button>
                         <button class="radio-btn active" data-val="strict" type="button" data-i18n="output.modeStrict" data-i18n-attr="title:output.modeStrictHelp">保真模式</button>
@@ -494,13 +505,13 @@
                 <div class="field resolution-field">
                   <span data-i18n="output.resolution">分辨率</span>
                   <div class="radio-group" id="resolutionGroup">
-                    <button class="radio-btn active" data-val="standard" type="button">1K</button>
-                    <button class="radio-btn" data-val="2k" type="button">2K</button>
+                    <button class="radio-btn" data-val="standard" type="button">1K</button>
+                    <button class="radio-btn active" data-val="2k" type="button">2K</button>
                     <button class="radio-btn" data-val="4k" type="button">4K</button>
                   </div>
                   <select id="resolution" class="hidden">
-                    <option value="standard" selected>1K</option>
-                    <option value="2k">2K</option>
+                    <option value="standard">1K</option>
+                    <option value="2k" selected>2K</option>
                     <option value="4k">4K</option>
                   </select>
                 </div>
@@ -1190,7 +1201,7 @@
     </div>
 
     <div id="taskNotificationToastRegion" class="task-notification-toast-region" aria-live="polite"></div>
-  <script src="/static/app.js?v=runtime-369"></script>
+  <script src="/static/app.js?v=runtime-370"></script>
     <script>
       (() => {
         document.querySelectorAll(".radio-group").forEach((group) => {

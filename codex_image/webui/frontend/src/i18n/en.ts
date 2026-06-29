@@ -439,6 +439,8 @@ export const EN_DICTIONARY: TranslationDictionary = {
     "output.webSearchToggle": "On",
     "output.webSearchTitle": "Search the web first, then use it for this generation",
     "output.promptMode": "Prompt mode",
+    "output.promptModeHelpLabel": "Prompt mode help",
+    "output.promptModeHelp": "Original: Use your prompt verbatim. Best for precise instructions.\nFaithful: Lightly polish while preserving key constraints. Default.\nCreative: More freedom for inspiration.",
     "output.modeOriginal": "Original",
     "output.modeStrict": "Faithful",
     "output.modeCreative": "Creative",

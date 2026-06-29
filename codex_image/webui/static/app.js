@@ -865,6 +865,8 @@
     "output.webSearchToggle": "On",
     "output.webSearchTitle": "Search the web first, then use it for this generation",
     "output.promptMode": "Prompt mode",
+    "output.promptModeHelpLabel": "Prompt mode help",
+    "output.promptModeHelp": "Original: Use your prompt verbatim. Best for precise instructions.\nFaithful: Lightly polish while preserving key constraints. Default.\nCreative: More freedom for inspiration.",
     "output.modeOriginal": "Original",
     "output.modeStrict": "Faithful",
     "output.modeCreative": "Creative",
@@ -9761,6 +9763,8 @@
     "output.webSearchToggle": "\u5F00\u542F",
     "output.webSearchTitle": "\u5148\u8054\u7F51\u641C\u7D22\uFF0C\u518D\u7528\u4E8E\u672C\u6B21\u751F\u6210",
     "output.promptMode": "\u63D0\u793A\u8BCD\u6A21\u5F0F",
+    "output.promptModeHelpLabel": "\u63D0\u793A\u8BCD\u6A21\u5F0F\u8BF4\u660E",
+    "output.promptModeHelp": "\u539F\u59CB\uFF1A\u9010\u5B57\u4F7F\u7528\uFF0C\u4E0D\u6539\u5199\u3002\u9002\u5408\u7CBE\u786E\u6307\u4EE4\u3002\n\u4FDD\u771F\uFF1A\u9002\u5F53\u6DA6\u8272\uFF0C\u4FDD\u7559\u5173\u952E\u7EA6\u675F\u3002\u9002\u5408\u4E2D\u6587\u63CF\u8FF0\u3002\uFF08\u9ED8\u8BA4\uFF09\n\u521B\u610F\uFF1A\u81EA\u7531\u53D1\u6325\uFF0C\u9002\u5408\u627E\u7075\u611F\u3002",
     "output.modeOriginal": "\u539F\u59CB\u6A21\u5F0F",
     "output.modeStrict": "\u4FDD\u771F\u6A21\u5F0F",
     "output.modeStrictHelp": "\u4FDD\u771F\u6A21\u5F0F\u901A\u8FC7\u672C\u5730\u89C4\u5219\u63D0\u53D6\u6807\u9898/\u5B57\u4F53\u3001\u76EE\u6807\u4EBA\u7FA4\u3001\u8272\u5F69\u548C\u9650\u5236\u7C7B\u786C\u6027\u7EA6\u675F\uFF0C\u518D\u628A\u8FD9\u4E9B\u7EA6\u675F\u4F5C\u4E3A\u7CFB\u7EDF\u6307\u4EE4\u4F20\u7ED9\u6A21\u578B\uFF1B\u4E0D\u4F1A\u989D\u5916\u8C03\u7528\u5C0F\u6A21\u578B\u3002",
@@ -34061,7 +34065,7 @@ ${galleryText}`;
   }
 
   // codex_image/webui/frontend/src/size-presets.ts
-  var DEFAULT_RESOLUTION = "standard";
+  var DEFAULT_RESOLUTION = "2k";
   var DEFAULT_RATIO = "1:1";
   var DEFAULT_ORIENTATION = "square";
   var RATIO_ORIENTATION = {
@@ -41879,10 +41883,10 @@ ${galleryText}`;
     setPromptText3("");
     if (els41.customSizeToggle) els41.customSizeToggle.checked = false;
     if (els41.nInput) els41.nInput.value = "1";
-    if (els41.resolution) els41.resolution.value = "standard";
+    if (els41.resolution) els41.resolution.value = "2k";
     if (els41.ratio) els41.ratio.value = "1:1";
     if (els41.orientation) els41.orientation.value = "square";
-    els41.size.value = "1024x1024";
+    els41.size.value = "2048x2048";
     els41.quality.value = "auto";
     els41.outputFormat.value = "png";
     els41.moderation.value = "auto";

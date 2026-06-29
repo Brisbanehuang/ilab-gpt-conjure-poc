@@ -311,10 +311,10 @@ function resetForm() {
   setPromptText("");
   if (els.customSizeToggle) els.customSizeToggle.checked = false;
   if (els.nInput) els.nInput.value = "1";
-  if (els.resolution) els.resolution.value = "standard";
+  if (els.resolution) els.resolution.value = "2k";
   if (els.ratio) els.ratio.value = "1:1";
   if (els.orientation) els.orientation.value = "square";
-  els.size.value = "1024x1024";
+  els.size.value = "2048x2048";
   els.quality.value = "auto";
   els.outputFormat.value = "png";
   els.moderation.value = "auto";

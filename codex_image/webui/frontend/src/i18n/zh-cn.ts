@@ -439,6 +439,8 @@ export const ZH_CN_DICTIONARY: TranslationDictionary = {
     "output.webSearchToggle": "开启",
     "output.webSearchTitle": "先联网搜索，再用于本次生成",
     "output.promptMode": "提示词模式",
+    "output.promptModeHelpLabel": "提示词模式说明",
+    "output.promptModeHelp": "原始：逐字使用，不改写。适合精确指令。\n保真：适当润色，保留关键约束。适合中文描述。（默认）\n创意：自由发挥，适合找灵感。",
     "output.modeOriginal": "原始模式",
     "output.modeStrict": "保真模式",
     "output.modeStrictHelp": "保真模式通过本地规则提取标题/字体、目标人群、色彩和限制类硬性约束，再把这些约束作为系统指令传给模型；不会额外调用小模型。",
