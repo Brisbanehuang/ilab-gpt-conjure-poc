@@ -437,6 +437,7 @@ export const ZH_CN_DICTIONARY: TranslationDictionary = {
     "output.mainModelUnused": "主模型不参与本次请求",
     "output.webSearch": "联网搜索",
     "output.webSearchToggle": "开启",
+    "output.webSearchHelpLabel": "联网搜索说明",
     "output.webSearchTitle": "先联网搜索，再用于本次生成",
     "output.promptMode": "提示词模式",
     "output.promptModeHelpLabel": "提示词模式说明",

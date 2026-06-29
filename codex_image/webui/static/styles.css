@@ -5161,6 +5161,7 @@ svg.button-icon {
 }
 
 .field-label-with-help {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -5177,14 +5178,14 @@ svg.button-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   padding: 0;
   border: 1px solid var(--line);
   border-radius: 50%;
   background: var(--surface-soft);
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   line-height: 1;
   cursor: help;
@@ -5195,6 +5196,43 @@ svg.button-icon {
   border-color: var(--primary);
   color: var(--primary);
   outline: none;
+}
+
+.field-help-tooltip {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 30;
+  width: max-content;
+  max-width: min(320px, calc(100vw - 48px));
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.16);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+  white-space: pre-line;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-2px);
+  pointer-events: none;
+  transition:
+    opacity var(--motion-fast),
+    transform var(--motion-fast),
+    visibility 0s linear var(--motion-fast);
+}
+
+.field-help-button:hover + .field-help-tooltip,
+.field-help-button:focus + .field-help-tooltip,
+.field-help-button:focus-visible + .field-help-tooltip,
+.field-label-with-help:focus-within .field-help-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  transition-delay: 0s;
 }
 
 .mode-settings-slot {
@@ -5239,7 +5277,11 @@ svg.button-icon {
   min-width: 0;
 }
 
-.web-search-field > span {
+.web-search-field .field-label-with-help {
+  z-index: 3;
+}
+
+.web-search-field .field-label-with-help > span {
   white-space: nowrap;
 }
 

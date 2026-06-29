@@ -437,6 +437,7 @@ export const EN_DICTIONARY: TranslationDictionary = {
     "output.mainModelUnused": "Main model is not used for this request",
     "output.webSearch": "Web search",
     "output.webSearchToggle": "On",
+    "output.webSearchHelpLabel": "Web search help",
     "output.webSearchTitle": "Search the web first, then use it for this generation",
     "output.promptMode": "Prompt mode",
     "output.promptModeHelpLabel": "Prompt mode help",

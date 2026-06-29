@@ -63,7 +63,7 @@
         document.documentElement.dataset.locale = locale;
       })();
     </script>
-    <link rel="stylesheet" href="/static/styles.css?v=runtime-370" />
+    <link rel="stylesheet" href="/static/styles.css?v=runtime-371" />
   </head>
   <body>
     <div class="layout-container">
@@ -443,8 +443,18 @@
                       </div>
 
                       <div id="webSearchField" class="field web-search-field">
-                        <span data-i18n="output.webSearch">联网搜索</span>
-                        <label class="web-search-toggle" title="先联网搜索并用于本次生成" data-i18n-attr="title:output.webSearchTitle">
+                        <div class="field-label-with-help">
+                          <span data-i18n="output.webSearch">联网搜索</span>
+                          <button
+                            class="field-help-button"
+                            type="button"
+                            aria-label="联网搜索说明"
+                            aria-describedby="webSearchTooltip"
+                            data-i18n-attr="aria-label:output.webSearchHelpLabel"
+                          >?</button>
+                          <span id="webSearchTooltip" class="field-help-tooltip" role="tooltip" data-i18n="output.webSearchTitle">先联网搜索，再用于本次生成</span>
+                        </div>
+                        <label class="web-search-toggle">
                           <input id="webSearch" type="checkbox" />
                           <span class="web-search-toggle-track" aria-hidden="true"></span>
                           <span class="web-search-toggle-text" data-i18n="output.webSearchToggle">开启</span>
@@ -459,11 +469,12 @@
                           class="field-help-button"
                           type="button"
                           aria-label="提示词模式说明"
-                          title="原始：逐字使用，不改写。适合精确指令。
-保真：适当润色，保留关键约束。适合中文描述。（默认）
-创意：自由发挥，适合找灵感。"
-                          data-i18n-attr="aria-label:output.promptModeHelpLabel;title:output.promptModeHelp"
+                          aria-describedby="promptModeTooltip"
+                          data-i18n-attr="aria-label:output.promptModeHelpLabel"
                         >?</button>
+                        <span id="promptModeTooltip" class="field-help-tooltip" role="tooltip" data-i18n="output.promptModeHelp">原始：逐字使用，不改写。适合精确指令。
+保真：适当润色，保留关键约束。适合中文描述。（默认）
+创意：自由发挥，适合找灵感。</span>
                       </div>
                       <div class="radio-group" id="promptFidelityGroup">
                         <button class="radio-btn" data-val="original" type="button" data-i18n="output.modeOriginal">原始模式</button>
@@ -1201,7 +1212,7 @@
     </div>
 
     <div id="taskNotificationToastRegion" class="task-notification-toast-region" aria-live="polite"></div>
-  <script src="/static/app.js?v=runtime-370"></script>
+  <script src="/static/app.js?v=runtime-371"></script>
     <script>
       (() => {
         document.querySelectorAll(".radio-group").forEach((group) => {
