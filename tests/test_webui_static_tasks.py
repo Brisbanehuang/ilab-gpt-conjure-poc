@@ -1526,6 +1526,85 @@ class WebUIStaticTaskTests(WebUIStaticTestCase):
         result = subprocess.run([node, "-e", harness], check=False, text=True, capture_output=True)
 
         self.assertEqual(result.returncode, 0, result.stderr)
+    def test_restored_task_does_not_replace_current_api_provider(self) -> None:
+        node = shutil.which("node")
+        if node is None:
+            self.skipTest("node is required for frontend behavior checks")
+        script = self._frontend_script_source()
+        output_source = Path("codex_image/webui/frontend/src/output-controls.ts").read_text(encoding="utf-8")
+        harness = "\n".join(
+            [
+                """
+                function Event(type) { this.type = type; }
+                const quantityButtons = [{ value: "1" }, { value: "2" }, { value: "3" }, { value: "4" }];
+                const els = {
+                  promptFidelity: { value: "strict", dispatchEvent() {} },
+                  mainModel: { value: "" },
+                  model: { value: "gpt-image-2" },
+                  quality: { value: "low", dispatchEvent() {} },
+                  outputFormat: { value: "png", dispatchEvent() {} },
+                  moderation: { value: "auto", dispatchEvent() {} },
+                  compression: { value: "80" },
+                  nInput: { value: "1", dispatchEvent() {} },
+                  webSearch: { checked: false, dispatchEvent() {} },
+                };
+                const state = {
+                  apiSettings: {
+                    active_provider_id: "current",
+                    codex_mode: "images",
+                    providers: [
+                      { id: "current", name: "Current", api_mode: "images", images_concurrency: 4 },
+                      { id: "old", name: "Old", api_mode: "responses", images_concurrency: 20 },
+                    ],
+                  },
+                };
+                function setMode() {}
+                function setPromptWithGalleryRefs() {}
+                function persistMainModel() {}
+                function syncSizeControlsFromSize() {}
+                function updatePromptCount() {}
+                function updateCompression() {}
+                function updateCustomSize() {}
+                function updateRequestPreview() {}
+                function updateRangeProgress() {}
+                function normalizeApiSettings(settings) { return settings || { providers: [] }; }
+                function normalizeApiImagesConcurrency(value) { return Number.parseInt(value, 10); }
+                function persistApiSettings() {}
+                function populateApiSettingsForm() {}
+                """,
+                self._extract_javascript_function(output_source, "currentQuantity"),
+                self._extract_javascript_function(output_source, "updateRangeProgress"),
+                self._extract_javascript_function(output_source, "updateQuantity"),
+                self._extract_javascript_function(output_source, "syncRadioButtons"),
+                self._extract_javascript_function(script, "applyTaskToForm"),
+                """
+                applyTaskToForm({
+                  mode: "generate",
+                  prompt: "history",
+                  params: {
+                    api_provider_id: "old",
+                    api_mode: "responses",
+                    api_images_concurrency: 20,
+                    codex_mode: "responses",
+                    n: 2,
+                  },
+                });
+                if (state.apiSettings.active_provider_id !== "current") {
+                  throw new Error(`expected current provider to stay current, got ${state.apiSettings.active_provider_id}`);
+                }
+                const current = state.apiSettings.providers.find((provider) => provider.id === "current");
+                if (current.api_mode !== "images" || current.images_concurrency !== 4) {
+                  throw new Error(`expected current provider settings unchanged, got ${JSON.stringify(current)}`);
+                }
+                if (state.apiSettings.codex_mode !== "images") {
+                  throw new Error(`expected codex mode unchanged, got ${state.apiSettings.codex_mode}`);
+                }
+                """,
+            ]
+        )
+        result = subprocess.run([node, "-e", harness], check=False, text=True, capture_output=True)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
     def test_history_cards_are_fixed_height_and_deletable(self) -> None:
         script = self._frontend_script_source()
         styles = Path("codex_image/webui/static/styles.css").read_text(encoding="utf-8")

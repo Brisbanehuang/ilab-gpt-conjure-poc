@@ -29886,18 +29886,18 @@ ${hint}` : hint;
   }
   function taskApiProviderId(task) {
     return String(
-      task?.api_provider_id || task?.params?.api_provider_id || task?.request?.webui_api_provider_id || task?.request?.api_provider_id || ""
+      task?.api_provider_id || task?.params?.api_provider_id || task?.request?.webui_api_provider_id || task?.request?.api_provider_id || task?.provider_id || ""
     ).trim();
   }
   function taskApiProviderLabel(task) {
     const providerId = taskApiProviderId(task);
-    if (!providerId) return "";
     const providerName = String(
-      task?.api_provider_name || task?.params?.api_provider_name || task?.request?.webui_api_provider_name || task?.request?.api_provider_name || ""
+      task?.api_provider_name || task?.params?.api_provider_name || task?.request?.webui_api_provider_name || task?.request?.api_provider_name || task?.provider || ""
     ).trim();
-    const configuredProvider = state9.apiSettings.providers.find((provider) => provider.id === providerId);
+    const configuredProvider = providerId ? state9.apiSettings.providers.find((provider) => provider.id === providerId) : null;
     const label = providerName || configuredProvider?.name || providerId;
-    return label === providerId ? label : `${label} (${providerId})`;
+    if (!label) return "";
+    return !providerId || label === providerId ? label : `${label} (${providerId})`;
   }
   function taskBackendLabel(task) {
     const backend = taskBackendValue(task);
@@ -36947,18 +36947,6 @@ ${galleryText}`;
   function persistMainModel2(...args) {
     return legacyMethod34("persistMainModel", ...args);
   }
-  function normalizeApiSettings2(...args) {
-    return legacyMethod34("normalizeApiSettings", ...args);
-  }
-  function normalizeApiImagesConcurrency2(...args) {
-    return legacyMethod34("normalizeApiImagesConcurrency", ...args);
-  }
-  function persistApiSettings2(...args) {
-    return legacyMethod34("persistApiSettings", ...args);
-  }
-  function populateApiSettingsForm2(...args) {
-    return legacyMethod34("populateApiSettingsForm", ...args);
-  }
   function syncSizeControlsFromSize2(...args) {
     return legacyMethod34("syncSizeControlsFromSize", ...args);
   }
@@ -37075,27 +37063,6 @@ ${galleryText}`;
     if (mainModel && els33.mainModel) {
       els33.mainModel.value = mainModel;
       persistMainModel2();
-    }
-    if (params.api_mode) {
-      state24.apiSettings = normalizeApiSettings2(state24.apiSettings);
-      if (params.api_provider_id && state24.apiSettings.providers.some((provider) => provider.id === params.api_provider_id)) {
-        state24.apiSettings.active_provider_id = params.api_provider_id;
-      }
-      state24.apiSettings.providers = state24.apiSettings.providers.map((provider) => provider.id === state24.apiSettings.active_provider_id ? {
-        ...provider,
-        api_mode: params.api_mode,
-        images_concurrency: params.api_images_concurrency ? normalizeApiImagesConcurrency2(params.api_images_concurrency) : provider.images_concurrency
-      } : provider);
-      persistApiSettings2();
-      populateApiSettingsForm2();
-    }
-    if (params.codex_mode) {
-      state24.apiSettings = normalizeApiSettings2({
-        ...state24.apiSettings,
-        codex_mode: params.codex_mode
-      });
-      persistApiSettings2();
-      populateApiSettingsForm2();
     }
     if (els33.promptFidelity) {
       const fidelity = ["strict", "original", "off"].includes(params.prompt_fidelity) ? params.prompt_fidelity : "strict";

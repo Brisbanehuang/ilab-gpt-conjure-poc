@@ -24,10 +24,6 @@ function setStatus(...args: any[]) { return legacyMethod("setStatus", ...args); 
 function setMode(...args: any[]) { return legacyMethod("setMode", ...args); }
 function setPromptWithGalleryRefs(...args: any[]) { return legacyMethod("setPromptWithGalleryRefs", ...args); }
 function persistMainModel(...args: any[]) { return legacyMethod("persistMainModel", ...args); }
-function normalizeApiSettings(...args: any[]) { return legacyMethod("normalizeApiSettings", ...args); }
-function normalizeApiImagesConcurrency(...args: any[]) { return legacyMethod("normalizeApiImagesConcurrency", ...args); }
-function persistApiSettings(...args: any[]) { return legacyMethod("persistApiSettings", ...args); }
-function populateApiSettingsForm(...args: any[]) { return legacyMethod("populateApiSettingsForm", ...args); }
 function syncSizeControlsFromSize(...args: any[]) { return legacyMethod("syncSizeControlsFromSize", ...args); }
 function updatePromptCount(...args: any[]) { return legacyMethod("updatePromptCount", ...args); }
 function updateQuantity(...args: any[]) { return legacyMethod("updateQuantity", ...args); }
@@ -73,33 +69,6 @@ function applyTaskToForm(task: any) {
   if (mainModel && els.mainModel) {
     els.mainModel.value = mainModel;
     persistMainModel();
-  }
-  if (params.api_mode) {
-    state.apiSettings = normalizeApiSettings(state.apiSettings);
-    if (params.api_provider_id && state.apiSettings.providers.some((provider: any) => provider.id === params.api_provider_id)) {
-      state.apiSettings.active_provider_id = params.api_provider_id;
-    }
-    state.apiSettings.providers = state.apiSettings.providers.map((provider: any) => (
-      provider.id === state.apiSettings.active_provider_id
-        ? {
-          ...provider,
-          api_mode: params.api_mode,
-          images_concurrency: params.api_images_concurrency
-            ? normalizeApiImagesConcurrency(params.api_images_concurrency)
-            : provider.images_concurrency,
-        }
-        : provider
-    ));
-    persistApiSettings();
-    populateApiSettingsForm();
-  }
-  if (params.codex_mode) {
-    state.apiSettings = normalizeApiSettings({
-      ...state.apiSettings,
-      codex_mode: params.codex_mode,
-    });
-    persistApiSettings();
-    populateApiSettingsForm();
   }
   if (els.promptFidelity) {
     const fidelity = ["strict", "original", "off"].includes(params.prompt_fidelity) ? params.prompt_fidelity : "strict";

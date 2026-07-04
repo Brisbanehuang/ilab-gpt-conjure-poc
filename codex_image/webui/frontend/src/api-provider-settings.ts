@@ -624,23 +624,25 @@ export function taskApiProviderId(task: any): string {
     || task?.params?.api_provider_id
     || task?.request?.webui_api_provider_id
     || task?.request?.api_provider_id
+    || task?.provider_id
     || "",
   ).trim();
 }
 
 export function taskApiProviderLabel(task: any): string {
   const providerId = taskApiProviderId(task);
-  if (!providerId) return "";
   const providerName = String(
     task?.api_provider_name
     || task?.params?.api_provider_name
     || task?.request?.webui_api_provider_name
     || task?.request?.api_provider_name
+    || task?.provider
     || "",
   ).trim();
-  const configuredProvider = state.apiSettings.providers.find((provider: any) => provider.id === providerId);
+  const configuredProvider = providerId ? state.apiSettings.providers.find((provider: any) => provider.id === providerId) : null;
   const label = providerName || configuredProvider?.name || providerId;
-  return label === providerId ? label : `${label} (${providerId})`;
+  if (!label) return "";
+  return !providerId || label === providerId ? label : `${label} (${providerId})`;
 }
 
 export function taskBackendLabel(task: any): string {
