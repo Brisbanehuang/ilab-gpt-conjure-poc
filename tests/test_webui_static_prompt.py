@@ -1102,6 +1102,7 @@ console.log(cases.map((color) => readableTextColor(color)).join("\\n"));
         styles = Path("codex_image/webui/static/styles.css").read_text(encoding="utf-8")
 
         self.assertIn('id="mainModel"', html)
+        self.assertIn('value="gpt-5.4-mini"', html)
         self.assertIn('id="mainModelCombobox"', html)
         self.assertIn('role="combobox"', html)
         self.assertIn('id="mainModelToggle"', html)
@@ -1114,8 +1115,8 @@ console.log(cases.map((color) => readableTextColor(color)).join("\\n"));
         self.assertIn("mainModelToggle: document.querySelector", script)
         self.assertIn("mainModelOptions: document.querySelector", script)
         self.assertIn("mainModelShowAllOptions: false", script)
-        self.assertIn('const MAIN_MODEL_OPTIONS = ["gpt-5.5", "gpt-5.4", "gpt-5.4-mini"];', script)
-        self.assertIn('const RETIRED_MAIN_MODEL_OPTIONS = new Set(["gpt-5.3-codex", "gpt-5.2", "gpt-5.3-codex-spark"]);', script)
+        self.assertIn('const MAIN_MODEL_OPTIONS = ["gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna", "gpt-5.4-mini"];', script)
+        self.assertIn('const RETIRED_MAIN_MODEL_OPTIONS = new Set(["gpt-5.5", "gpt-5.4", "gpt-5.3-codex", "gpt-5.2", "gpt-5.3-codex-spark"]);', script)
         self.assertIn("function mainModelOptionsForQuery", script)
         self.assertIn("function openMainModelCombobox", script)
         self.assertIn("function selectMainModelOption", script)
@@ -1143,13 +1144,17 @@ console.log(cases.map((color) => readableTextColor(color)).join("\\n"));
         script = Path("codex_image/webui/frontend/src/main-model-combobox.ts").read_text(encoding="utf-8")
         harness = "\n".join(
             [
-                'const MAIN_MODEL_OPTIONS = ["gpt-5.5", "gpt-5.4", "gpt-5.4-mini"];',
+                'const MAIN_MODEL_OPTIONS = ["gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna", "gpt-5.4-mini"];',
                 self._extract_javascript_function(script, "mainModelOptionsForQuery"),
                 """
                 const codexMatches = mainModelOptionsForQuery("codex");
+                const fiveSixMatches = mainModelOptionsForQuery("gpt-5.6");
                 const customMatches = mainModelOptionsForQuery("future-model-x");
                 if (codexMatches.length !== 0) {
                   throw new Error(`retired codex models should not be offered, got ${codexMatches.join(",")}`);
+                }
+                if (fiveSixMatches.join(",") !== "gpt-5.6-sol,gpt-5.6-terra,gpt-5.6-luna") {
+                  throw new Error(`expected three gpt-5.6 options, got ${fiveSixMatches.join(",")}`);
                 }
                 if (customMatches.length !== 0) {
                   throw new Error(`custom input should remain valid without forced option, got ${customMatches.join(",")}`);
@@ -1169,10 +1174,10 @@ console.log(cases.map((color) => readableTextColor(color)).join("\\n"));
             [
                 'const DEFAULT_MAIN_MODEL = "gpt-5.4-mini";',
                 'const MAIN_MODEL_STORAGE_KEY = "codex-image-main-model";',
-                'const RETIRED_MAIN_MODEL_OPTIONS = new Set(["gpt-5.3-codex", "gpt-5.2", "gpt-5.3-codex-spark"]);',
+                'const RETIRED_MAIN_MODEL_OPTIONS = new Set(["gpt-5.5", "gpt-5.4", "gpt-5.3-codex", "gpt-5.2", "gpt-5.3-codex-spark"]);',
                 """
                 const els = { mainModel: { value: "" } };
-                const storedValues = { [MAIN_MODEL_STORAGE_KEY]: "gpt-5.2" };
+                const storedValues = { [MAIN_MODEL_STORAGE_KEY]: "gpt-5.5" };
                 const localStorage = {
                   getItem(key) { return storedValues[key] ?? null; },
                   setItem(key, value) { storedValues[key] = value; },
