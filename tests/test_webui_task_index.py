@@ -47,6 +47,72 @@ class WebUITaskIndexTests(unittest.TestCase):
         self.assertEqual(tasks[0]["params"]["size"], "2160x3840")
         self.assertNotIn("request", tasks[1])
 
+    def test_index_uses_output_route_for_r2_thumbnail_even_with_legacy_local_fields(self) -> None:
+        with TemporaryDirectory() as tmp:
+            index = SQLiteTaskIndex(Path(tmp) / "tasks.db")
+            index.upsert(
+                {
+                    "task_id": "r2-task",
+                    "created_at": "2026-06-27T16:02:06+00:00",
+                    "updated_at": "2026-06-27T16:03:27+00:00",
+                    "status": "completed",
+                    "params": {"omni_poc": True},
+                    "output_file": "2026-06-27/r2-task-image-1.png",
+                    "output_files": ["2026-06-27/r2-task-image-1.png"],
+                    "output_url": "/api/tasks/r2-task/outputs/1",
+                    "output_urls": ["/api/tasks/r2-task/outputs/1"],
+                    "outputs": [
+                        {
+                            "index": 1,
+                            "status": "completed",
+                            "file": "2026-06-27/r2-task-image-1.png",
+                            "url": "/api/tasks/r2-task/outputs/1",
+                            "thumbnail_file": "thumbnails/2026-06-27/r2-task-image-1-thumb.jpg",
+                            "thumbnail_url": "/outputs/thumbnails/2026-06-27/r2-task-image-1-thumb.jpg",
+                            "storage_driver": "r2",
+                            "storage_key": "users/user_9/images/2026/0627/160206-r2-task/outputs/01-output.png",
+                        }
+                    ],
+                }
+            )
+
+            tasks = index.list_summaries()
+            history = index.query_history(limit=10)
+
+        self.assertEqual(tasks[0]["thumbnail_urls"], ["/api/tasks/r2-task/outputs/1/thumbnail"])
+        self.assertEqual(tasks[0]["outputs"][0]["thumbnail_url"], "/api/tasks/r2-task/outputs/1/thumbnail")
+        self.assertEqual(history["tasks"][0]["thumbnail_url"], "/api/tasks/r2-task/outputs/1/thumbnail")
+
+    def test_index_ignores_legacy_top_level_thumbnail_for_r2_outputs(self) -> None:
+        with TemporaryDirectory() as tmp:
+            index = SQLiteTaskIndex(Path(tmp) / "tasks.db")
+            index.upsert(
+                {
+                    "task_id": "r2-task",
+                    "created_at": "2026-06-27T16:02:06+00:00",
+                    "updated_at": "2026-06-27T16:03:27+00:00",
+                    "status": "completed",
+                    "params": {"omni_poc": True},
+                    "thumbnail_urls": ["/outputs/thumbnails/2026-06-27/r2-task-image-1-thumb.jpg"],
+                    "outputs": [
+                        {
+                            "index": 1,
+                            "status": "completed",
+                            "thumbnail_url": "/outputs/thumbnails/2026-06-27/r2-task-image-1-thumb.jpg",
+                            "storage_driver": "r2",
+                            "storage_key": "users/user_9/images/2026/0627/160206-r2-task/outputs/01-output.png",
+                        }
+                    ],
+                }
+            )
+
+            tasks = index.list_summaries()
+            history = index.query_history(limit=10)
+
+        self.assertEqual(tasks[0]["thumbnail_urls"], ["/api/tasks/r2-task/outputs/1/thumbnail"])
+        self.assertEqual(tasks[0]["outputs"][0]["thumbnail_url"], "/api/tasks/r2-task/outputs/1/thumbnail")
+        self.assertEqual(history["tasks"][0]["thumbnail_url"], "/api/tasks/r2-task/outputs/1/thumbnail")
+
     def test_index_deletes_task(self) -> None:
         with TemporaryDirectory() as tmp:
             index = SQLiteTaskIndex(Path(tmp) / "tasks.db")
@@ -239,6 +305,26 @@ class WebUITaskIndexTests(unittest.TestCase):
         self.assertIn({"value": "strict", "count": 2}, summary["prompt_modes"])
         self.assertIn({"value": "1152x2048", "count": 1}, summary["sizes"])
         self.assertIn({"value": "high", "count": 2}, summary["qualities"])
+
+    def test_history_rows_use_generated_title_as_compact_preview(self) -> None:
+        with TemporaryDirectory() as tmp:
+            index = SQLiteTaskIndex(Path(tmp) / "tasks.db")
+            index.upsert(
+                {
+                    "task_id": "task-title",
+                    "created_at": "2026-05-09T10:00:00+00:00",
+                    "updated_at": "2026-05-09T10:01:00+00:00",
+                    "status": "completed",
+                    "prompt": "生成一张高完成度艺术海报，主题为黑神话李清照",
+                    "title": "黑神话李清照",
+                    "display_title": "黑神话李清照",
+                    "params": {"size": "1024x1024"},
+                }
+            )
+
+            page = index.query_history(limit=10)
+
+        self.assertEqual(page["tasks"][0]["prompt_preview"], "黑神话李清照")
 
     def test_history_ratio_filter_derives_known_size_and_groups_unknown_as_other(self) -> None:
         with TemporaryDirectory() as tmp:

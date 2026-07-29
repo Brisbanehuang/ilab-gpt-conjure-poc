@@ -1,5 +1,6 @@
 import { getLegacyBridge } from "./state";
 import { translate } from "./i18n";
+import { getSelectedOmniKeyId, isOmniPocMode, omniHeaders, requireOmniApiKeyBeforeSubmit } from "./omni-poc-key";
 
 const bridge = getLegacyBridge();
 const state = bridge.state;
@@ -23,10 +24,6 @@ function setStatus(...args: any[]) { return legacyMethod("setStatus", ...args); 
 function setMode(...args: any[]) { return legacyMethod("setMode", ...args); }
 function setPromptWithGalleryRefs(...args: any[]) { return legacyMethod("setPromptWithGalleryRefs", ...args); }
 function persistMainModel(...args: any[]) { return legacyMethod("persistMainModel", ...args); }
-function normalizeApiSettings(...args: any[]) { return legacyMethod("normalizeApiSettings", ...args); }
-function normalizeApiImagesConcurrency(...args: any[]) { return legacyMethod("normalizeApiImagesConcurrency", ...args); }
-function persistApiSettings(...args: any[]) { return legacyMethod("persistApiSettings", ...args); }
-function populateApiSettingsForm(...args: any[]) { return legacyMethod("populateApiSettingsForm", ...args); }
 function syncSizeControlsFromSize(...args: any[]) { return legacyMethod("syncSizeControlsFromSize", ...args); }
 function updatePromptCount(...args: any[]) { return legacyMethod("updatePromptCount", ...args); }
 function updateQuantity(...args: any[]) { return legacyMethod("updateQuantity", ...args); }
@@ -72,33 +69,6 @@ function applyTaskToForm(task: any) {
   if (mainModel && els.mainModel) {
     els.mainModel.value = mainModel;
     persistMainModel();
-  }
-  if (params.api_mode) {
-    state.apiSettings = normalizeApiSettings(state.apiSettings);
-    if (params.api_provider_id && state.apiSettings.providers.some((provider: any) => provider.id === params.api_provider_id)) {
-      state.apiSettings.active_provider_id = params.api_provider_id;
-    }
-    state.apiSettings.providers = state.apiSettings.providers.map((provider: any) => (
-      provider.id === state.apiSettings.active_provider_id
-        ? {
-          ...provider,
-          api_mode: params.api_mode,
-          images_concurrency: params.api_images_concurrency
-            ? normalizeApiImagesConcurrency(params.api_images_concurrency)
-            : provider.images_concurrency,
-        }
-        : provider
-    ));
-    persistApiSettings();
-    populateApiSettingsForm();
-  }
-  if (params.codex_mode) {
-    state.apiSettings = normalizeApiSettings({
-      ...state.apiSettings,
-      codex_mode: params.codex_mode,
-    });
-    persistApiSettings();
-    populateApiSettingsForm();
   }
   if (els.promptFidelity) {
     const fidelity = ["strict", "original", "off"].includes(params.prompt_fidelity) ? params.prompt_fidelity : "strict";
@@ -160,6 +130,10 @@ function buildPreviewRequest() {
     gallery_image_ids: galleries.map((source: any) => source.id),
     reference_asset_ids: assets.map((source: any) => source.id),
   };
+  const selectedOmniKeyId = getSelectedOmniKeyId();
+  if (selectedOmniKeyId) {
+    payload.sub2api_api_key_id = selectedOmniKeyId;
+  }
   if (isApi) {
     const apiMode = currentApiMode();
     const action = state.mode === "edit" || uploads.length || assets.length || galleries.length ? "edit" : "generate";
@@ -294,6 +268,12 @@ async function runTask() {
     setStatus(customSizeError, "error");
     return;
   }
+  try {
+    requireOmniApiKeyBeforeSubmit();
+  } catch (error) {
+    setStatus(errorMessage(error, "Omni API Key is required"), "error");
+    return;
+  }
 
   const form = new FormData();
   form.append("prompt", prompt);
@@ -311,9 +291,11 @@ async function runTask() {
   form.append("n", String(params.n));
   form.append("prompt_fidelity", currentPromptFidelity());
   if (params.web_search) form.append("web_search", "true");
+  const selectedOmniKeyId = getSelectedOmniKeyId();
+  if (selectedOmniKeyId) form.append("sub2api_key_id", selectedOmniKeyId);
   if (currentAuthSource() === "api") {
     form.append("api_provider_id", currentApiProviderId());
-    form.append("api_mode", currentApiMode());
+    form.append("api_mode", isOmniPocMode() && params.web_search ? "responses" : currentApiMode());
   } else if (currentAuthSource() === "codex") {
     form.append("codex_mode", currentCodexMode());
   }
@@ -342,6 +324,7 @@ async function runTask() {
   try {
     const response = await fetch(state.mode === "edit" ? "/api/edit" : "/api/generate", {
       method: "POST",
+      headers: omniHeaders(),
       body: form,
       signal: controller.signal,
     });

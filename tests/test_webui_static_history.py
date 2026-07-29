@@ -25,6 +25,11 @@ class WebUIStaticHistoryTests(unittest.TestCase):
         html = Path("codex_image/webui/static/history.html").read_text(encoding="utf-8")
         styles = Path("codex_image/webui/static/styles/90-history.css").read_text(encoding="utf-8")
 
+        self.assertIn("<title>历史库 - OmniAPi Image Studio</title>", html)
+        self.assertIn('<link rel="icon" type="image/svg+xml" href="/static/assets/omniapi-logo.svg" />', html)
+        self.assertIn("<strong>OmniAPi Image Studio</strong>", html)
+        self.assertNotIn("Omni Lens", html)
+        self.assertNotIn("BYOK STUDIO", html)
         self.assertIn('class="history-page"', html)
         self.assertIn('id="historyDetailClose"', html)
         self.assertIn('data-history-resizer="left"', html)
@@ -99,6 +104,8 @@ class WebUIStaticHistoryTests(unittest.TestCase):
         self.assertRegex(styles, r"\.history-filter-button\s*\{[^}]*min-height:\s*40px")
         self.assertRegex(styles, r"\.history-filter-heading-icon,\s*\.history-filter-icon\s*\{[^}]*stroke:\s*currentColor")
         self.assertRegex(styles, r"\.history-filter-button\[data-history-filter-key=\"orientation\"\]\s*\{[^}]*padding-left:\s*10px")
+        self.assertRegex(styles, r"\.history-brand\s*\{[^}]*min-width:\s*0")
+        self.assertRegex(styles, r"\.history-brand strong,\s*\.history-toolbar h1\s*\{[^}]*overflow-wrap:\s*anywhere")
 
     def test_history_page_feature_contracts_are_complete(self) -> None:
         html = Path("codex_image/webui/static/history.html").read_text(encoding="utf-8")
@@ -109,8 +116,6 @@ class WebUIStaticHistoryTests(unittest.TestCase):
 
         for marker in [
             'id="historyOrientationList"',
-            'id="historyBackendList"',
-            'id="historyProviderList"',
             'id="historyPromptModeList"',
             'id="historyQualityList"',
             'id="historyRatioList"',
@@ -133,6 +138,8 @@ class WebUIStaticHistoryTests(unittest.TestCase):
         self.assertNotIn('<select id="historySort"', html)
         self.assertNotIn('id="historyStatusList"', html)
         self.assertNotIn('id="historySizeList"', html)
+        self.assertNotIn('id="historyBackendList"', html)
+        self.assertNotIn('id="historyProviderList"', html)
 
         for marker in [
             "selectedTaskIds: new Set<string>()",
@@ -406,7 +413,7 @@ class WebUIStaticHistoryTests(unittest.TestCase):
 
         for marker in [
             'data-i18n="history.back"',
-            'data-i18n="history.title"',
+            "<strong>OmniAPi Image Studio</strong>",
             'data-i18n-attr="placeholder:history.searchPlaceholder"',
             'data-i18n="history.promptMode"',
             'data-i18n="history.quality"',
@@ -420,6 +427,10 @@ class WebUIStaticHistoryTests(unittest.TestCase):
             self.assertIn(marker, html)
         self.assertNotIn('data-i18n="history.status"', html)
         self.assertNotIn('data-i18n="history.size"', html)
+        self.assertNotIn('data-i18n="history.backend"', html)
+        self.assertNotIn('data-i18n="history.provider"', html)
+        self.assertNotIn('id="historyBackendList"', html)
+        self.assertNotIn('id="historyProviderList"', html)
         self.assertNotIn('<button id="historyLoadSentinel"', html)
         self.assertNotIn('class="brand-mark"', html)
         self.assertNotIn("⌘", html)
@@ -648,9 +659,12 @@ class WebUIStaticHistoryTests(unittest.TestCase):
         boot_source = Path("codex_image/webui/frontend/src/boot.ts").read_text(encoding="utf-8")
 
         self.assertIn('localStorage.setItem(HISTORY_TASK_REUSE_HANDOFF_KEY', history_source)
+        self.assertIn('intent: "view"', history_source)
         self.assertIn('window.location.href = "/"', history_source)
         self.assertIn("async function restoreHistoryTaskReuseHandoff()", selection_source)
         self.assertIn("localStorage.removeItem(HISTORY_TASK_REUSE_HANDOFF_KEY)", selection_source)
+        self.assertIn('const handoffIntent = String(parsed?.intent || "view")', selection_source)
+        self.assertIn('if (handoffIntent !== "view") return;', selection_source)
         self.assertIn("applyTaskToForm(task)", selection_source)
         self.assertIn("await restoreTaskInputs(task", selection_source)
         self.assertIn('restoreHistoryTaskReuseHandoff,', selection_source)

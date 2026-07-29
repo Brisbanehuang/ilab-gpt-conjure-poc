@@ -1,4 +1,5 @@
 import { getLegacyBridge } from "./state";
+import { safeJson } from "./api";
 import { formatTranslation, LOCALE_CHANGE_EVENT, translate } from "./i18n";
 
 const bridge = getLegacyBridge();
@@ -31,7 +32,7 @@ async function refreshRecentAssets() {
   if (!els.recentAssetList) return;
   try {
     const response = await fetch("/api/reference-assets/recent?limit=50");
-    const data = await response.json();
+    const data = await safeJson(response);
     if (!response.ok) {
       throw new Error(data.detail || translate("recentAssets.loadFailed"));
     }

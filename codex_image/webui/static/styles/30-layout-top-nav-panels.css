@@ -207,8 +207,30 @@
   width: 46px;
   height: 46px;
   border-radius: 8px;
-  object-fit: cover;
   background: var(--surface);
+}
+
+.task-notification-thumb-image {
+  position: relative;
+  display: block;
+  overflow: hidden;
+}
+
+.task-notification-thumb-image img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.task-notification-thumb-image.image-load-failed::before {
+  content: attr(data-fallback);
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-size: 18px;
 }
 
 .task-notification-thumb-placeholder {

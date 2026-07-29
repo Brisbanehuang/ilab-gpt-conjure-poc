@@ -1,4 +1,5 @@
 import { getLegacyBridge } from "./state";
+import { safeJson } from "./api";
 import { formatTranslation, LOCALE_CHANGE_EVENT, translate } from "./i18n";
 
 const PROMPT_TEMPLATES_ENDPOINT = "/api/prompt-templates";
@@ -135,7 +136,7 @@ function applyPromptTemplateSettingsResponse(data: any) {
 async function refreshPromptTemplates() {
   try {
     const response = await fetch(PROMPT_TEMPLATES_ENDPOINT);
-    const data = await response.json();
+    const data = await safeJson(response);
     if (!response.ok) throw new Error(data.detail || translate("templates.loadFailed"));
     applyPromptTemplateSettingsResponse(data);
   } catch (error: any) {

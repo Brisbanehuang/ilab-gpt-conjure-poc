@@ -5,7 +5,12 @@ import unittest
 
 
 class PortablePackagingTests(unittest.TestCase):
+    def _require_upstream_workflows(self) -> None:
+        if not Path(".github/workflows/ci.yml").exists() or not Path(".github/workflows/release-portable.yml").exists():
+            self.skipTest("POC mirror disables upstream GitHub workflows")
+
     def test_github_workflows_use_node24_compatible_actions(self) -> None:
+        self._require_upstream_workflows()
         workflow_paths = [
             Path(".github/workflows/ci.yml"),
             Path(".github/workflows/release-portable.yml"),
@@ -29,6 +34,7 @@ class PortablePackagingTests(unittest.TestCase):
         self.assertIn("actions/download-artifact@v8", combined)
 
     def test_ci_workflow_avoids_github_unsupported_job_hashfiles_if(self) -> None:
+        self._require_upstream_workflows()
         workflow = Path(".github/workflows/ci.yml")
         self.assertTrue(workflow.exists(), f"{workflow} should exist")
 
@@ -93,7 +99,7 @@ class PortablePackagingTests(unittest.TestCase):
         self.assertIn("Update WebUI Portable.ps1", updater_text)
         self.assertIn("powershell -NoProfile -File", updater_text)
         self.assertNotIn("ExecutionPolicy Bypass", updater_text)
-        self.assertIn("https://api.github.com/repos/kadevin/ilab-gpt-conjure/releases/latest", updater_helper_text)
+        self.assertIn("https://api.github.com/repos/Brisbanehuang/ilab-gpt-conjure-poc/releases/latest", updater_helper_text)
         self.assertIn("browser_download_url", updater_helper_text)
         self.assertIn("ilab-gpt-conjure_windows_portable_x64_", updater_helper_text)
         self.assertIn("Get-FileHash", updater_helper_text)
@@ -194,7 +200,7 @@ class PortablePackagingTests(unittest.TestCase):
         self.assertNotIn("update-notice.json", launcher_text)
 
         updater_text = updater.read_text(encoding="utf-8")
-        self.assertIn("https://api.github.com/repos/kadevin/ilab-gpt-conjure/releases/latest", updater_text)
+        self.assertIn("https://api.github.com/repos/Brisbanehuang/ilab-gpt-conjure-poc/releases/latest", updater_text)
         self.assertIn("browser_download_url", updater_text)
         self.assertIn("ilab-gpt-conjure_macos_portable_${PACKAGE_ARCH}_", updater_text)
         self.assertIn("shasum -a 256", updater_text)
@@ -256,6 +262,7 @@ class PortablePackagingTests(unittest.TestCase):
             self.assertIn("webui-auth-settings.json", text)
 
     def test_portable_release_workflow_runs_after_ci_success(self) -> None:
+        self._require_upstream_workflows()
         workflow = Path(".github/workflows/release-portable.yml")
         self.assertTrue(workflow.exists(), f"{workflow} should exist")
 

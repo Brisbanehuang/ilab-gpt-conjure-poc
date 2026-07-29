@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from pathlib import Path
+import asyncio
 import re
+import threading
 from typing import Any
 from urllib.parse import quote, unquote, urlsplit
 
@@ -9,7 +11,16 @@ from fastapi import HTTPException
 
 from codex_image.client import ImageResult
 
-from .storage import TaskStorage, utc_now
+from .object_storage import (
+    content_type_for_format,
+    input_object_key,
+    load_object_storage_config,
+    object_storage_from_env,
+    output_object_key,
+    owner_id_from_params,
+    retention_expires_at,
+)
+from .storage import ReferenceAssetStorage, TaskStorage, _guess_mime_type, utc_now
 from .task_enrichment import _input_sources, _input_urls
 from .thumbnails import create_image_thumbnail, thumbnail_needs_refresh
 
@@ -279,6 +290,195 @@ def _is_generic_invalid_request_error(error: str) -> bool:
 
 def _output_url(storage: TaskStorage, path: Path) -> str:
     return f"/outputs/{quote(storage.output_file(path), safe='/')}"
+
+
+def _backend_output_url(task_id: str, output_index: int) -> str:
+    return f"/api/tasks/{task_id}/outputs/{output_index}"
+
+
+def _run_async_storage_call(awaitable: Any) -> Any:
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(awaitable)
+
+    result: dict[str, Any] = {}
+
+    def runner() -> None:
+        try:
+            result["value"] = asyncio.run(awaitable)
+        except BaseException as exc:  # pragma: no cover - re-raised in caller thread
+            result["error"] = exc
+
+    thread = threading.Thread(target=runner, daemon=True)
+    thread.start()
+    thread.join()
+    if "error" in result:
+        raise result["error"]
+    return result.get("value")
+
+
+def _stored_output_records(
+    storage: TaskStorage,
+    task_id: str,
+    metadata: dict[str, Any],
+    params: dict[str, Any],
+    output_paths: list[Path],
+    results: list[ImageResult],
+    source_records: list[dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
+    object_storage = object_storage_from_env() if params.get("omni_poc") else None
+    title = str(metadata.get("title") or metadata.get("display_title") or "")
+    expires_at = str(metadata.get("expires_at") or "")
+    records: list[dict[str, Any]] = []
+    for index, (path, result) in enumerate(zip(output_paths, results), start=1):
+        source_record = source_records[index - 1] if source_records is not None and index - 1 < len(source_records) else {}
+        output_index = _positive_int(source_record.get("index")) or index
+        output_format = result.output_format or str(params.get("output_format") or path.suffix.lstrip(".") or "png")
+        record: dict[str, Any] = {
+            "index": output_index,
+            "status": "completed",
+            "file": storage.output_file(path),
+            "url": _output_url(storage, path),
+            "size": result.size,
+            "format": output_format,
+            "quality": result.quality,
+            "background": result.background,
+            "revised_prompt": result.revised_prompt,
+            "usage": result.usage,
+            "tool_usage": result.tool_usage,
+        }
+        record.update(_output_thumbnail_fields(storage, task_id, output_index, path))
+        if object_storage is not None:
+            key = output_object_key(
+                owner_id=owner_id_from_params(params),
+                task_id=task_id,
+                title=title,
+                index=output_index,
+                ext=output_format,
+            )
+            content_type = content_type_for_format(output_format)
+            stored = _run_async_storage_call(object_storage.put(key, path.read_bytes(), content_type))
+            record.update(
+                {
+                    "storage_driver": stored.driver,
+                    "storage_key": stored.key,
+                    "content_type": stored.content_type,
+                    "bytes": stored.size,
+                    "url": _backend_output_url(task_id, output_index),
+                }
+            )
+            if expires_at:
+                record["expires_at"] = expires_at
+            _delete_transient_file(path, storage)
+        records.append(record)
+    return records
+
+
+def _input_route_url(task_id: str, input_index: int) -> str:
+    return f"/api/tasks/{quote(task_id, safe='')}/inputs/{input_index}"
+
+
+def _stored_reference_asset_records(
+    task_id: str,
+    metadata: dict[str, Any],
+    params: dict[str, Any],
+    reference_assets: list[dict[str, Any]] | None,
+    reference_asset_storage: ReferenceAssetStorage | None,
+    *,
+    input_file_count: int,
+) -> list[dict[str, Any]]:
+    assets = [dict(item) for item in (reference_assets or []) if isinstance(item, dict)]
+    if not assets:
+        return []
+    object_storage = object_storage_from_env() if params.get("omni_poc") else None
+    existing_by_id = {
+        str(item.get("id")): item
+        for item in metadata.get("reference_assets", [])
+        if isinstance(item, dict) and item.get("id")
+    }
+    expires_at = str(metadata.get("expires_at") or retention_expires_at(str(metadata.get("created_at") or utc_now()), policy="30_days"))
+    records: list[dict[str, Any]] = []
+    for offset, asset in enumerate(assets, start=1):
+        asset_id = str(asset.get("id") or "")
+        source_index = input_file_count + offset
+        existing = existing_by_id.get(asset_id, {})
+        record = {**asset, **{key: value for key, value in existing.items() if key.startswith("storage_") or key in {"content_type", "bytes", "expires_at", "source_index"}}}
+        if record.get("storage_key"):
+            record["source_index"] = record.get("source_index") or source_index
+            record["image_url"] = _input_route_url(task_id, int(record["source_index"]))
+            record["thumbnail_url"] = record["image_url"]
+            records.append(record)
+            continue
+        if object_storage is None or reference_asset_storage is None or not asset_id:
+            records.append(record)
+            continue
+        image_path = reference_asset_storage.image_path(asset_id)
+        filename = str(asset.get("original_filename") or asset.get("filename") or image_path.name)
+        ext = image_path.suffix.lstrip(".") or filename.rsplit(".", 1)[-1] or "png"
+        content_type = str(asset.get("mime_type") or _guess_mime_type(image_path.name))
+        data = image_path.read_bytes()
+        key = input_object_key(owner_id=owner_id_from_params(params), task_id=task_id, filename=filename, index=source_index, ext=ext)
+        stored = _run_async_storage_call(object_storage.put(key, data, content_type))
+        record.update(
+            {
+                "storage_driver": stored.driver,
+                "storage_key": stored.key,
+                "content_type": stored.content_type,
+                "bytes": stored.size,
+                "expires_at": expires_at,
+                "source_index": source_index,
+                "image_url": _input_route_url(task_id, source_index),
+                "thumbnail_url": _input_route_url(task_id, source_index),
+            }
+        )
+        records.append(record)
+    return records
+
+
+def _apply_omni_retention_metadata(metadata: dict[str, Any], params: dict[str, Any], created_at: str) -> None:
+    if not params.get("omni_poc"):
+        return
+    policy = "30_days"
+    expires_at = retention_expires_at(str(metadata.get("created_at") or created_at), policy=policy)
+    metadata["owner_id"] = owner_id_from_params(params)
+    metadata["storage_driver"] = load_object_storage_config().driver
+    metadata["retention_policy"] = policy
+    metadata["expires_at"] = expires_at
+    for collection_key in ("outputs", "input_sources"):
+        records = metadata.get(collection_key)
+        if not isinstance(records, list):
+            continue
+        for record in records:
+            if isinstance(record, dict) and record.get("storage_key"):
+                record["expires_at"] = expires_at
+
+
+def _delete_transient_file(path: Path, storage: TaskStorage) -> None:
+    try:
+        resolved = path.resolve(strict=False)
+        source_data_root = storage.source_data_root.resolve(strict=False)
+        try:
+            resolved.relative_to(source_data_root)
+            return
+        except ValueError:
+            pass
+        if resolved.suffix.lower() in {".sqlite", ".db"}:
+            return
+        allowed = False
+        for root in (storage.output_root.resolve(strict=False), storage.input_root.resolve(strict=False)):
+            try:
+                resolved.relative_to(root)
+            except ValueError:
+                continue
+            allowed = True
+            break
+        if not allowed:
+            return
+        path.unlink()
+        storage._prune_empty_output_dir(path.parent)
+    except FileNotFoundError:
+        return
 
 
 def _output_thumbnail_fields(storage: TaskStorage, task_id: str, output_index: int, output_path: Path) -> dict[str, str]:
@@ -663,6 +863,7 @@ def _write_queued_metadata(
     prompt_constraints: list[str] | None = None,
     requested_backend: str | None = None,
     max_attempts: int = 2,
+    title: str | None = None,
 ) -> dict[str, Any]:
     metadata = {
         "task_id": task_id,
@@ -685,12 +886,17 @@ def _write_queued_metadata(
         "max_attempts": max_attempts,
         "last_error": "",
     }
+    clean_title = str(title or "").strip()
+    if clean_title:
+        metadata["title"] = clean_title
+        metadata["display_title"] = clean_title
     if requested_backend:
         metadata["requested_backend"] = requested_backend
     _apply_api_provider_metadata(metadata, params)
     _apply_api_images_concurrency_metadata(metadata, params)
     if prompt_constraints:
         metadata["prompt_constraints"] = list(prompt_constraints)
+    _apply_omni_retention_metadata(metadata, params, created_at)
     storage.write_metadata(task_id, metadata)
     return metadata
 
@@ -748,6 +954,7 @@ def _write_progress_metadata(
         }
     )
     _apply_api_provider_metadata(metadata, params)
+    _apply_omni_retention_metadata(metadata, params, created_at)
     if failed_records:
         metadata["last_error"] = _partial_failure_message(len(failed_records), total_count, failed_records[-1].get("error"))
     else:
@@ -834,6 +1041,7 @@ def _finalize_generated_task(
     params: dict[str, Any],
     output_paths: list[Path],
     output_records: list[dict[str, Any]],
+    reference_asset_storage: ReferenceAssetStorage | None = None,
 ) -> dict[str, Any]:
     del request_payload
     if not results or not output_paths:
@@ -842,17 +1050,40 @@ def _finalize_generated_task(
     input_names = [path.name for path in input_files]
     results, output_paths, output_records = _ordered_output_progress(results, output_paths, output_records)
     failed_records = [record for record in output_records if record.get("status") == "failed"]
+    completed_records = [record for record in output_records if record.get("status") == "completed"]
     first_result = results[0]
     first_output_path = output_paths[0]
     total_count = int(params.get("n") or len(output_records) or len(results) or 1)
     metadata = storage.read_metadata(task_id)
+    was_cancelled = bool(metadata.get("cancel_requested"))
+    reference_assets = _stored_reference_asset_records(
+        task_id,
+        metadata,
+        params,
+        reference_assets,
+        reference_asset_storage,
+        input_file_count=len(input_names),
+    )
+    stored_records = _stored_output_records(storage, task_id, metadata, params, output_paths, results, source_records=completed_records)
+    if output_records:
+        records_by_index = {
+            _positive_int(record.get("index")) or index: dict(record)
+            for index, record in enumerate(output_records, start=1)
+        }
+        for stored_record in stored_records:
+            index = _positive_int(stored_record.get("index")) or 0
+            merged = {**records_by_index.get(index, {}), **stored_record}
+            records_by_index[index] = merged
+        output_records = [records_by_index[index] for index in sorted(records_by_index)]
+    else:
+        output_records = stored_records
     metadata.update(
         {
             "task_id": task_id,
             "created_at": created_at,
             "updated_at": utc_now(),
             "mode": mode,
-            "status": "partial_failed" if failed_records else "completed",
+            "status": "cancelled" if was_cancelled else ("partial_failed" if failed_records else "completed"),
             "prompt": prompt,
             "prompt_for_model": prompt_for_model,
             "params": params,
@@ -866,8 +1097,8 @@ def _finalize_generated_task(
             "total_count": total_count,
             "output_file": storage.output_file(first_output_path),
             "output_files": [storage.output_file(path) for path in output_paths],
-            "output_url": _output_url(storage, first_output_path),
-            "output_urls": [_output_url(storage, path) for path in output_paths],
+            "output_url": str(stored_records[0].get("url") or _output_url(storage, first_output_path)),
+            "output_urls": [str(record.get("url") or _output_url(storage, path)) for record, path in zip(stored_records, output_paths)],
             "outputs": output_records,
             "output_size": first_result.size,
             "output_sizes": [result.size for result in results],
@@ -886,10 +1117,14 @@ def _finalize_generated_task(
         }
     )
     _apply_api_provider_metadata(metadata, params)
+    _apply_omni_retention_metadata(metadata, params, created_at)
     metadata.pop("request", None)
-    metadata.pop("error", None)
+    if not was_cancelled:
+        metadata.pop("error", None)
     _apply_api_images_concurrency_metadata(metadata, params)
-    if failed_records:
+    if was_cancelled:
+        metadata["last_error"] = str(metadata.get("last_error") or metadata.get("error") or "Task cancelled by user.")
+    elif failed_records:
         metadata["last_error"] = _partial_failure_message(len(failed_records), total_count, failed_records[-1].get("error"))
     else:
         metadata.pop("last_error", None)
@@ -912,6 +1147,7 @@ def _complete_task(
     reference_assets: list[dict[str, Any]] | None,
     request_payload: dict[str, Any],
     params: dict[str, Any],
+    reference_asset_storage: ReferenceAssetStorage | None = None,
 ) -> dict[str, Any]:
     result_list = results if isinstance(results, list) else [results]
     output_paths: list[Path] = []
@@ -945,6 +1181,15 @@ def _complete_task(
     input_names = [path.name for path in input_files]
     total_count = int(params.get("n") or len(result_list) or 1)
     metadata = storage.read_metadata(task_id)
+    reference_assets = _stored_reference_asset_records(
+        task_id,
+        metadata,
+        params,
+        reference_assets,
+        reference_asset_storage,
+        input_file_count=len(input_names),
+    )
+    output_records = _stored_output_records(storage, task_id, metadata, params, output_paths, result_list)
     metadata.update(
         {
             "task_id": task_id,
@@ -964,8 +1209,9 @@ def _complete_task(
             "total_count": total_count,
             "output_file": storage.output_file(first_output_path),
             "output_files": [storage.output_file(path) for path in output_paths],
-            "output_url": _output_url(storage, first_output_path),
-            "output_urls": [_output_url(storage, path) for path in output_paths],
+            "output_url": str(output_records[0].get("url") or _output_url(storage, first_output_path)),
+            "output_urls": [str(record.get("url") or _output_url(storage, path)) for record, path in zip(output_records, output_paths)],
+            "outputs": output_records,
             "output_size": first_result.size,
             "output_sizes": output_sizes,
             "output_format": first_result.output_format,
@@ -983,6 +1229,7 @@ def _complete_task(
         }
     )
     _apply_api_provider_metadata(metadata, params)
+    _apply_omni_retention_metadata(metadata, params, created_at)
     metadata.pop("request", None)
     metadata.pop("error", None)
     metadata.pop("last_error", None)

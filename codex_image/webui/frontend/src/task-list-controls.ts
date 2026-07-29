@@ -30,9 +30,43 @@ const archiveSelectedTasks = (...args: any[]) => legacyMethod("archiveSelectedTa
 const openBatchDeleteConfirm = (...args: any[]) => legacyMethod("openBatchDeleteConfirm", ...args);
 const handleTaskListPointerDown = (...args: any[]) => legacyMethod("handleTaskListPointerDown", ...args);
 const closeArchiveModal = (...args: any[]) => legacyMethod("closeArchiveModal", ...args);
+const openArchiveModal = (...args: any[]) => legacyMethod("openArchiveModal", ...args);
 
 let taskListControlsInitialized = false;
 let taskListControlEventsBound = false;
+let taskSearchAcceptManualInput = false;
+let taskSearchHasUserEdited = false;
+
+function setTaskSearchLocked(locked: boolean) {
+  const input = els.taskSearch as HTMLInputElement | null;
+  if (!input) return;
+  if (locked) {
+    input.setAttribute("readonly", "");
+  } else {
+    input.removeAttribute("readonly");
+  }
+}
+
+function isLikelyBrowserAutofillTaskSearchValue(value: string) {
+  const trimmed = String(value || "").trim();
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed);
+}
+
+function guardTaskSearchAutofill(delays: number[] = []) {
+  const input = els.taskSearch as HTMLInputElement | null;
+  if (!input) return false;
+  let cleared = false;
+  const clearIfAutofilled = () => {
+    if (taskSearchHasUserEdited || taskSearchAcceptManualInput || !isLikelyBrowserAutofillTaskSearchValue(input.value)) return;
+    input.value = "";
+    cleared = true;
+    renderTasks();
+    void syncTaskSearchHistoryResults();
+  };
+  clearIfAutofilled();
+  delays.forEach((delay) => setTimeout(clearIfAutofilled, delay));
+  return cleared;
+}
 
 function bindTaskListControlEvents() {
   if (taskListControlEventsBound) return;
@@ -43,9 +77,56 @@ function bindTaskListControlEvents() {
     if (event.target === els.archiveModal) closeArchiveModal();
   });
   els.batchManageButton?.addEventListener("click", () => toggleBatchMode());
+  els.archiveButton?.addEventListener("click", openArchiveModal);
   els.batchArchiveButton?.addEventListener("click", archiveSelectedTasks);
   els.batchDeleteButton?.addEventListener("click", openBatchDeleteConfirm);
   els.batchCancelButton?.addEventListener("click", () => toggleBatchMode(false));
+  setTaskSearchLocked(true);
+  guardTaskSearchAutofill([80, 240, 720]);
+  window.addEventListener("pageshow", () => guardTaskSearchAutofill([80, 240, 720]));
+  els.taskSearch.addEventListener("pointerdown", (event: PointerEvent) => {
+    const input = els.taskSearch as HTMLInputElement | null;
+    if (!input?.readOnly) return;
+    event.preventDefault();
+    setTaskSearchLocked(false);
+    guardTaskSearchAutofill();
+    input.focus({ preventScroll: true });
+  });
+  els.taskSearch.addEventListener("keydown", (event: KeyboardEvent) => {
+    const input = els.taskSearch as HTMLInputElement | null;
+    if (input?.readOnly && !event.metaKey && !event.ctrlKey && !event.altKey) {
+      const key = event.key || "";
+      const isPrintable = key.length === 1;
+      const isClearKey = key === "Backspace" || key === "Delete";
+      if (isPrintable || isClearKey) {
+        event.preventDefault();
+        setTaskSearchLocked(false);
+        taskSearchAcceptManualInput = true;
+        taskSearchHasUserEdited = true;
+        input.value = isClearKey ? "" : key;
+        handleTaskSearchInput();
+      }
+      return;
+    }
+    taskSearchAcceptManualInput = true;
+    taskSearchHasUserEdited = true;
+  });
+  els.taskSearch.addEventListener("paste", () => {
+    taskSearchAcceptManualInput = true;
+    taskSearchHasUserEdited = true;
+  });
+  els.taskSearch.addEventListener("drop", () => {
+    taskSearchAcceptManualInput = true;
+    taskSearchHasUserEdited = true;
+  });
+  els.taskSearch.addEventListener("focus", () => {
+    taskSearchAcceptManualInput = false;
+    guardTaskSearchAutofill([120, 360, 900]);
+  });
+  els.taskSearch.addEventListener("blur", () => {
+    taskSearchAcceptManualInput = false;
+    setTaskSearchLocked(true);
+  });
   els.taskSearch.addEventListener("input", handleTaskSearchInput);
   [els.taskRatioFilter, els.taskOrientationFilter, els.taskPromptFidelityFilter, els.taskResolutionFilter]
     .filter(Boolean)
@@ -56,6 +137,11 @@ function bindTaskListControlEvents() {
 }
 
 function handleTaskSearchInput() {
+  if (!taskSearchAcceptManualInput && guardTaskSearchAutofill([120, 360, 900])) return;
+  const input = els.taskSearch as HTMLInputElement | null;
+  if (!input) return;
+  taskSearchHasUserEdited = Boolean(input.value);
+  if (!input.value) taskSearchHasUserEdited = false;
   renderTasks();
   void syncTaskSearchHistoryResults();
 }

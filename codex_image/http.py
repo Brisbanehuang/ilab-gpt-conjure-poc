@@ -11,6 +11,11 @@ from typing import Protocol
 from urllib import error, request
 
 DEFAULT_REQUEST_TIMEOUT_SECONDS = 600.0
+DEFAULT_USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/126.0.0.0 Safari/537.36"
+)
 
 
 def _request_timeout_seconds(value: float | None = None) -> float:
@@ -76,7 +81,10 @@ class UrllibTransport:
         headers: dict[str, str],
         body: bytes,
     ) -> HTTPResponse:
-        req = request.Request(url=url, data=body, headers=headers, method=method)
+        request_headers = dict(headers)
+        if not any(key.lower() == "user-agent" for key in request_headers):
+            request_headers["User-Agent"] = DEFAULT_USER_AGENT
+        req = request.Request(url=url, data=body, headers=request_headers, method=method)
         started_at = time.monotonic()
         try:
             context = _https_ssl_context() if url.lower().startswith("https://") else None

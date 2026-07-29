@@ -114,7 +114,13 @@ from .settings_store import (
 )
 from .context import WebUIContext
 from .events import event_key, event_snapshot, queue_snapshot, queued_or_running_task_ids, sse_message, task_event
+from .omni_poc import OmniTaskSecretStore, load_omni_poc_config
+from .omni_poc_limits import FixedWindowRateLimiter
+from .object_storage import load_object_storage_config, owner_id_from_params
+from .omni_session import OmniSessionStore
 from .routes import register_webui_routes
+from .submit_dedupe import SubmitDedupeCache
+from .task_outputs import _apply_omni_retention_metadata
 from .executor import (
     _call_image_client,
     _debug_sse_path,
@@ -234,10 +240,18 @@ def create_app(
     prompt_snippet_settings = PromptSnippetSettings(Path(prompt_snippets_path))
     prompt_template_settings = PromptTemplateSettings(Path(prompt_templates_path))
     static_path = Path(static_dir) if static_dir is not None else Path(__file__).parent / "static"
+    omni_poc_config = load_omni_poc_config(output_path)
+    omni_task_secret_store = OmniTaskSecretStore(omni_poc_config) if omni_poc_config.enabled else None
+    omni_session_store = OmniSessionStore(omni_poc_config) if omni_poc_config.enabled else None
     make_client = client_factory or (lambda: _client_for_auth_source(auth_settings.read_source(), api_settings=api_settings))
     check_auth = auth_checker or (lambda: bool(_auth_status(auth_settings.read_source(), api_settings=api_settings)["auth_available"]))
 
     app = FastAPI(title="iLab GPT CONJURE", lifespan=queue_lifespan)
+    app.state.omni_poc_config = omni_poc_config
+    app.state.omni_task_secret_store = omni_task_secret_store
+    app.state.omni_session_store = omni_session_store
+    app.state.omni_submit_limiter = FixedWindowRateLimiter(limit=20, window_seconds=3600)
+    app.state.submit_dedupe_cache = SubmitDedupeCache()
     ctx = WebUIContext(
         app=app,
         storage=storage,
@@ -260,6 +274,10 @@ def create_app(
         auto_start_queue=auto_start_queue,
     )
     ctx.install_on_app_state()
+    ctx.route_helpers["omni_poc_config"] = omni_poc_config
+    ctx.route_helpers["omni_task_secret_store"] = omni_task_secret_store
+    ctx.route_helpers["omni_session_store"] = omni_session_store
+    ctx.route_helpers["omni_submit_limiter"] = app.state.omni_submit_limiter
 
     queue_runtime = install_queue_runtime(
         ctx,
@@ -267,8 +285,9 @@ def create_app(
         auto_retry=auto_retry,
         client_factory_overridden=client_factory is not None,
     )
-    app.mount("/inputs", StaticFiles(directory=input_path, check_dir=False), name="inputs")
-    app.mount("/outputs", StaticFiles(directory=output_path, check_dir=False), name="outputs")
+    if not omni_poc_config.enabled:
+        app.mount("/inputs", StaticFiles(directory=input_path, check_dir=False), name="inputs")
+        app.mount("/outputs", StaticFiles(directory=output_path, check_dir=False), name="outputs")
     app.mount("/static", NoCacheStaticFiles(directory=static_path, check_dir=False), name="static")
 
     @app.get("/", response_model=None)
@@ -314,7 +333,7 @@ def create_app(
                 storage, task_id, metadata, api_settings, api_provider_id
             ),
             "save_uploads": lambda task_id, files, kind="input": _save_uploads(storage, task_id, files, kind=kind),
-            "save_reference_assets": lambda files: _save_reference_assets(reference_asset_storage, files),
+            "save_reference_assets": lambda files, storage_override=None: _save_reference_assets(storage_override or reference_asset_storage, files),
             "dedupe_reference_assets": _dedupe_reference_assets,
             "build_image_request_payload": lambda **kwargs: _build_image_request_payload(**kwargs),
             "slim_request_payload": lambda request_payload, **kwargs: _slim_request_payload(request_payload, **kwargs),
@@ -339,6 +358,7 @@ def create_app(
                 auth_source, api_settings, api_provider_id
             ),
             "client_factory_overridden": client_factory is not None,
+            "check_omni_storage_quota": lambda params: _check_omni_storage_quota(storage, params),
         }
     )
     register_webui_routes(app, ctx)
@@ -503,8 +523,19 @@ def _set_task_archived(storage: TaskStorage, task_id: str, archived: bool) -> di
         metadata["archived_at"] = str(metadata.get("archived_at") or utc_now())
     else:
         metadata.pop("archived_at", None)
+    params = metadata.get("params") if isinstance(metadata.get("params"), dict) else {}
+    _apply_omni_retention_metadata(metadata, params, str(metadata.get("created_at") or utc_now()))
     storage.write_metadata(task_id, metadata)
     return metadata
+
+
+def _check_omni_storage_quota(storage: TaskStorage, params: dict[str, Any]) -> None:
+    config = load_object_storage_config()
+    if config.max_bytes_per_user is None:
+        return
+    owner_id = owner_id_from_params(params)
+    if storage.stored_bytes_for_owner(owner_id) >= config.max_bytes_per_user:
+        raise HTTPException(status_code=429, detail="你的图片存储空间已接近上限，请先下载并删除旧作品后再继续。")
 
 
 def _mark_task_cancelled(storage: TaskStorage, task_id: str) -> dict[str, Any]:

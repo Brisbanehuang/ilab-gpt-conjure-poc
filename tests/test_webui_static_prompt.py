@@ -57,6 +57,30 @@ class WebUIStaticPromptTests(WebUIStaticTestCase):
         script = self._frontend_script_source()
 
         self.assertIn('id="promptFidelity"', html)
+        self.assertIn('class="field-label-with-help"', html)
+        self.assertIn('class="field-help-button"', html)
+        self.assertIn('aria-describedby="promptModeTooltip"', html)
+        self.assertIn('data-i18n-attr="aria-label:output.promptModeHelpLabel"', html)
+        self.assertIn('id="promptModeTooltip"', html)
+        self.assertIn('role="tooltip"', html)
+        help_button_match = re.search(r'<button\s+[^>]*class="field-help-button"[^>]*>', html)
+        self.assertIsNotNone(help_button_match)
+        self.assertNotIn("title=", help_button_match.group(0))
+        self.assertIn("原始：逐字使用，不改写。适合精确指令。", html)
+        self.assertIn("保真：适当润色，保留关键约束。适合中文描述。（默认）", html)
+        self.assertIn("创意：自由发挥，适合找灵感。", html)
+        styles = Path("codex_image/webui/static/styles.css").read_text(encoding="utf-8")
+        self.assertRegex(styles, r"\.field-help-button\s*\{[^}]*width:\s*16px")
+        self.assertRegex(styles, r"\.field-help-button\s*\{[^}]*height:\s*16px")
+        self.assertRegex(styles, r"\.field-help-tooltip\s*\{[^}]*position:\s*absolute")
+        self.assertRegex(styles, r"\.field-help-tooltip\s*\{[^}]*background:\s*var\(--surface\)")
+        self.assertRegex(styles, r"\.field-help-tooltip\s*\{[^}]*box-shadow:")
+        self.assertRegex(styles, r"\.field-help-tooltip\s*\{[^}]*opacity:\s*0")
+        self.assertIn(".field-help-button:hover + .field-help-tooltip", styles)
+        self.assertIn(".field-help-button:focus + .field-help-tooltip", styles)
+        self.assertIn(".field-help-button:focus-visible + .field-help-tooltip", styles)
+        self.assertIn(".field-label-with-help:focus-within .field-help-tooltip", styles)
+        self.assertRegex(styles, r"\.field-help-button:hover\s*\+\s*\.field-help-tooltip[\s\S]*?\{[^}]*opacity:\s*1")
         self.assertRegex(
             html,
             r'data-val="original" type="button"[^>]*>原始模式</button>\s*<button class="radio-btn active" data-val="strict" type="button"[^>]*>保真模式</button>',
@@ -1020,9 +1044,13 @@ console.log(cases.map((color) => readableTextColor(color)).join("\\n"));
         self.assertIn("promptButton.dataset.promptPopoverIndex = String(index)", script)
         self.assertIn("promptPopoverData(state.previewTask, index)", script)
         self.assertIn("const originalPrompt = task.prompt || task.prompt_for_model || \"\"", script)
+        self.assertIn("const optimizedPrompt = taskOptimizedPrompt(task, index)", script)
+        self.assertIn("function taskOptimizedPrompt(task", script)
+        self.assertIn("const submittedPrompt = optimizedPrompt || task.prompt_for_model || originalPrompt || \"\"", script)
         self.assertIn("task.prompt_for_model", script)
         self.assertIn("task.revised_prompt", script)
-        self.assertIn("task.revised_prompts?.[index]", script)
+        self.assertIn("task.revised_prompts", script)
+        self.assertIn("output?.revised_prompt", script)
         self.assertIn("openPromptPopover", script)
         self.assertIn("closePromptPopover", script)
         self.assertIn("copyOptimizedPrompt", script)
@@ -1074,20 +1102,21 @@ console.log(cases.map((color) => readableTextColor(color)).join("\\n"));
         styles = Path("codex_image/webui/static/styles.css").read_text(encoding="utf-8")
 
         self.assertIn('id="mainModel"', html)
+        self.assertIn('value="gpt-5.4-mini"', html)
         self.assertIn('id="mainModelCombobox"', html)
         self.assertIn('role="combobox"', html)
         self.assertIn('id="mainModelToggle"', html)
         self.assertIn('id="mainModelOptions"', html)
         self.assertIn('role="listbox"', html)
-        self.assertIn('/static/app.js?v=runtime-368', html)
-        self.assertIn('/static/styles.css?v=runtime-368', html)
+        self.assertIn('/static/app.js?v=runtime-371', html)
+        self.assertIn('/static/styles.css?v=runtime-371', html)
         self.assertIn("mainModel: document.querySelector", script)
         self.assertIn("mainModelCombobox: document.querySelector", script)
         self.assertIn("mainModelToggle: document.querySelector", script)
         self.assertIn("mainModelOptions: document.querySelector", script)
         self.assertIn("mainModelShowAllOptions: false", script)
-        self.assertIn('const MAIN_MODEL_OPTIONS = ["gpt-5.5", "gpt-5.4", "gpt-5.4-mini", "gpt-5.3-codex", "gpt-5.2"];', script)
-        self.assertIn('const RETIRED_MAIN_MODEL_OPTIONS = new Set(["gpt-5.3-codex-spark"]);', script)
+        self.assertIn('const MAIN_MODEL_OPTIONS = ["gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna", "gpt-5.4-mini"];', script)
+        self.assertIn('const RETIRED_MAIN_MODEL_OPTIONS = new Set(["gpt-5.5", "gpt-5.4", "gpt-5.3-codex", "gpt-5.2", "gpt-5.3-codex-spark"]);', script)
         self.assertIn("function mainModelOptionsForQuery", script)
         self.assertIn("function openMainModelCombobox", script)
         self.assertIn("function selectMainModelOption", script)
@@ -1115,16 +1144,17 @@ console.log(cases.map((color) => readableTextColor(color)).join("\\n"));
         script = Path("codex_image/webui/frontend/src/main-model-combobox.ts").read_text(encoding="utf-8")
         harness = "\n".join(
             [
-                'const MAIN_MODEL_OPTIONS = ["gpt-5.5", "gpt-5.4", "gpt-5.4-mini", "gpt-5.3-codex", "gpt-5.2"];',
+                'const MAIN_MODEL_OPTIONS = ["gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna", "gpt-5.4-mini"];',
                 self._extract_javascript_function(script, "mainModelOptionsForQuery"),
                 """
                 const codexMatches = mainModelOptionsForQuery("codex");
+                const fiveSixMatches = mainModelOptionsForQuery("gpt-5.6");
                 const customMatches = mainModelOptionsForQuery("future-model-x");
-                if (!codexMatches.includes("gpt-5.3-codex")) {
-                  throw new Error(`expected codex model matches, got ${codexMatches.join(",")}`);
+                if (codexMatches.length !== 0) {
+                  throw new Error(`retired codex models should not be offered, got ${codexMatches.join(",")}`);
                 }
-                if (codexMatches.includes("gpt-5.3-codex-spark")) {
-                  throw new Error(`spark should not be a built-in image tool option, got ${codexMatches.join(",")}`);
+                if (fiveSixMatches.join(",") !== "gpt-5.6-sol,gpt-5.6-terra,gpt-5.6-luna") {
+                  throw new Error(`expected three gpt-5.6 options, got ${fiveSixMatches.join(",")}`);
                 }
                 if (customMatches.length !== 0) {
                   throw new Error(`custom input should remain valid without forced option, got ${customMatches.join(",")}`);
@@ -1144,10 +1174,10 @@ console.log(cases.map((color) => readableTextColor(color)).join("\\n"));
             [
                 'const DEFAULT_MAIN_MODEL = "gpt-5.4-mini";',
                 'const MAIN_MODEL_STORAGE_KEY = "codex-image-main-model";',
-                'const RETIRED_MAIN_MODEL_OPTIONS = new Set(["gpt-5.3-codex-spark"]);',
+                'const RETIRED_MAIN_MODEL_OPTIONS = new Set(["gpt-5.5", "gpt-5.4", "gpt-5.3-codex", "gpt-5.2", "gpt-5.3-codex-spark"]);',
                 """
                 const els = { mainModel: { value: "" } };
-                const storedValues = { [MAIN_MODEL_STORAGE_KEY]: "gpt-5.3-codex-spark" };
+                const storedValues = { [MAIN_MODEL_STORAGE_KEY]: "gpt-5.5" };
                 const localStorage = {
                   getItem(key) { return storedValues[key] ?? null; },
                   setItem(key, value) { storedValues[key] = value; },
@@ -1208,6 +1238,12 @@ console.log(cases.map((color) => readableTextColor(color)).join("\\n"));
         self.assertIn("function setModeSettingsVariant", script)
         self.assertIn("function isDirectApiMode(authSource = currentAuthSource())", script)
         self.assertIn("function updateModeSpecificSettings(authSource = currentAuthSource())", script)
+        self.assertIn("import { isOmniPocMode } from \"./omni-poc-key\";", script)
+        self.assertRegex(
+            script,
+            r"function updateWebSearchAvailability\(authSource = currentAuthSource\(\)\)[\s\S]*const supported = isOmniPocMode\(\)[\s\S]*true",
+        )
+        self.assertIn("if (isOmniPocMode()) return true;", script)
         self.assertIn('authSource === "api" && currentApiMode() !== "responses"', script)
         self.assertIn('authSource === "codex" && currentCodexMode() !== "responses"', script)
         self.assertIn("setModeSettingsVariant(isDirectApi)", script)
@@ -1262,4 +1298,4 @@ console.log(cases.map((color) => readableTextColor(color)).join("\\n"));
         self.assertNotIn("input_fidelity: state.mode", script)
         self.assertNotIn('payload.input_fidelity', script)
         self.assertNotIn('form.append("input_fidelity"', script)
-        self.assertIn('els.size.value = "1024x1024"', script)
+        self.assertIn('els.size.value = "2048x2048"', script)

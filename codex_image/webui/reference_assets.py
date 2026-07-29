@@ -26,6 +26,9 @@ class ReferenceAssetStorage:
         self.max_items = max(1, int(max_items))
         self._lock = threading.RLock()
 
+    def scoped(self, owner_id: str) -> "ReferenceAssetStorage":
+        return ReferenceAssetStorage(self.root / "users" / _clean_reference_asset_owner_id(owner_id) / "reference-assets", max_items=self.max_items)
+
     def create_or_touch(
         self,
         filename: str,
@@ -48,6 +51,7 @@ class ReferenceAssetStorage:
             metadata = {
                 "id": asset_id,
                 "sha256": asset_id,
+                "original_filename": filename or "image.png",
                 "filename": _safe_filename(filename),
                 "stored_filename": stored_filename,
                 "mime_type": content_type or _guess_mime_type(stored_filename),
@@ -213,3 +217,10 @@ def _reference_asset_suffix(filename: str, content_type: str | None = None) -> s
     if guessed in REFERENCE_ASSET_SUFFIXES:
         return guessed
     return ".png"
+
+
+def _clean_reference_asset_owner_id(owner_id: str) -> str:
+    clean = re.sub(r"[^a-zA-Z0-9_-]+", "", str(owner_id or "").strip())
+    if not clean:
+        raise ValueError("Invalid reference asset owner id")
+    return clean

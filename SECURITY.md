@@ -26,6 +26,13 @@ endpoint. It is not an officially recommended OpenAI API integration path and
 may change or stop working without notice. Prefer OpenAI-compatible API mode for
 stable integrations.
 
+## Optional Sub2API login bridge
+
+The share branch keeps the Omni/Sub2API login bridge disabled by default. When
+enabling it, configure the Sub2API base URL, login URL, dashboard URL, and CORS
+origins explicitly. Never use `*` as a credentialed CORS origin, and do not
+publish the Fernet key used by `OMNI_POC_SECRET_KEY`.
+
 ## Portable updater behavior
 
 Portable startup launchers only start the local WebUI server and open the local

@@ -89,8 +89,10 @@ def _backend_for_queue_channel(
     *,
     api_settings: ApiSettings | None = None,
 ) -> str:
+    params = metadata.get("params") if isinstance(metadata, dict) and isinstance(metadata.get("params"), dict) else {}
+    if bool(params.get("omni_poc")):
+        return BACKEND_OPENAI_IMAGES
     if channel.auth_source == "api":
-        params = metadata.get("params") if isinstance(metadata, dict) and isinstance(metadata.get("params"), dict) else {}
         if api_settings is not None:
             settings = api_settings.read()
             provider = api_settings.provider_settings(str(params.get("api_provider_id") or settings.get("active_provider_id") or ""))

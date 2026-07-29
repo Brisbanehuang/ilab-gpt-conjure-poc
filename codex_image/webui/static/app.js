@@ -512,6 +512,7 @@
     "taskStatus.runningWithElapsed": "Generating \xB7 {elapsed}",
     "taskStatus.completed": "Completed",
     "taskStatus.partialFailed": "Partially failed",
+    "taskStatus.cancelled": "Cancelled (upstream completed)",
     "taskStatus.failed": "Failed",
     "taskStatus.queued": "Queued",
     "taskStatus.unknown": "Unknown status",
@@ -545,7 +546,7 @@
     "footer.archiveCount": "Archive {count}",
     "footer.historyLibrary": "History",
     "historyLibrary.openFull": "Open full history library",
-    "history.documentTitle": "History - iLab GPT CONJURE",
+    "history.documentTitle": "History - OmniAPi Image Studio",
     "history.back": "Back to generator",
     "history.title": "History",
     "history.loading": "Loading",
@@ -660,7 +661,8 @@
     "history.quality.auto": "Auto",
     "footer.batch": "Batch",
     "footer.storage": "Storage",
-    "footer.apiStatus": "API status: OK",
+    "footer.apiStatus": "Service connected",
+    "footer.retentionNotice": "Images are kept for 30 days. Download them in time.",
     "footer.version": "Version {version}",
     "footer.versionInfo": "Version info",
     "footer.versionLoading": "Version ...",
@@ -716,8 +718,8 @@
     "language.it": "Italiano",
     "language.hi": "\u0939\u093F\u0928\u094D\u0926\u0940",
     "auth.label": "Auth source",
-    "auth.checking": "Checking auth",
-    "auth.missingCodexSession": "No Codex session detected",
+    "auth.checking": "Checking sign-in",
+    "auth.missingCodexSession": "Please sign in from Omni first",
     "auth.switchFailed": "Failed to switch auth source",
     "auth.sourceUnavailable": "{source} unavailable",
     "auth.notActive": "Not active",
@@ -861,8 +863,11 @@
     "output.mainModelUnused": "Main model is not used for this request",
     "output.webSearch": "Web search",
     "output.webSearchToggle": "On",
-    "output.webSearchTitle": "Search the web first, then use it for this generation; Codex and API Responses only",
+    "output.webSearchHelpLabel": "Web search help",
+    "output.webSearchTitle": "Search the web first, then use it for this generation",
     "output.promptMode": "Prompt mode",
+    "output.promptModeHelpLabel": "Prompt mode help",
+    "output.promptModeHelp": "Original: Use your prompt verbatim. Best for precise instructions.\nFaithful: Lightly polish while preserving key constraints. Default.\nCreative: More freedom for inspiration.",
     "output.modeOriginal": "Original",
     "output.modeStrict": "Faithful",
     "output.modeCreative": "Creative",
@@ -924,6 +929,11 @@
     "preview.waitingContinue": "Waiting to continue",
     "preview.retryFailed": "Retry failed images",
     "preview.acceptSuccesses": "Accept successful results",
+    "preview.noImageResult": "The model returned text content, but did not return an image result.",
+    "preview.errorDetails": "Error details",
+    "preview.copyError": "Copy error details",
+    "preview.errorCopied": "Error details copied",
+    "preview.errorCopyFailed": "Failed to copy error details",
     "preview.generateMode": "Generation",
     "preview.editMode": "Edit",
     "preview.runningTitle": "{mode} running",
@@ -970,14 +980,14 @@
     "taskContext.view": "View task",
     "taskContext.copyId": "Copy task ID",
     "taskContext.copyPrompt": "Copy prompt",
-    "taskContext.revealOutput": "Open output folder",
+    "taskContext.downloadOutput": "Download",
     "taskContext.archive": "Archive task",
     "taskContext.delete": "Delete task",
     "taskContext.idCopied": "Task ID copied",
     "taskContext.promptCopied": "Prompt copied",
     "taskContext.noPrompt": "This task has no prompt to copy",
-    "taskContext.revealFailed": "Failed to open output folder",
-    "taskContext.revealOpened": "Output folder opened",
+    "taskContext.noDownloadableOutputs": "No downloadable images",
+    "taskContext.downloadStarted": "Download started",
     "taskContext.actionFailed": "Task action failed",
     "taskActions.group": "Task actions",
     "taskActions.deleteTitle": "Delete task?",
@@ -1162,7 +1172,7 @@
     "systemSettings.storageTab": "Storage & Notifications",
     "languageSettings.instantStatus": "Language changes apply immediately",
     "apiSettings.title": "API Settings",
-    "apiSettings.status": "Saved settings apply immediately in API mode",
+    "apiSettings.status": "Saved settings apply immediately",
     "apiSettings.codexMode": "Codex channel",
     "apiSettings.codexImages": "Image",
     "apiSettings.codexResponses": "Responses",
@@ -1185,7 +1195,7 @@
     "apiSettings.moveProviderDownAria": "Move {provider} down",
     "apiSettings.mode": "Request mode",
     "apiSettings.images": "Direct Image API",
-    "apiSettings.responses": "Responses API",
+    "apiSettings.responses": "Search channel",
     "apiSettings.modeImagesShort": "Direct",
     "apiSettings.imageModel": "Image model",
     "apiSettings.concurrency": "Provider concurrency limit",
@@ -1400,6 +1410,7 @@
     "taskStatus.runningWithElapsed": "Generieren \xB7 {elapsed}",
     "taskStatus.completed": "Abgeschlossen",
     "taskStatus.partialFailed": "Teilweise gescheitert",
+    "taskStatus.cancelled": "Abgebrochen (Upstream abgeschlossen)",
     "taskStatus.failed": "Fehlgeschlagen",
     "taskStatus.queued": "In der Warteschlange",
     "taskStatus.unknown": "Unbekannter Status",
@@ -1433,7 +1444,7 @@
     "footer.archiveCount": "Archiv {count}",
     "footer.historyLibrary": "Geschichte",
     "historyLibrary.openFull": "\xD6ffnen Sie die vollst\xE4ndige Geschichtsbibliothek",
-    "history.documentTitle": "Geschichte \u2013 iLab GPT CONJURE",
+    "history.documentTitle": "Geschichte \u2013 OmniAPi Image Studio",
     "history.back": "Zur\xFCck zum Generator",
     "history.title": "Geschichte",
     "history.loading": "Laden",
@@ -2073,7 +2084,7 @@
     "apiSettings.moveProviderDownAria": "Verschieben Sie {provider} nach unten",
     "apiSettings.mode": "Anforderungsmodus",
     "apiSettings.images": "Direktes Bild API",
-    "apiSettings.responses": "Responses API",
+    "apiSettings.responses": "Search channel",
     "apiSettings.modeImagesShort": "Direkt",
     "apiSettings.imageModel": "Bildmodell",
     "apiSettings.concurrency": "Parallelit\xE4tslimit des Anbieters",
@@ -2288,6 +2299,7 @@
     "taskStatus.runningWithElapsed": "Generando \xB7 {elapsed}",
     "taskStatus.completed": "Completado",
     "taskStatus.partialFailed": "Parcialmente fallido",
+    "taskStatus.cancelled": "Cancelado (upstream completado)",
     "taskStatus.failed": "Fallido",
     "taskStatus.queued": "En cola",
     "taskStatus.unknown": "Estado desconocido",
@@ -2321,7 +2333,7 @@
     "footer.archiveCount": "Archivo {count}",
     "footer.historyLibrary": "Historia",
     "historyLibrary.openFull": "Abrir biblioteca de historia completa",
-    "history.documentTitle": "Historia - iLab GPT CONJURE",
+    "history.documentTitle": "Historia - OmniAPi Image Studio",
     "history.back": "Volver al generador",
     "history.title": "Historia",
     "history.loading": "Cargando",
@@ -2961,7 +2973,7 @@
     "apiSettings.moveProviderDownAria": "Mover {provider} hacia abajo",
     "apiSettings.mode": "Modo de solicitud",
     "apiSettings.images": "Imagen directa API",
-    "apiSettings.responses": "Responses API",
+    "apiSettings.responses": "Search channel",
     "apiSettings.modeImagesShort": "directo",
     "apiSettings.imageModel": "Modelo de imagen",
     "apiSettings.concurrency": "L\xEDmite de simultaneidad del proveedor",
@@ -3176,6 +3188,7 @@
     "taskStatus.runningWithElapsed": "G\xE9n\xE9ration \xB7 {elapsed}",
     "taskStatus.completed": "Termin\xE9",
     "taskStatus.partialFailed": "Partiellement \xE9chou\xE9",
+    "taskStatus.cancelled": "Annul\xE9 (amont termin\xE9)",
     "taskStatus.failed": "\xC9chec",
     "taskStatus.queued": "En file d'attente",
     "taskStatus.unknown": "Statut inconnu",
@@ -3209,7 +3222,7 @@
     "footer.archiveCount": "Archiver {count}",
     "footer.historyLibrary": "Histoire",
     "historyLibrary.openFull": "Ouvrir la biblioth\xE8que d'historique compl\xE8te",
-    "history.documentTitle": "Histoire - iLab GPT CONJURE",
+    "history.documentTitle": "Histoire - OmniAPi Image Studio",
     "history.back": "Retour au g\xE9n\xE9rateur",
     "history.title": "Histoire",
     "history.loading": "Chargement",
@@ -3849,7 +3862,7 @@
     "apiSettings.moveProviderDownAria": "D\xE9placer {provider} vers le bas",
     "apiSettings.mode": "Mode demande",
     "apiSettings.images": "Image directe API",
-    "apiSettings.responses": "Responses API",
+    "apiSettings.responses": "Search channel",
     "apiSettings.modeImagesShort": "Direct",
     "apiSettings.imageModel": "Mod\xE8le d'image",
     "apiSettings.concurrency": "Limite de simultan\xE9it\xE9 des fournisseurs",
@@ -4064,6 +4077,7 @@
     "taskStatus.runningWithElapsed": "\u751F\u6210\u4E2D \xB7{elapsed}",
     "taskStatus.completed": "\u5B8C\u4E86",
     "taskStatus.partialFailed": "\u90E8\u5206\u7684\u306B\u5931\u6557\u3057\u307E\u3057\u305F",
+    "taskStatus.cancelled": "\u30AD\u30E3\u30F3\u30BB\u30EB\u6E08\u307F\uFF08\u4E0A\u6D41\u306F\u5B8C\u4E86\uFF09",
     "taskStatus.failed": "\u5931\u6557\u3057\u307E\u3057\u305F",
     "taskStatus.queued": "\u30AD\u30E5\u30FC\u306B\u767B\u9332\u3055\u308C\u307E\u3057\u305F",
     "taskStatus.unknown": "\u4E0D\u660E\u306A\u30B9\u30C6\u30FC\u30BF\u30B9",
@@ -4097,7 +4111,7 @@
     "footer.archiveCount": "\u30A2\u30FC\u30AB\u30A4\u30D6 {count}",
     "footer.historyLibrary": "\u5C65\u6B74",
     "historyLibrary.openFull": "\u5C65\u6B74\u30E9\u30A4\u30D6\u30E9\u30EA\u5168\u4F53\u3092\u958B\u304F",
-    "history.documentTitle": "\u5C65\u6B74 - iLab GPT CONJURE",
+    "history.documentTitle": "\u5C65\u6B74 - OmniAPi Image Studio",
     "history.back": "\u30B8\u30A7\u30CD\u30EC\u30FC\u30BF\u30FC\u306B\u623B\u308B",
     "history.title": "\u5C65\u6B74",
     "history.loading": "\u8AAD\u307F\u8FBC\u307F\u4E2D",
@@ -4737,7 +4751,7 @@
     "apiSettings.moveProviderDownAria": "{provider}\u3092\u4E0B\u306B\u79FB\u52D5",
     "apiSettings.mode": "\u547C\u3073\u51FA\u3057\u65B9\u5F0F",
     "apiSettings.images": "Image API\u306B\u76F4\u63A5\u63A5\u7D9A",
-    "apiSettings.responses": "Responses API",
+    "apiSettings.responses": "Search channel",
     "apiSettings.modeImagesShort": "\u76F4\u7D50",
     "apiSettings.imageModel": "\u753B\u50CF\u30C4\u30FC\u30EB\u30E2\u30C7\u30EB",
     "apiSettings.concurrency": "\u30D7\u30ED\u30D0\u30A4\u30C0\u30FC\u7DCF\u540C\u6642\u5B9F\u884C\u4E0A\u9650",
@@ -4952,6 +4966,7 @@
     "taskStatus.runningWithElapsed": "\uC0DD\uC131 \uC911 \xB7{elapsed}",
     "taskStatus.completed": "\uC644\uB8CC\uB428",
     "taskStatus.partialFailed": "\uBD80\uBD84\uC801\uC73C\uB85C \uC2E4\uD328\uD568",
+    "taskStatus.cancelled": "\uCDE8\uC18C\uB428(\uC5C5\uC2A4\uD2B8\uB9BC \uC644\uB8CC)",
     "taskStatus.failed": "\uC2E4\uD328",
     "taskStatus.queued": "\uB300\uAE30 \uC911",
     "taskStatus.unknown": "\uC54C \uC218 \uC5C6\uB294 \uC0C1\uD0DC",
@@ -4985,7 +5000,7 @@
     "footer.archiveCount": "\uBCF4\uAD00\uD568 {count}",
     "footer.historyLibrary": "\uAE30\uB85D",
     "historyLibrary.openFull": "\uC804\uCCB4 \uAE30\uB85D \uB77C\uC774\uBE0C\uB7EC\uB9AC \uC5F4\uAE30",
-    "history.documentTitle": "\uAE30\uB85D - iLab GPT CONJURE",
+    "history.documentTitle": "\uAE30\uB85D - OmniAPi Image Studio",
     "history.back": "\uC0DD\uC131\uAE30\uB85C \uB3CC\uC544\uAC00\uAE30",
     "history.title": "\uAE30\uB85D",
     "history.loading": "\uB85C\uB4DC \uC911",
@@ -5625,7 +5640,7 @@
     "apiSettings.moveProviderDownAria": "{provider}\uC544\uB798\uB85C \uC774\uB3D9",
     "apiSettings.mode": "\uD638\uCD9C \uBC29\uC2DD",
     "apiSettings.images": "Image API \uC9C1\uC811 \uC5F0\uACB0",
-    "apiSettings.responses": "Responses API",
+    "apiSettings.responses": "Search channel",
     "apiSettings.modeImagesShort": "\uC9C1\uC811 \uC5F0\uACB0",
     "apiSettings.imageModel": "\uC774\uBBF8\uC9C0 \uB3C4\uAD6C \uBAA8\uB378",
     "apiSettings.concurrency": "\uACF5\uAE09\uC790 \uC804\uCCB4 \uB3D9\uC2DC \uC2E4\uD589 \uD55C\uB3C4",
@@ -5840,6 +5855,7 @@
     "taskStatus.runningWithElapsed": "Gerando \xB7 {elapsed}",
     "taskStatus.completed": "Conclu\xEDdo",
     "taskStatus.partialFailed": "Falha parcial",
+    "taskStatus.cancelled": "Cancelado (upstream conclu\xEDdo)",
     "taskStatus.failed": "Falha",
     "taskStatus.queued": "Na fila",
     "taskStatus.unknown": "Estado desconhecido",
@@ -5873,7 +5889,7 @@
     "footer.archiveCount": "Arquivo {count}",
     "footer.historyLibrary": "Hist\xF3ria",
     "historyLibrary.openFull": "Abra a biblioteca de hist\xF3rico completa",
-    "history.documentTitle": "Hist\xF3ria - iLab GPT CONJURE",
+    "history.documentTitle": "Hist\xF3ria - OmniAPi Image Studio",
     "history.back": "Voltar ao gerador",
     "history.title": "Hist\xF3ria",
     "history.loading": "Carregando",
@@ -6513,7 +6529,7 @@
     "apiSettings.moveProviderDownAria": "Mova {provider} para baixo",
     "apiSettings.mode": "Modo de solicita\xE7\xE3o",
     "apiSettings.images": "Imagem Direta API",
-    "apiSettings.responses": "Responses API",
+    "apiSettings.responses": "Search channel",
     "apiSettings.modeImagesShort": "Direto",
     "apiSettings.imageModel": "Modelo de imagem",
     "apiSettings.concurrency": "Limite de simultaneidade do provedor",
@@ -6728,6 +6744,7 @@
     "taskStatus.runningWithElapsed": "\u0413\u0435\u043D\u0435\u0440\u0430\u0446\u0438\u044F \xB7 {elapsed}",
     "taskStatus.completed": "\u0417\u0430\u0432\u0435\u0440\u0448\u0435\u043D\u043E",
     "taskStatus.partialFailed": "\u0427\u0430\u0441\u0442\u0438\u0447\u043D\u043E \u043D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C",
+    "taskStatus.cancelled": "\u041E\u0442\u043C\u0435\u043D\u0435\u043D\u043E (upstream \u0437\u0430\u0432\u0435\u0440\u0448\u0435\u043D)",
     "taskStatus.failed": "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C",
     "taskStatus.queued": "\u0412 \u043E\u0447\u0435\u0440\u0435\u0434\u0438",
     "taskStatus.unknown": "\u041D\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043D\u044B\u0439 \u0441\u0442\u0430\u0442\u0443\u0441",
@@ -6761,7 +6778,7 @@
     "footer.archiveCount": "\u0410\u0440\u0445\u0438\u0432 {count}",
     "footer.historyLibrary": "\u0418\u0441\u0442\u043E\u0440\u0438\u044F",
     "historyLibrary.openFull": "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u043F\u043E\u043B\u043D\u0443\u044E \u0431\u0438\u0431\u043B\u0438\u043E\u0442\u0435\u043A\u0443 \u0438\u0441\u0442\u043E\u0440\u0438\u0438",
-    "history.documentTitle": "\u0418\u0441\u0442\u043E\u0440\u0438\u044F - iLab GPT CONJURE",
+    "history.documentTitle": "\u0418\u0441\u0442\u043E\u0440\u0438\u044F - OmniAPi Image Studio",
     "history.back": "\u0412\u0435\u0440\u043D\u0443\u0442\u044C\u0441\u044F \u043A \u0433\u0435\u043D\u0435\u0440\u0430\u0442\u043E\u0440\u0443",
     "history.title": "\u0418\u0441\u0442\u043E\u0440\u0438\u044F",
     "history.loading": "\u0417\u0430\u0433\u0440\u0443\u0437\u043A\u0430",
@@ -7401,7 +7418,7 @@
     "apiSettings.moveProviderDownAria": "\u041F\u0435\u0440\u0435\u043C\u0435\u0441\u0442\u0438\u0442\u044C {provider} \u0432\u043D\u0438\u0437",
     "apiSettings.mode": "\u0420\u0435\u0436\u0438\u043C \u0437\u0430\u043F\u0440\u043E\u0441\u0430",
     "apiSettings.images": "\u041F\u0440\u044F\u043C\u043E\u0439 Image API",
-    "apiSettings.responses": "Responses API",
+    "apiSettings.responses": "Search channel",
     "apiSettings.modeImagesShort": "\u041F\u0440\u044F\u043C\u043E\u0439",
     "apiSettings.imageModel": "\u041C\u043E\u0434\u0435\u043B\u044C Image",
     "apiSettings.concurrency": "\u041E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u0438\u0435 \u043F\u0430\u0440\u0430\u043B\u043B\u0435\u043B\u0438\u0437\u043C\u0430 \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0430",
@@ -7616,6 +7633,7 @@
     "taskStatus.runningWithElapsed": "Generazione \xB7 {elapsed}",
     "taskStatus.completed": "Completato",
     "taskStatus.partialFailed": "Parzialmente fallito",
+    "taskStatus.cancelled": "Annullato (upstream completato)",
     "taskStatus.failed": "Fallito",
     "taskStatus.queued": "In coda",
     "taskStatus.unknown": "Stato sconosciuto",
@@ -7649,7 +7667,7 @@
     "footer.archiveCount": "Archivio {count}",
     "footer.historyLibrary": "Storia",
     "historyLibrary.openFull": "Apri la libreria della cronologia completa",
-    "history.documentTitle": "Storia - iLab GPT CONJURE",
+    "history.documentTitle": "Storia - OmniAPi Image Studio",
     "history.back": "Torniamo al generatore",
     "history.title": "Storia",
     "history.loading": "Caricamento in corso",
@@ -8289,7 +8307,7 @@
     "apiSettings.moveProviderDownAria": "Sposta {provider} gi\xF9",
     "apiSettings.mode": "Modalit\xE0 di richiesta",
     "apiSettings.images": "Diretto Image API",
-    "apiSettings.responses": "Responses API",
+    "apiSettings.responses": "Search channel",
     "apiSettings.modeImagesShort": "Diretto",
     "apiSettings.imageModel": "modello Image",
     "apiSettings.concurrency": "Limite di concorrenza del provider",
@@ -8504,6 +8522,7 @@
     "taskStatus.runningWithElapsed": "\u091C\u0928\u0930\u0947\u091F \u0939\u094B \u0930\u0939\u093E \u0939\u0948 \xB7 {elapsed}",
     "taskStatus.completed": "\u092A\u0942\u0930\u093E \u0939\u0941\u0906",
     "taskStatus.partialFailed": "\u0906\u0902\u0936\u093F\u0915 \u0930\u0942\u092A \u0938\u0947 \u0905\u0938\u092B\u0932",
+    "taskStatus.cancelled": "\u0930\u0926\u094D\u0926 \u0915\u093F\u092F\u093E \u0917\u092F\u093E (\u0905\u092A\u0938\u094D\u091F\u094D\u0930\u0940\u092E \u092A\u0942\u0930\u094D\u0923)",
     "taskStatus.failed": "\u0905\u0938\u092B\u0932",
     "taskStatus.queued": "\u0915\u0924\u093E\u0930\u092C\u0926\u094D\u0927",
     "taskStatus.unknown": "\u0905\u091C\u094D\u091E\u093E\u0924 \u0938\u094D\u0925\u093F\u0924\u093F",
@@ -8537,7 +8556,7 @@
     "footer.archiveCount": "\u0938\u0902\u0917\u094D\u0930\u0939 {count}",
     "footer.historyLibrary": "\u0907\u0924\u093F\u0939\u093E\u0938",
     "historyLibrary.openFull": "\u092A\u0942\u0930\u094D\u0923 \u0907\u0924\u093F\u0939\u093E\u0938 \u092A\u0941\u0938\u094D\u0924\u0915\u093E\u0932\u092F \u0916\u094B\u0932\u0947\u0902",
-    "history.documentTitle": "\u0907\u0924\u093F\u0939\u093E\u0938 - \u0906\u0908\u0932\u0948\u092C \u091C\u0940\u092A\u0940\u091F\u0940 \u0915\u0902\u091C\u094D\u092F\u0942\u0930",
+    "history.documentTitle": "\u0907\u0924\u093F\u0939\u093E\u0938 - OmniAPi Image Studio",
     "history.back": "\u091C\u0947\u0928\u0930\u0947\u091F\u0930 \u0915\u094B \u0932\u094C\u091F\u0947\u0902",
     "history.title": "\u0907\u0924\u093F\u0939\u093E\u0938",
     "history.loading": "\u0932\u094B\u0921 \u0939\u094B \u0930\u0939\u093E \u0939\u0948",
@@ -9177,7 +9196,7 @@
     "apiSettings.moveProviderDownAria": "{provider} \u0915\u094B \u0928\u0940\u091A\u0947 \u0932\u0947 \u091C\u093E\u090F\u0901",
     "apiSettings.mode": "\u0905\u0928\u0941\u0930\u094B\u0927 \u092E\u094B\u0921",
     "apiSettings.images": "\u092A\u094D\u0930\u0924\u094D\u092F\u0915\u094D\u0937 Image API",
-    "apiSettings.responses": "Responses API",
+    "apiSettings.responses": "Search channel",
     "apiSettings.modeImagesShort": "\u092A\u094D\u0930\u0924\u094D\u092F\u0915\u094D\u0937",
     "apiSettings.imageModel": "\u091A\u093F\u0924\u094D\u0930 \u092E\u0949\u0921\u0932",
     "apiSettings.concurrency": "\u092A\u094D\u0930\u0926\u093E\u0924\u093E \u0938\u092E\u0935\u0930\u094D\u0924\u0940 \u0938\u0940\u092E\u093E",
@@ -9392,6 +9411,7 @@
     "taskStatus.runningWithElapsed": "\u751F\u6210\u4E2D \xB7 {elapsed}",
     "taskStatus.completed": "\u5DF2\u5B8C\u6210",
     "taskStatus.partialFailed": "\u90E8\u5206\u5931\u8D25",
+    "taskStatus.cancelled": "\u5DF2\u53D6\u6D88\uFF08\u4E0A\u6E38\u5DF2\u5B8C\u6210\uFF09",
     "taskStatus.failed": "\u5931\u8D25",
     "taskStatus.queued": "\u6392\u961F\u4E2D",
     "taskStatus.unknown": "\u672A\u77E5\u72B6\u6001",
@@ -9425,7 +9445,7 @@
     "footer.archiveCount": "\u4F1A\u8BDD\u5F52\u6863 {count}",
     "footer.historyLibrary": "\u5386\u53F2\u5E93",
     "historyLibrary.openFull": "\u6253\u5F00\u5B8C\u6574\u5386\u53F2\u5E93",
-    "history.documentTitle": "\u5386\u53F2\u5E93 - iLab GPT CONJURE",
+    "history.documentTitle": "\u5386\u53F2\u5E93 - OmniAPi Image Studio",
     "history.back": "\u8FD4\u56DE\u751F\u6210\u9875",
     "history.title": "\u5386\u53F2\u5E93",
     "history.loading": "\u8F7D\u5165\u4E2D",
@@ -9540,7 +9560,8 @@
     "history.quality.auto": "\u81EA\u52A8",
     "footer.batch": "\u6279\u91CF\u7BA1\u7406",
     "footer.storage": "\u5B58\u50A8\u8BBE\u7F6E",
-    "footer.apiStatus": "API \u72B6\u6001: \u6B63\u5E38",
+    "footer.apiStatus": "\u670D\u52A1\u8FDE\u63A5\u6B63\u5E38",
+    "footer.retentionNotice": "\u56FE\u7247\u4EC5\u4FDD\u5B58 30 \u5929\uFF0C\u8BF7\u53CA\u65F6\u4E0B\u8F7D",
     "footer.version": "\u7248\u672C {version}",
     "footer.versionInfo": "\u7248\u672C\u4FE1\u606F",
     "footer.versionLoading": "\u7248\u672C ...",
@@ -9596,8 +9617,8 @@
     "language.it": "Italiano",
     "language.hi": "\u0939\u093F\u0928\u094D\u0926\u0940",
     "auth.label": "\u6388\u6743\u6765\u6E90",
-    "auth.checking": "\u6388\u6743\u68C0\u67E5\u4E2D",
-    "auth.missingCodexSession": "\u6CA1\u6709\u68C0\u6D4B\u5230 Codex \u767B\u5F55\u6001",
+    "auth.checking": "\u6B63\u5728\u8BFB\u53D6\u767B\u5F55\u72B6\u6001",
+    "auth.missingCodexSession": "\u8BF7\u5148\u4ECE Omni \u4E3B\u7AD9\u767B\u5F55",
     "auth.switchFailed": "\u6388\u6743\u6765\u6E90\u5207\u6362\u5931\u8D25",
     "auth.sourceUnavailable": "{source} \u4E0D\u53EF\u7528",
     "auth.notActive": "\u672A\u751F\u6548",
@@ -9622,7 +9643,7 @@
     "recentAssets.use": "\u4F7F\u7528{name}",
     "recentAssets.delete": "\u5220\u9664{name}",
     "recentAssets.deleteTitle": "\u5220\u9664\u6700\u8FD1\u4E0A\u4F20\uFF1F",
-    "recentAssets.deleteMessage": "\u4F1A\u4ECE\u300C\u6700\u8FD1\u4E0A\u4F20\u300D\u4E2D\u5220\u9664\u8FD9\u5F20\u56FE\u7247\u3002\u5982\u679C\u5B83\u5DF2\u88AB\u6DFB\u52A0\u5230\u5F53\u524D\u56FE\u50CF\u8F93\u5165\uFF0C\u4F1A\u4ECE\u5F53\u524D\u8F93\u5165\u4E2D\u79FB\u9664\uFF1B\u5386\u53F2\u4EFB\u52A1\u91CC\u5F15\u7528\u8FD9\u5F20\u6700\u8FD1\u4E0A\u4F20\u56FE\u7684\u8F93\u5165\u9884\u89C8\u4E5F\u4F1A\u5931\u6548\u3002\u4E0D\u4F1A\u5F71\u54CD\u516C\u7528\u56FE\u5E93\u3002",
+    "recentAssets.deleteMessage": "\u4F1A\u4ECE\u300C\u6700\u8FD1\u4E0A\u4F20\u300D\u4E2D\u5220\u9664\u8FD9\u5F20\u56FE\u7247\u3002\u5982\u679C\u5B83\u5DF2\u88AB\u6DFB\u52A0\u5230\u5F53\u524D\u56FE\u50CF\u8F93\u5165\uFF0C\u4F1A\u4ECE\u5F53\u524D\u8F93\u5165\u4E2D\u79FB\u9664\uFF1B\u5386\u53F2\u4EFB\u52A1\u91CC\u5F15\u7528\u8FD9\u5F20\u6700\u8FD1\u4E0A\u4F20\u56FE\u7684\u8F93\u5165\u9884\u89C8\u4E5F\u4F1A\u5931\u6548\u3002\u4E0D\u4F1A\u5F71\u54CD\u6211\u7684\u7D20\u6750\u5E93\u3002",
     "recentAssets.loadFailed": "\u6700\u8FD1\u4E0A\u4F20\u8BFB\u53D6\u5931\u8D25",
     "recentAssets.deleteFailed": "\u6700\u8FD1\u4E0A\u4F20\u5220\u9664\u5931\u8D25",
     "recentAssets.deleted": "\u6700\u8FD1\u4E0A\u4F20\u5DF2\u5220\u9664",
@@ -9654,9 +9675,9 @@
     "referenceCollector.added": "\u5DF2\u52A0\u5165 {count} \u5F20\u53C2\u8003\u56FE",
     "referenceCollector.addFailed": "\u5F85\u52A0\u5165\u53C2\u8003\u56FE\u52A0\u5165\u5931\u8D25",
     "referenceCollector.readFailed": "\u56FE\u7247\u8BFB\u53D6\u5931\u8D25\uFF1A{status}",
-    "gallery.quick": "\u5FEB\u901F\u9009\u62E9\u516C\u7528\u56FE\u5E93",
-    "gallery.current": "\u5F53\u524D\u5206\u7C7B\u56FE\u5E93",
-    "gallery.categories": "\u56FE\u5E93\u5206\u7C7B",
+    "gallery.quick": "\u5FEB\u901F\u9009\u62E9\u6211\u7684\u7D20\u6750\u5E93",
+    "gallery.current": "\u5F53\u524D\u5206\u7C7B\u7D20\u6750",
+    "gallery.categories": "\u7D20\u6750\u5206\u7C7B",
     "gallery.categoryPortrait": "\u4EBA\u50CF",
     "gallery.categoryCharacter": "\u89D2\u8272",
     "gallery.categoryProduct": "\u4EA7\u54C1",
@@ -9664,8 +9685,8 @@
     "gallery.categoryCharacterRole": "\u89D2\u8272\u53C2\u8003",
     "gallery.categoryProductRole": "\u4EA7\u54C1\u53C2\u8003",
     "gallery.referenceRole": "\u53C2\u8003\u56FE",
-    "gallery.manage": "\u7BA1\u7406\u516C\u7528\u5E93",
-    "gallery.loadFailed": "\u56FE\u5E93\u8BFB\u53D6\u5931\u8D25",
+    "gallery.manage": "\u7BA1\u7406\u7D20\u6750\u5E93",
+    "gallery.loadFailed": "\u7D20\u6750\u5E93\u8BFB\u53D6\u5931\u8D25",
     "gallery.imageOrderUpdateFailed": "\u66F4\u65B0\u56FE\u7247\u987A\u5E8F\u5931\u8D25",
     "gallery.imageOrderUpdated": "\u56FE\u7247\u987A\u5E8F\u5DF2\u66F4\u65B0",
     "gallery.categoryName": "\u5206\u7C7B\u540D\u79F0",
@@ -9678,34 +9699,34 @@
     "gallery.categoryCreated": "\u5206\u7C7B\u5DF2\u65B0\u589E",
     "gallery.categorySaveFailed": "\u4FDD\u5B58\u5206\u7C7B\u5931\u8D25",
     "gallery.categorySaved": "\u5206\u7C7B\u5DF2\u4FDD\u5B58",
-    "gallery.categoryDeleteTitle": "\u5220\u9664\u56FE\u5E93\u5206\u7C7B\uFF1F",
-    "gallery.categoryDeleteMessage": "\u5206\u7C7B\u4E0B\u7684\u56FE\u7247\u4F1A\u79FB\u52A8\u5230\u5176\u4ED6\u5206\u7C7B\uFF0C\u56FE\u5E93\u56FE\u7247\u4E0D\u4F1A\u88AB\u5220\u9664\u3002",
+    "gallery.categoryDeleteTitle": "\u5220\u9664\u7D20\u6750\u5206\u7C7B\uFF1F",
+    "gallery.categoryDeleteMessage": "\u5206\u7C7B\u4E0B\u7684\u56FE\u7247\u4F1A\u79FB\u52A8\u5230\u5176\u4ED6\u5206\u7C7B\uFF0C\u7D20\u6750\u56FE\u7247\u4E0D\u4F1A\u88AB\u5220\u9664\u3002",
     "gallery.categoryDeleteConfirm": "\u5220\u9664\u5206\u7C7B",
     "gallery.categoryDeleteFailed": "\u5220\u9664\u5206\u7C7B\u5931\u8D25",
     "gallery.categoryDeletedMigrated": "\u5206\u7C7B\u300C{name}\u300D\u5DF2\u5220\u9664\uFF0C\u56FE\u7247\u5DF2\u8FC1\u79FB",
     "gallery.categoryOrderUpdateFailed": "\u66F4\u65B0\u5206\u7C7B\u987A\u5E8F\u5931\u8D25",
     "gallery.categoryOrderUpdated": "\u5206\u7C7B\u987A\u5E8F\u5DF2\u66F4\u65B0",
-    "gallery.categoryFallback": "\u56FE\u5E93\u5206\u7C7B",
-    "gallery.imageFallback": "\u56FE\u5E93\u56FE\u7247",
+    "gallery.categoryFallback": "\u7D20\u6750\u5206\u7C7B",
+    "gallery.imageFallback": "\u7D20\u6750\u56FE\u7247",
     "gallery.imageLoadFailed": "\u65E0\u6CD5\u8F7D\u5165\u8FD9\u5F20\u56FE\u7247",
     "gallery.editImageLoadFailed": "\u65E0\u6CD5\u8F7D\u5165\u8FD9\u5F20\u56FE\u7247\u8FDB\u884C\u7F16\u8F91",
-    "gallery.cannotAddImage": "\u8FD9\u5F20\u56FE\u7247\u65E0\u6CD5\u52A0\u5165\u56FE\u5E93",
-    "gallery.nameRequired": "\u8BF7\u8F93\u5165\u56FE\u5E93\u540D\u79F0",
-    "gallery.saveFailed": "\u4FDD\u5B58\u56FE\u5E93\u5931\u8D25",
-    "gallery.savedAsReference": "\u5DF2\u6DFB\u52A0\u5230\u56FE\u5E93\uFF0C\u5E76\u5207\u6362\u4E3A\u56FE\u5E93\u5F15\u7528",
-    "gallery.renameImage": "\u91CD\u547D\u540D\u56FE\u5E93\u56FE\u7247",
+    "gallery.cannotAddImage": "\u8FD9\u5F20\u56FE\u7247\u65E0\u6CD5\u52A0\u5165\u7D20\u6750\u5E93",
+    "gallery.nameRequired": "\u8BF7\u8F93\u5165\u7D20\u6750\u540D\u79F0",
+    "gallery.saveFailed": "\u4FDD\u5B58\u7D20\u6750\u5931\u8D25",
+    "gallery.savedAsReference": "\u5DF2\u6DFB\u52A0\u5230\u7D20\u6750\u5E93\uFF0C\u5E76\u5207\u6362\u4E3A\u7D20\u6750\u5F15\u7528",
+    "gallery.renameImage": "\u91CD\u547D\u540D\u7D20\u6750\u56FE\u7247",
     "gallery.moveToCategory": "\u79FB\u52A8\u5230\u5206\u7C7B",
-    "gallery.categoryRequired": "\u8BF7\u9009\u62E9\u56FE\u5E93\u5206\u7C7B",
-    "gallery.promptNoteTitle": "\u56FE\u5E93\u5F15\u7528\u5907\u6CE8",
-    "gallery.updateFailed": "\u66F4\u65B0\u56FE\u5E93\u5931\u8D25",
+    "gallery.categoryRequired": "\u8BF7\u9009\u62E9\u7D20\u6750\u5206\u7C7B",
+    "gallery.promptNoteTitle": "\u7D20\u6750\u5F15\u7528\u5907\u6CE8",
+    "gallery.updateFailed": "\u66F4\u65B0\u7D20\u6750\u5931\u8D25",
     "gallery.selectImageFile": "\u8BF7\u9009\u62E9\u56FE\u7247\u6587\u4EF6",
-    "gallery.replaceImageFailed": "\u66FF\u6362\u56FE\u5E93\u56FE\u7247\u5931\u8D25",
+    "gallery.replaceImageFailed": "\u66FF\u6362\u7D20\u6750\u56FE\u7247\u5931\u8D25",
     "gallery.replacedImage": "\u5DF2\u66FF\u6362\u300C{name}\u300D\u7684\u539F\u56FE",
-    "gallery.deleteImageTitle": "\u5220\u9664\u56FE\u5E93\u56FE\u7247\uFF1F",
+    "gallery.deleteImageTitle": "\u5220\u9664\u7D20\u6750\u56FE\u7247\uFF1F",
     "gallery.deleteImageMessage": "\u5386\u53F2\u4EFB\u52A1\u91CC\u7684\u5F15\u7528\u4F1A\u663E\u793A\u4E3A\u5DF2\u5220\u9664\u3002",
-    "gallery.deleteFailed": "\u5220\u9664\u56FE\u5E93\u5931\u8D25",
+    "gallery.deleteFailed": "\u5220\u9664\u7D20\u6750\u5931\u8D25",
     "gallery.deletedSuffix": "\uFF08\u5DF2\u5220\u9664\uFF09",
-    "gallery.editImageLabel": "\u7F16\u8F91\u56FE\u5E93\u56FE\u7247",
+    "gallery.editImageLabel": "\u7F16\u8F91\u7D20\u6750\u56FE\u7247",
     "gallery.fieldCategory": "\u5206\u7C7B",
     "gallery.fieldPromptNote": "\u5F15\u7528\u5907\u6CE8",
     "gallery.fieldName": "\u540D\u79F0",
@@ -9713,7 +9734,7 @@
     "promptGallery.remove": "\u79FB\u9664 @{name}",
     "prompt.title": "\u63D0\u793A\u8BCD",
     "prompt.editorLabel": "\u63D0\u793A\u8BCD",
-    "prompt.placeholder": "\u63CF\u8FF0\u4F60\u8981\u751F\u6210\u6216\u7F16\u8F91\u7684\u56FE\u7247\uFF0C\u8F93\u5165 @ \u53EF\u8C03\u7528\u56FE\u5E93\u53C2\u8003\u56FE\uFF0C\u8F93\u5165 # \u53EF\u63D2\u5165\u989C\u8272\u7801\uFF0C\u8F93\u5165 ~ \u6216 \uFF5E \u53EF\u8C03\u7528\u63D0\u793A\u8BCD\u7247\u6BB5",
+    "prompt.placeholder": "\u63CF\u8FF0\u4F60\u8981\u751F\u6210\u6216\u7F16\u8F91\u7684\u56FE\u7247\uFF0C\u8F93\u5165 @ \u53EF\u8C03\u7528\u7D20\u6750\u5E93\u53C2\u8003\u56FE\uFF0C\u8F93\u5165 # \u53EF\u63D2\u5165\u989C\u8272\u7801\uFF0C\u8F93\u5165 ~ \u6216 \uFF5E \u53EF\u8C03\u7528\u63D0\u793A\u8BCD\u7247\u6BB5",
     "prompt.run": "\u5F00\u59CB\u751F\u6210",
     "prompt.runEdit": "\u5F00\u59CB\u7F16\u8F91",
     "prompt.runTitle": "\u5F00\u59CB\u751F\u6210\uFF08Cmd+Enter\uFF09",
@@ -9731,7 +9752,7 @@
     "prompt.recentTemplates": "\u6700\u8FD1\u4F7F\u7528\u6A21\u677F",
     "prompt.manageTemplates": "\u7BA1\u7406\u6A21\u677F\u5E93",
     "promptModel.galleryHeader": "\u53C2\u8003\u56FE\u8BF4\u660E\uFF1A",
-    "promptModel.galleryInstruction": "- \u53C2\u8003\u56FE {number}\uFF1A\u56FE\u5E93\u300C{name}\u300D\uFF0C\u7528\u9014\uFF1A{role}\u3002\u63D0\u793A\u8BCD\u4E2D\u7684 @{name} \u6307\u8FD9\u5F20\u56FE\u3002{note}",
+    "promptModel.galleryInstruction": "- \u53C2\u8003\u56FE {number}\uFF1A\u7D20\u6750\u5E93\u300C{name}\u300D\uFF0C\u7528\u9014\uFF1A{role}\u3002\u63D0\u793A\u8BCD\u4E2D\u7684 @{name} \u6307\u8FD9\u5F20\u56FE\u3002{note}",
     "outputSettings.title": "\u8F93\u51FA\u8BBE\u7F6E",
     "output.mainModel": "\u4E3B\u6A21\u578B",
     "output.selectMainModel": "\u9009\u62E9\u4E3B\u6A21\u578B",
@@ -9741,11 +9762,16 @@
     "output.mainModelUnused": "\u4E3B\u6A21\u578B\u4E0D\u53C2\u4E0E\u672C\u6B21\u8BF7\u6C42",
     "output.webSearch": "\u8054\u7F51\u641C\u7D22",
     "output.webSearchToggle": "\u5F00\u542F",
-    "output.webSearchTitle": "\u5148\u8054\u7F51\u641C\u7D22\uFF0C\u518D\u7528\u4E8E\u672C\u6B21\u751F\u6210\uFF1B\u4EC5 Codex \u548C API Responses \u652F\u6301",
+    "output.webSearchHelpLabel": "\u8054\u7F51\u641C\u7D22\u8BF4\u660E",
+    "output.webSearchTitle": "\u5148\u8054\u7F51\u641C\u7D22\uFF0C\u518D\u7528\u4E8E\u672C\u6B21\u751F\u6210",
     "output.promptMode": "\u63D0\u793A\u8BCD\u6A21\u5F0F",
+    "output.promptModeHelpLabel": "\u63D0\u793A\u8BCD\u6A21\u5F0F\u8BF4\u660E",
+    "output.promptModeHelp": "\u539F\u59CB\uFF1A\u9010\u5B57\u4F7F\u7528\uFF0C\u4E0D\u6539\u5199\u3002\u9002\u5408\u7CBE\u786E\u6307\u4EE4\u3002\n\u4FDD\u771F\uFF1A\u9002\u5F53\u6DA6\u8272\uFF0C\u4FDD\u7559\u5173\u952E\u7EA6\u675F\u3002\u9002\u5408\u4E2D\u6587\u63CF\u8FF0\u3002\uFF08\u9ED8\u8BA4\uFF09\n\u521B\u610F\uFF1A\u81EA\u7531\u53D1\u6325\uFF0C\u9002\u5408\u627E\u7075\u611F\u3002",
     "output.modeOriginal": "\u539F\u59CB\u6A21\u5F0F",
     "output.modeStrict": "\u4FDD\u771F\u6A21\u5F0F",
+    "output.modeStrictHelp": "\u4FDD\u771F\u6A21\u5F0F\u901A\u8FC7\u672C\u5730\u89C4\u5219\u63D0\u53D6\u6807\u9898/\u5B57\u4F53\u3001\u76EE\u6807\u4EBA\u7FA4\u3001\u8272\u5F69\u548C\u9650\u5236\u7C7B\u786C\u6027\u7EA6\u675F\uFF0C\u518D\u628A\u8FD9\u4E9B\u7EA6\u675F\u4F5C\u4E3A\u7CFB\u7EDF\u6307\u4EE4\u4F20\u7ED9\u6A21\u578B\uFF1B\u4E0D\u4F1A\u989D\u5916\u8C03\u7528\u5C0F\u6A21\u578B\u3002",
     "output.modeCreative": "\u521B\u610F\u6A21\u5F0F",
+    "output.modeCreativeHelp": "\u521B\u610F\u6A21\u5F0F\uFF1A\u4E0D\u989D\u5916\u6CE8\u5165\u4FDD\u771F\u89C4\u5219\uFF0C\u8BA9\u6A21\u578B\u81EA\u7531\u6269\u5199\u3002",
     "output.sizeMode": "\u5C3A\u5BF8\u6A21\u5F0F",
     "output.sizePreset": "\u9884\u8BBE\u5C3A\u5BF8",
     "output.sizeCustom": "\u81EA\u5B9A\u4E49\u5C3A\u5BF8",
@@ -9804,6 +9830,11 @@
     "preview.waitingContinue": "\u7B49\u5F85\u7EE7\u7EED\u751F\u6210",
     "preview.retryFailed": "\u4EC5\u91CD\u8BD5\u5931\u8D25\u56FE\u7247",
     "preview.acceptSuccesses": "\u63A5\u53D7\u5DF2\u6210\u529F\u7ED3\u679C",
+    "preview.noImageResult": "\u6A21\u578B\u8FD4\u56DE\u4E86\u6587\u672C\u5185\u5BB9\uFF0C\u4F46\u6CA1\u6709\u8FD4\u56DE\u56FE\u7247\u7ED3\u679C\u3002",
+    "preview.errorDetails": "\u9519\u8BEF\u8BE6\u60C5",
+    "preview.copyError": "\u590D\u5236\u9519\u8BEF\u8BE6\u60C5",
+    "preview.errorCopied": "\u9519\u8BEF\u8BE6\u60C5\u5DF2\u590D\u5236",
+    "preview.errorCopyFailed": "\u590D\u5236\u9519\u8BEF\u8BE6\u60C5\u5931\u8D25",
     "preview.generateMode": "\u751F\u6210",
     "preview.editMode": "\u7F16\u8F91",
     "preview.runningTitle": "{mode}\u4EFB\u52A1\u8FD0\u884C\u4E2D",
@@ -9850,14 +9881,14 @@
     "taskContext.view": "\u67E5\u770B\u4EFB\u52A1",
     "taskContext.copyId": "\u590D\u5236\u4EFB\u52A1 ID",
     "taskContext.copyPrompt": "\u590D\u5236\u63D0\u793A\u8BCD",
-    "taskContext.revealOutput": "\u6253\u5F00\u8F93\u51FA\u76EE\u5F55",
+    "taskContext.downloadOutput": "\u4E0B\u8F7D",
     "taskContext.archive": "\u5F52\u6863\u4EFB\u52A1",
     "taskContext.delete": "\u5220\u9664\u4EFB\u52A1",
     "taskContext.idCopied": "\u4EFB\u52A1 ID \u5DF2\u590D\u5236",
     "taskContext.promptCopied": "\u63D0\u793A\u8BCD\u5DF2\u590D\u5236",
     "taskContext.noPrompt": "\u8FD9\u4E2A\u4EFB\u52A1\u6CA1\u6709\u53EF\u590D\u5236\u7684\u63D0\u793A\u8BCD",
-    "taskContext.revealFailed": "\u6253\u5F00\u8F93\u51FA\u76EE\u5F55\u5931\u8D25",
-    "taskContext.revealOpened": "\u5DF2\u6253\u5F00\u8F93\u51FA\u76EE\u5F55",
+    "taskContext.noDownloadableOutputs": "\u6CA1\u6709\u53EF\u4E0B\u8F7D\u56FE\u7247",
+    "taskContext.downloadStarted": "\u5DF2\u5F00\u59CB\u4E0B\u8F7D",
     "taskContext.actionFailed": "\u4EFB\u52A1\u64CD\u4F5C\u5931\u8D25",
     "taskActions.group": "\u4EFB\u52A1\u64CD\u4F5C",
     "taskActions.deleteTitle": "\u5220\u9664\u4EFB\u52A1\uFF1F",
@@ -10021,7 +10052,7 @@
     "settings.status": "\u4FDD\u5B58\u5B58\u50A8\u8DEF\u5F84\u540E\u91CD\u542F WebUI \u751F\u6548",
     "settings.inputRoot": "\u8F93\u5165\u76EE\u5F55",
     "settings.outputRoot": "\u8F93\u51FA\u76EE\u5F55",
-    "settings.galleryRoot": "\u516C\u7528\u56FE\u5E93\u76EE\u5F55",
+    "settings.galleryRoot": "\u7D20\u6750\u5E93\u76EE\u5F55",
     "settings.sourceDataRoot": "\u6E90\u6570\u636E\u76EE\u5F55",
     "settings.language": "\u754C\u9762\u8BED\u8A00",
     "settings.languageCopy": "\u9996\u6B21\u542F\u52A8\u4F1A\u81EA\u52A8\u8DDF\u968F\u6D4F\u89C8\u5668\u8BED\u8A00\uFF0C\u624B\u52A8\u9009\u62E9\u540E\u4F1A\u8BB0\u4F4F\u504F\u597D\u3002",
@@ -10065,7 +10096,7 @@
     "apiSettings.moveProviderDownAria": "\u4E0B\u79FB {provider}",
     "apiSettings.mode": "\u8C03\u7528\u65B9\u5F0F",
     "apiSettings.images": "\u76F4\u8FDE Image API",
-    "apiSettings.responses": "Responses API",
+    "apiSettings.responses": "\u8054\u7F51\u641C\u7D22\u901A\u9053",
     "apiSettings.modeImagesShort": "\u76F4\u8FDE",
     "apiSettings.imageModel": "\u56FE\u50CF\u5DE5\u5177\u6A21\u578B",
     "apiSettings.concurrency": "Provider \u603B\u5E76\u53D1\u4E0A\u9650",
@@ -10153,12 +10184,12 @@
     "imageEditor.emptyInsertList": "\u6682\u65E0\u5176\u4ED6\u8F93\u5165\u56FE",
     "imageEditor.selectLayerFirst": "\u8BF7\u5148\u9009\u62E9\u56FE\u5C42",
     "imageEditor.baseLayer": "\u539F\u56FE",
-    "gallery.title": "\u516C\u7528\u56FE\u5E93",
+    "gallery.title": "\u6211\u7684\u7D20\u6750\u5E93",
     "gallery.subtitle": "\u9009\u62E9\u53C2\u8003\u56FE\u52A0\u5165\u5F53\u524D\u4EFB\u52A1",
     "gallery.manageCategories": "\u7BA1\u7406\u5206\u7C7B",
-    "gallery.categoryManager": "\u7BA1\u7406\u56FE\u5E93\u5206\u7C7B",
+    "gallery.categoryManager": "\u7BA1\u7406\u7D20\u6750\u5206\u7C7B",
     "gallery.categoryManagement": "\u5206\u7C7B\u7BA1\u7406",
-    "gallery.categoryCopy": "\u5206\u7C7B\u4F1A\u4FDD\u5B58\u5230\u56FE\u5E93\uFF1B\u63D0\u793A\u8BCD\u7528\u9014\u7528\u4E8E\u751F\u6210\u53C2\u8003\u56FE\u8BF4\u660E",
+    "gallery.categoryCopy": "\u5206\u7C7B\u4F1A\u4FDD\u5B58\u5230\u4F60\u7684\u7D20\u6750\u5E93\uFF1B\u63D0\u793A\u8BCD\u7528\u9014\u7528\u4E8E\u751F\u6210\u53C2\u8003\u56FE\u8BF4\u660E",
     "gallery.newCategoryName": "\u65B0\u5206\u7C7B\u540D\u79F0",
     "gallery.newCategoryRole": "\u63D0\u793A\u8BCD\u7528\u9014\uFF0C\u4F8B\u5982\uFF1A\u98CE\u683C\u53C2\u8003",
     "gallery.addCategory": "\u65B0\u589E\u5206\u7C7B",
@@ -10174,22 +10205,22 @@
     "gallery.note": "\u5907\u6CE8",
     "gallery.delete": "\u5220\u9664",
     "gallery.uncategorized": "\u672A\u5206\u7C7B",
-    "addGallery.title": "\u6DFB\u52A0\u5230\u56FE\u5E93",
-    "addGallery.copy": "\u540D\u79F0\u5168\u5C40\u552F\u4E00\uFF0C\u540E\u7EED\u53EF\u7528 @\u540D\u79F0 \u8C03\u53D6",
+    "addGallery.title": "\u6DFB\u52A0\u5230\u7D20\u6750\u5E93",
+    "addGallery.copy": "\u540D\u79F0\u4EC5\u5728\u4F60\u7684\u7D20\u6750\u5E93\u5185\u552F\u4E00\uFF0C\u540E\u7EED\u53EF\u7528 @\u540D\u79F0 \u8C03\u53D6",
     "addGallery.name": "\u540D\u79F0",
     "addGallery.namePlaceholder": "\u4F8B\u5982\uFF1A\u5C0F\u7F8E",
     "addGallery.category": "\u5206\u7C7B",
     "addGallery.note": "\u5F15\u7528\u5907\u6CE8",
     "addGallery.notePlaceholder": "\u4F8B\u5982\uFF1A\u53EA\u53C2\u8003\u8138\u578B\u548C\u53D1\u578B\uFF0C\u4E0D\u53C2\u8003\u8863\u670D\u548C\u80CC\u666F",
-    "addGallery.save": "\u4FDD\u5B58\u5230\u56FE\u5E93",
+    "addGallery.save": "\u4FDD\u5B58\u5230\u7D20\u6750\u5E93",
     "close.promptTemplates": "\u5173\u95ED\u63D0\u793A\u8BCD\u6A21\u677F\u9762\u677F",
     "close.archive": "\u5173\u95ED\u4F1A\u8BDD\u5F52\u6863\u9762\u677F",
     "close.settings": "\u5173\u95ED\u5B58\u50A8\u8BBE\u7F6E\u9762\u677F",
     "close.apiSettings": "\u5173\u95ED API \u8BBE\u7F6E\u9762\u677F",
     "close.systemSettings": "\u5173\u95ED\u7CFB\u7EDF\u8BBE\u7F6E\u9762\u677F",
     "close.imageEditor": "\u5173\u95ED\u7F16\u8F91\u8F93\u5165\u56FE\u7247\u9762\u677F",
-    "close.gallery": "\u5173\u95ED\u516C\u7528\u56FE\u5E93\u9762\u677F",
-    "close.addGallery": "\u5173\u95ED\u6DFB\u52A0\u5230\u56FE\u5E93\u9762\u677F",
+    "close.gallery": "\u5173\u95ED\u7D20\u6750\u5E93\u9762\u677F",
+    "close.addGallery": "\u5173\u95ED\u6DFB\u52A0\u5230\u7D20\u6750\u5E93\u9762\u677F",
     "close.version": "\u5173\u95ED\u7248\u672C\u66F4\u65B0\u9762\u677F"
   };
 
@@ -10280,6 +10311,7 @@
     "taskStatus.runningWithElapsed": "\u751F\u6210\u4E2D \xB7{elapsed}",
     "taskStatus.completed": "\u5DF2\u5B8C\u6210",
     "taskStatus.partialFailed": "\u90E8\u5206\u5931\u6557",
+    "taskStatus.cancelled": "\u5DF2\u53D6\u6D88\uFF08\u4E0A\u6E38\u5DF2\u5B8C\u6210\uFF09",
     "taskStatus.failed": "\u5931\u6557",
     "taskStatus.queued": "\u6392\u968A\u4E2D",
     "taskStatus.unknown": "\u672A\u77E5\u72C0\u614B",
@@ -10313,7 +10345,7 @@
     "footer.archiveCount": "\u6703\u8A71\u6B78\u6A94{count}",
     "footer.historyLibrary": "\u6B77\u53F2\u5EAB",
     "historyLibrary.openFull": "\u958B\u555F\u5B8C\u6574\u6B77\u53F2\u5EAB",
-    "history.documentTitle": "\u6B77\u53F2\u5EAB - iLabGPTCONJURE",
+    "history.documentTitle": "\u6B77\u53F2\u5EAB - OmniAPi Image Studio",
     "history.back": "\u8FD4\u56DE\u751F\u6210\u9801",
     "history.title": "\u6B77\u53F2\u5EAB",
     "history.loading": "\u8F09\u5165\u4E2D",
@@ -10953,7 +10985,7 @@
     "apiSettings.moveProviderDownAria": "\u4E0B\u79FB{provider}",
     "apiSettings.mode": "\u547C\u53EB\u65B9\u5F0F",
     "apiSettings.images": "\u76F4\u9023Image API",
-    "apiSettings.responses": "Responses API",
+    "apiSettings.responses": "\u8054\u7F51\u641C\u7D22\u901A\u9053",
     "apiSettings.modeImagesShort": "\u76F4\u9023",
     "apiSettings.imageModel": "\u5F71\u50CF\u5DE5\u5177\u6A21\u578B",
     "apiSettings.concurrency": "Provider \u7E3D\u4E26\u767C\u4E0A\u9650",
@@ -11168,6 +11200,7 @@
     "taskStatus.runningWithElapsed": "\u751F\u6210\u4E2D \xB7{elapsed}",
     "taskStatus.completed": "\u5DF2\u5B8C\u6210",
     "taskStatus.partialFailed": "\u90E8\u5206\u5931\u6557",
+    "taskStatus.cancelled": "\u5DF2\u53D6\u6D88\uFF08\u4E0A\u6E38\u5DF2\u5B8C\u6210\uFF09",
     "taskStatus.failed": "\u5931\u6557",
     "taskStatus.queued": "\u6392\u968A\u4E2D",
     "taskStatus.unknown": "\u672A\u77E5\u72C0\u614B",
@@ -11201,7 +11234,7 @@
     "footer.archiveCount": "\u6703\u8A71\u6B78\u6A94{count}",
     "footer.historyLibrary": "\u6B77\u53F2\u5EAB",
     "historyLibrary.openFull": "\u958B\u555F\u5B8C\u6574\u6B77\u53F2\u5EAB",
-    "history.documentTitle": "\u6B77\u53F2\u5EAB - iLabGPTCONJURE",
+    "history.documentTitle": "\u6B77\u53F2\u5EAB - OmniAPi Image Studio",
     "history.back": "\u8FD4\u56DE\u751F\u6210\u9801",
     "history.title": "\u6B77\u53F2\u5EAB",
     "history.loading": "\u8F09\u5165\u4E2D",
@@ -11841,7 +11874,7 @@
     "apiSettings.moveProviderDownAria": "\u4E0B\u79FB{provider}",
     "apiSettings.mode": "\u547C\u53EB\u65B9\u5F0F",
     "apiSettings.images": "\u76F4\u9023Image API",
-    "apiSettings.responses": "Responses API",
+    "apiSettings.responses": "\u8054\u7F51\u641C\u7D22\u901A\u9053",
     "apiSettings.modeImagesShort": "\u76F4\u9023",
     "apiSettings.imageModel": "\u5F71\u50CF\u5DE5\u5177\u6A21\u578B",
     "apiSettings.concurrency": "Provider \u7E3D\u4E26\u767C\u4E0A\u9650",
@@ -12183,6 +12216,7 @@
     }
     if (task.status === "completed") return translate("taskStatus.completed");
     if (task.status === "partial_failed") return translate("taskStatus.partialFailed");
+    if (task.status === "cancelled") return translate("taskStatus.cancelled");
     if (task.status === "failed") return translate("taskStatus.failed");
     if (task.status === "queued") return translate("taskStatus.queued");
     return task.status || "";
@@ -12381,7 +12415,7 @@
   var DEFAULT_CODEX_MODE = "images";
   var DEFAULT_API_IMAGES_CONCURRENCY = 4;
   var API_SETTINGS_STORAGE_KEY = "codex-image-api-settings";
-  var DEFAULT_DOCUMENT_TITLE = document.title || "iLab GPT CONJURE";
+  var DEFAULT_DOCUMENT_TITLE = document.title || "OmniAPi Image Studio";
   var TASK_HISTORY_EXPANDED_GROUP_STORAGE_KEY = "codex-image-task-history-expanded-group";
   function defaultGalleryCategories() {
     return DEFAULT_GALLERY_CATEGORIES.map((category) => ({ ...category }));
@@ -12458,6 +12492,9 @@
       tasksRequestSeq: 0,
       realtimeSource: null,
       realtimeSnapshotNeedsArchiveMigration: false,
+      realtimeReconnectTimerId: null,
+      realtimeReconnectAttempts: 0,
+      activeTaskPollTimerId: null,
       queueDragTaskId: null,
       expandedTaskGroupKey: null,
       expandedTaskGroupAnimationPending: false,
@@ -27243,6 +27280,29 @@ ${hint}` : hint;
     });
   }
 
+  // codex_image/webui/frontend/src/api.ts
+  var JsonResponseParseError = class extends Error {
+    constructor(response, bodySnippet) {
+      super("\u670D\u52A1\u6682\u65F6\u4E0D\u53EF\u7528\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5");
+      __publicField(this, "response");
+      __publicField(this, "status");
+      __publicField(this, "bodySnippet");
+      this.name = "JsonResponseParseError";
+      this.response = response;
+      this.status = response.status;
+      this.bodySnippet = bodySnippet;
+    }
+  };
+  async function safeJson(response) {
+    const text = await response.text();
+    if (!text.trim()) return {};
+    try {
+      return JSON.parse(text);
+    } catch {
+      throw new JsonResponseParseError(response, text.slice(0, 240));
+    }
+  }
+
   // codex_image/webui/frontend/src/recent-assets.ts
   var bridge2 = getLegacyBridge();
   var state3 = bridge2.state;
@@ -27283,7 +27343,7 @@ ${hint}` : hint;
     if (!els3.recentAssetList) return;
     try {
       const response = await fetch("/api/reference-assets/recent?limit=50");
-      const data = await response.json();
+      const data = await safeJson(response);
       if (!response.ok) {
         throw new Error(data.detail || translate("recentAssets.loadFailed"));
       }
@@ -28530,7 +28590,7 @@ ${hint}` : hint;
   async function refreshGallery3() {
     try {
       const response = await fetch("/api/gallery");
-      const data = await response.json();
+      const data = await safeJson(response);
       if (!response.ok) {
         throw new Error(data.detail || translate("gallery.loadFailed"));
       }
@@ -28637,6 +28697,206 @@ ${hint}` : hint;
     });
   }
 
+  // codex_image/webui/frontend/src/omni-poc-key.ts
+  var SELECTED_KEY_STORAGE = "ilab.omniSelectedKeyId";
+  var DEFAULT_SOURCE_URL = "https://github.com/Brisbanehuang/ilab-gpt-conjure-poc/tree/share/v0.2.25";
+  var enabled = false;
+  var authenticated = false;
+  var selectedKeyId = window.localStorage.getItem(SELECTED_KEY_STORAGE)?.trim() || "";
+  var keys = [];
+  var user = null;
+  var sessionConnectionOk = true;
+  var loginUrl = "";
+  function isOmniPocMode() {
+    return enabled;
+  }
+  function getSelectedOmniKeyId() {
+    return selectedKeyId;
+  }
+  function omniHeaders() {
+    return {};
+  }
+  function requireOmniApiKeyBeforeSubmit() {
+    if (!isOmniPocMode()) return;
+    if (!authenticated) {
+      throw new Error("\u8BF7\u5148\u4ECE\u4E3B\u7AD9\u767B\u5F55\u540E\u518D\u4F7F\u7528\u751F\u56FE\u529F\u80FD");
+    }
+    if (!keys.length) {
+      throw new Error("\u6CA1\u6709\u68C0\u6D4B\u5230\u53EF\u8C03\u7528 gpt-image-2 \u7684 API Key");
+    }
+  }
+  function updateOmniLegacyAuthState() {
+    const bridge39 = getLegacyBridge();
+    const ready = Boolean(authenticated && keys.length);
+    bridge39.state.authAvailable = ready;
+    bridge39.state.authStatus = {
+      selected_source: "api",
+      effective_source: "api",
+      auth_available: ready,
+      sources: {}
+    };
+    bridge39.methods.renderAuthSource?.(bridge39.state.authStatus);
+    if (bridge39.els.apiStatus) {
+      bridge39.els.apiStatus.className = `status-dot ${sessionConnectionOk ? "ok" : "error"}`;
+    }
+    if (bridge39.els.runButton) {
+      bridge39.els.runButton.disabled = !ready;
+    }
+    if (bridge39.els.authSourceDetail) {
+      const text = ready ? "\u4E3B\u7AD9 API Key" : authenticated ? "\u6CA1\u6709\u53EF\u7528\u4E3B\u7AD9 API Key" : "\u8BF7\u4ECE\u4E3B\u7AD9\u767B\u5F55";
+      bridge39.els.authSourceDetail.textContent = text;
+      bridge39.els.authSourceDetail.title = text;
+    }
+    bridge39.methods.updateRequestPreview?.();
+  }
+  function mountPoint() {
+    return document.querySelector(".nav-actions") || document.querySelector("header") || document.body;
+  }
+  function labelForKey(key) {
+    const group = key.group_name ? ` \xB7 ${key.group_name}` : "";
+    return `${key.name || "Omni API Key"}${group}`;
+  }
+  function renderKeyOptions(select) {
+    select.innerHTML = "";
+    if (!keys.length) {
+      const option = document.createElement("option");
+      option.value = "";
+      option.textContent = authenticated ? "\u6CA1\u6709\u53EF\u7528\u7684 gpt-image-2 API Key" : "\u8BF7\u5148\u767B\u5F55";
+      select.appendChild(option);
+      select.value = "";
+      selectedKeyId = "";
+      window.localStorage.removeItem(SELECTED_KEY_STORAGE);
+      return;
+    }
+    const autoOption = document.createElement("option");
+    autoOption.value = "";
+    autoOption.textContent = "\u81EA\u52A8\u9009\u62E9\uFF08\u63A8\u8350\uFF09";
+    select.appendChild(autoOption);
+    keys.forEach((key) => {
+      const option = document.createElement("option");
+      option.value = key.id;
+      option.textContent = labelForKey(key);
+      select.appendChild(option);
+    });
+    if (selectedKeyId && !keys.some((key) => key.id === selectedKeyId)) {
+      selectedKeyId = "";
+    }
+    select.value = selectedKeyId;
+  }
+  function renderSession(root) {
+    const status = root.querySelector(".omni-poc-key-status");
+    const account = root.querySelector(".omni-poc-account");
+    const select = root.querySelector(".omni-poc-key-select");
+    const login = root.querySelector(".omni-poc-login-link");
+    const refresh = root.querySelector('[data-action="refresh"]');
+    if (account) {
+      const accountText = authenticated && user ? `${user.username || user.email || `\u7528\u6237 ${user.id}`} \xB7 \u4F59\u989D ${Number(user.balance || 0).toFixed(2)}` : "\u672A\u767B\u5F55\u4E3B\u7AD9";
+      account.textContent = "";
+      account.title = accountText;
+    }
+    if (login) {
+      login.classList.toggle("hidden", authenticated || !loginUrl);
+    }
+    if (select) {
+      select.disabled = !authenticated || !keys.length;
+      select.classList.toggle("hidden", !authenticated);
+      renderKeyOptions(select);
+    }
+    if (refresh) {
+      refresh.disabled = false;
+      refresh.classList.toggle("hidden", !authenticated);
+    }
+    if (status) {
+      status.textContent = authenticated ? keys.length ? "" : "\u6CA1\u6709\u68C0\u6D4B\u5230\u53EF\u8C03\u7528 gpt-image-2 \u7684 API Key" : "";
+      status.classList.toggle("hidden", authenticated && keys.length > 0);
+    }
+    updateOmniLegacyAuthState();
+  }
+  async function refreshSessionAndKeys(root) {
+    const status = root.querySelector(".omni-poc-key-status");
+    const refresh = root.querySelector('[data-action="refresh"]');
+    if (status) status.textContent = "\u6B63\u5728\u8BFB\u53D6\u767B\u5F55\u72B6\u6001";
+    if (refresh) refresh.disabled = true;
+    try {
+      const sessionResponse = await fetch("/api/auth/session", { credentials: "include" });
+      const sessionPayload = await sessionResponse.json().catch(() => ({}));
+      sessionConnectionOk = sessionResponse.ok;
+      authenticated = Boolean(sessionPayload?.authenticated);
+      user = authenticated ? sessionPayload.user || null : null;
+      keys = [];
+      if (authenticated) {
+        const keysResponse = await fetch("/api/omni/keys", { credentials: "include" });
+        const keysPayload = await keysResponse.json().catch(() => ({}));
+        sessionConnectionOk = sessionConnectionOk && keysResponse.ok;
+        keys = Array.isArray(keysPayload?.keys) ? keysPayload.keys : [];
+      }
+    } catch {
+      sessionConnectionOk = false;
+      authenticated = false;
+      user = null;
+      keys = [];
+      if (status) status.textContent = "\u767B\u5F55\u72B6\u6001\u8BFB\u53D6\u5931\u8D25";
+    } finally {
+      renderSession(root);
+    }
+  }
+  function renderKeyControl() {
+    if (document.querySelector(".omni-poc-key-control")) return;
+    const root = document.createElement("div");
+    root.className = "omni-poc-key-control";
+    root.innerHTML = `
+    <label class="omni-poc-key-label" for="omni-poc-key-select">\u4E3B\u7AD9 API Key</label>
+    <span class="omni-poc-account"></span>
+    <select id="omni-poc-key-select" class="omni-poc-key-select"></select>
+    <button class="omni-poc-key-button" type="button" data-action="refresh">\u5237\u65B0</button>
+    <a class="omni-poc-key-button omni-poc-login-link" href="#" rel="noreferrer">\u767B\u5F55\u4E3B\u7AD9</a>
+    <span class="omni-poc-key-status" aria-live="polite"></span>
+  `;
+    mountPoint().appendChild(root);
+    const login = root.querySelector(".omni-poc-login-link");
+    if (loginUrl && login) login.href = loginUrl;
+    root.addEventListener("click", (event) => {
+      const target = event.target;
+      if (target.dataset.action === "refresh") {
+        void refreshSessionAndKeys(root);
+      }
+    });
+    root.querySelector(".omni-poc-key-select")?.addEventListener("change", (event) => {
+      selectedKeyId = event.target.value;
+      if (selectedKeyId) {
+        window.localStorage.setItem(SELECTED_KEY_STORAGE, selectedKeyId);
+      } else {
+        window.localStorage.removeItem(SELECTED_KEY_STORAGE);
+      }
+      updateOmniLegacyAuthState();
+    });
+    void refreshSessionAndKeys(root);
+  }
+  async function initOmniPocKeyControl() {
+    try {
+      const response = await fetch("/api/health");
+      const data = await response.json();
+      const config = data?.omni_poc || {};
+      const projectLink = document.querySelector("#githubLink");
+      const dashboardUrl = config.enabled ? String(config.dashboard_url || "").trim() : "";
+      const sourceUrl = String(config.source_url || DEFAULT_SOURCE_URL).trim() || DEFAULT_SOURCE_URL;
+      if (projectLink) {
+        projectLink.href = dashboardUrl || sourceUrl;
+        const label = dashboardUrl ? "\u4E3B\u7AD9 Dashboard" : "\u9879\u76EE\u4E3B\u9875";
+        projectLink.setAttribute("aria-label", label);
+        projectLink.title = label;
+      }
+      document.documentElement.classList.toggle("omni-poc-mode", Boolean(config.enabled));
+      if (!config.enabled) return;
+      loginUrl = String(config.login_url || "").trim();
+      enabled = true;
+      renderKeyControl();
+      updateOmniLegacyAuthState();
+    } catch {
+      return;
+    }
+  }
+
   // codex_image/webui/frontend/src/api-mode-settings.ts
   var bridge7 = getLegacyBridge();
   var els8 = bridge7.els;
@@ -28674,7 +28934,7 @@ ${hint}` : hint;
     setModeSpecificElementVisibility(els8.promptFidelityField, true);
   }
   function updateWebSearchAvailability(authSource = currentAuthSource()) {
-    const supported = authSource === "api" ? currentApiMode() === "responses" : authSource === "codex" ? currentCodexMode() === "responses" : true;
+    const supported = isOmniPocMode() ? true : authSource === "api" ? currentApiMode() === "responses" : authSource === "codex" ? currentCodexMode() === "responses" : true;
     if (els8.webSearch) {
       const wasChecked = Boolean(els8.webSearch.checked);
       els8.webSearch.disabled = !supported;
@@ -28697,7 +28957,7 @@ ${hint}` : hint;
     applyModeSettingsVisibility(isDirectApi);
   }
   function updateModeSpecificSettings(authSource = currentAuthSource()) {
-    const isDirectApi = authSource === "api" && currentApiMode() !== "responses" || authSource === "codex" && currentCodexMode() !== "responses";
+    const isDirectApi = !isOmniPocMode() && (authSource === "api" && currentApiMode() !== "responses" || authSource === "codex" && currentCodexMode() !== "responses");
     setModeSettingsVariant(isDirectApi);
     updateWebSearchAvailability(authSource);
   }
@@ -28735,9 +28995,14 @@ ${hint}` : hint;
     return legacyMethod12("codexModeLabel", mode);
   }
   async function refreshHealth() {
+    if (isOmniPocMode()) {
+      updateOmniLegacyAuthState();
+      updateRequestPreview4();
+      return;
+    }
     try {
       const response = await fetch("/api/health");
-      const data = await response.json();
+      const data = await safeJson(response);
       state8.authAvailable = Boolean(data.auth_available);
       state8.authStatus = data.auth || null;
       renderAuthSource(state8.authStatus);
@@ -28764,7 +29029,7 @@ ${hint}` : hint;
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ source })
       });
-      const data = await response.json();
+      const data = await safeJson(response);
       if (!response.ok) {
         throw new Error(data.detail || translate("auth.switchFailed"));
       }
@@ -28790,6 +29055,14 @@ ${hint}` : hint;
     setAuthSource(source);
   }
   function renderAuthSource(auth) {
+    if (isOmniPocMode()) {
+      if (els9.authSourceDetail) {
+        els9.authSourceDetail.textContent = "Omni API Key";
+        els9.authSourceDetail.title = "Omni API Key";
+      }
+      applyAuthSourceSelection("api");
+      return;
+    }
     const selected = state8.pendingAuthSource || auth?.selected_source || "codex";
     applyAuthSourceSelection(selected);
     if (els9.authSourceDetail) {
@@ -28831,6 +29104,7 @@ ${hint}` : hint;
     return translate("auth.notActive");
   }
   function currentAuthSource2() {
+    if (isOmniPocMode()) return "api";
     return state8.pendingAuthSource || state8.authStatus?.selected_source || "codex";
   }
   function isDirectApiMode(authSource = currentAuthSource2()) {
@@ -29628,18 +29902,18 @@ ${hint}` : hint;
   }
   function taskApiProviderId(task) {
     return String(
-      task?.api_provider_id || task?.params?.api_provider_id || task?.request?.webui_api_provider_id || task?.request?.api_provider_id || ""
+      task?.api_provider_id || task?.params?.api_provider_id || task?.request?.webui_api_provider_id || task?.request?.api_provider_id || task?.provider_id || ""
     ).trim();
   }
   function taskApiProviderLabel(task) {
     const providerId = taskApiProviderId(task);
-    if (!providerId) return "";
     const providerName = String(
-      task?.api_provider_name || task?.params?.api_provider_name || task?.request?.webui_api_provider_name || task?.request?.api_provider_name || ""
+      task?.api_provider_name || task?.params?.api_provider_name || task?.request?.webui_api_provider_name || task?.request?.api_provider_name || task?.provider || ""
     ).trim();
-    const configuredProvider = state9.apiSettings.providers.find((provider) => provider.id === providerId);
+    const configuredProvider = providerId ? state9.apiSettings.providers.find((provider) => provider.id === providerId) : null;
     const label = providerName || configuredProvider?.name || providerId;
-    return label === providerId ? label : `${label} (${providerId})`;
+    if (!label) return "";
+    return !providerId || label === providerId ? label : `${label} (${providerId})`;
   }
   function taskBackendLabel(task) {
     const backend = taskBackendValue(task);
@@ -30731,7 +31005,7 @@ ${hint}` : hint;
   async function refreshPromptSnippets() {
     try {
       const response = await fetch(PROMPT_SNIPPETS_ENDPOINT);
-      const data = await response.json();
+      const data = await safeJson(response);
       if (!response.ok) throw new Error(data.detail || translate("snippets.loadFailed"));
       state12.promptSnippets = normalizePromptSnippetList(data.snippets);
       updatePromptSnippetSuggest();
@@ -31470,7 +31744,7 @@ ${hint}` : hint;
   async function refreshPromptTemplates() {
     try {
       const response = await fetch(PROMPT_TEMPLATES_ENDPOINT);
-      const data = await response.json();
+      const data = await safeJson(response);
       if (!response.ok) throw new Error(data.detail || translate("templates.loadFailed"));
       applyPromptTemplateSettingsResponse(data);
     } catch (error) {
@@ -33671,8 +33945,8 @@ ${galleryText}`;
 
   // codex_image/webui/frontend/src/main-model-combobox.ts
   var DEFAULT_MAIN_MODEL = "gpt-5.4-mini";
-  var MAIN_MODEL_OPTIONS = ["gpt-5.5", "gpt-5.4", "gpt-5.4-mini", "gpt-5.3-codex", "gpt-5.2"];
-  var RETIRED_MAIN_MODEL_OPTIONS = /* @__PURE__ */ new Set(["gpt-5.3-codex-spark"]);
+  var MAIN_MODEL_OPTIONS = ["gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna", "gpt-5.4-mini"];
+  var RETIRED_MAIN_MODEL_OPTIONS = /* @__PURE__ */ new Set(["gpt-5.5", "gpt-5.4", "gpt-5.3-codex", "gpt-5.2", "gpt-5.3-codex-spark"]);
   var MAIN_MODEL_STORAGE_KEY = "codex-image-main-model";
   var bridge22 = getLegacyBridge();
   var state16 = bridge22.state;
@@ -33809,7 +34083,7 @@ ${galleryText}`;
   }
 
   // codex_image/webui/frontend/src/size-presets.ts
-  var DEFAULT_RESOLUTION = "standard";
+  var DEFAULT_RESOLUTION = "2k";
   var DEFAULT_RATIO = "1:1";
   var DEFAULT_ORIENTATION = "square";
   var RATIO_ORIENTATION = {
@@ -33959,6 +34233,7 @@ ${galleryText}`;
     return currentAuthSource2() === "api" ? currentApiImageModel() : els25.model.value;
   }
   function webSearchSupportedForCurrentBackend() {
+    if (isOmniPocMode()) return true;
     const authSource = currentAuthSource2();
     if (authSource === "api") return currentApiMode3() === "responses";
     if (authSource === "codex") return currentCodexMode3() === "responses";
@@ -34120,9 +34395,9 @@ ${galleryText}`;
   }
   function updateCustomRatioReferenceButtonState() {
     if (!els26.customRatioFromImageButton) return;
-    const enabled = Boolean(firstReferenceImageSource());
-    els26.customRatioFromImageButton.disabled = !enabled;
-    els26.customRatioFromImageButton.setAttribute("aria-disabled", enabled ? "false" : "true");
+    const enabled2 = Boolean(firstReferenceImageSource());
+    els26.customRatioFromImageButton.disabled = !enabled2;
+    els26.customRatioFromImageButton.setAttribute("aria-disabled", enabled2 ? "false" : "true");
   }
   function sourceUrlForAspectRatio(source) {
     if (!source || source.missing) return "";
@@ -35240,7 +35515,7 @@ ${galleryText}`;
     const unread = taskHasUnreadUpdate(task);
     const unreadClass = unread ? " unread" : "";
     const statusClass = task.status ? ` ${escapeHtml13(task.status)}` : "";
-    const title = escapeHtml13(task.prompt || task.mode || "Untitled");
+    const title = escapeHtml13(task.title || task.display_title || task.prompt || task.mode || "Untitled");
     const statusLight = taskStatusLightHtml(task);
     const statusMeta = escapeHtml13(taskMetaDetailsText(task));
     const imageBlocks = taskImageBlocksHtml(task);
@@ -35352,7 +35627,6 @@ ${galleryText}`;
   }
   function historyLibraryGroup(tasks, query) {
     if (query) return "";
-    if (!tasks.some((task) => !isAlwaysVisibleTask(task))) return "";
     return `
     <a class="task-history-library-card" href="/history">
       <span>${escapeHtml13(translate("footer.historyLibrary"))}</span>
@@ -35424,6 +35698,8 @@ ${galleryText}`;
         task.updated_at,
         task.completed_at,
         task.started_at,
+        task.title,
+        task.display_title,
         task.prompt,
         task.mode,
         task.backend,
@@ -35473,8 +35749,8 @@ ${galleryText}`;
       const imageToImageLabel = escapeHtml13(translate("taskCard.imageToImageThumb"));
       return `
       <div class="${safeClassName} task-thumb-stack" aria-label="${imageToImageLabel}">
-        <img class="task-thumb-reference" src="${escapeHtml13(inputPreviewUrl)}" alt="" loading="lazy" decoding="async">
-        <img class="task-thumb-output" src="${escapeHtml13(imageUrl)}" alt="" loading="lazy" decoding="async">
+        <img class="task-thumb-reference" src="${escapeHtml13(inputPreviewUrl)}" alt="" loading="lazy" decoding="async" onerror="this.hidden=true">
+        <img class="task-thumb-output" src="${escapeHtml13(imageUrl)}" alt="" loading="lazy" decoding="async" onerror="this.hidden=true">
         ${loadingSpinner}
       </div>
     `;
@@ -35484,7 +35760,7 @@ ${galleryText}`;
       const textBadge = escapeHtml13(translate("taskCard.textBadge"));
       return `
       <div class="${safeClassName} task-thumb-single" aria-label="${textToImageLabel}">
-        <img class="task-thumb-single-image" src="${escapeHtml13(imageUrl)}" alt="" loading="lazy" decoding="async">
+        <img class="task-thumb-single-image" src="${escapeHtml13(imageUrl)}" alt="" loading="lazy" decoding="async" onerror="this.hidden=true">
         <span class="task-thumb-mode-badge" aria-hidden="true">${textBadge}</span>
       </div>
     `;
@@ -36687,18 +36963,6 @@ ${galleryText}`;
   function persistMainModel2(...args) {
     return legacyMethod34("persistMainModel", ...args);
   }
-  function normalizeApiSettings2(...args) {
-    return legacyMethod34("normalizeApiSettings", ...args);
-  }
-  function normalizeApiImagesConcurrency2(...args) {
-    return legacyMethod34("normalizeApiImagesConcurrency", ...args);
-  }
-  function persistApiSettings2(...args) {
-    return legacyMethod34("persistApiSettings", ...args);
-  }
-  function populateApiSettingsForm2(...args) {
-    return legacyMethod34("populateApiSettingsForm", ...args);
-  }
   function syncSizeControlsFromSize2(...args) {
     return legacyMethod34("syncSizeControlsFromSize", ...args);
   }
@@ -36816,27 +37080,6 @@ ${galleryText}`;
       els33.mainModel.value = mainModel;
       persistMainModel2();
     }
-    if (params.api_mode) {
-      state24.apiSettings = normalizeApiSettings2(state24.apiSettings);
-      if (params.api_provider_id && state24.apiSettings.providers.some((provider) => provider.id === params.api_provider_id)) {
-        state24.apiSettings.active_provider_id = params.api_provider_id;
-      }
-      state24.apiSettings.providers = state24.apiSettings.providers.map((provider) => provider.id === state24.apiSettings.active_provider_id ? {
-        ...provider,
-        api_mode: params.api_mode,
-        images_concurrency: params.api_images_concurrency ? normalizeApiImagesConcurrency2(params.api_images_concurrency) : provider.images_concurrency
-      } : provider);
-      persistApiSettings2();
-      populateApiSettingsForm2();
-    }
-    if (params.codex_mode) {
-      state24.apiSettings = normalizeApiSettings2({
-        ...state24.apiSettings,
-        codex_mode: params.codex_mode
-      });
-      persistApiSettings2();
-      populateApiSettingsForm2();
-    }
     if (els33.promptFidelity) {
       const fidelity = ["strict", "original", "off"].includes(params.prompt_fidelity) ? params.prompt_fidelity : "strict";
       els33.promptFidelity.value = fidelity;
@@ -36896,6 +37139,10 @@ ${galleryText}`;
       gallery_image_ids: galleries.map((source) => source.id),
       reference_asset_ids: assets.map((source) => source.id)
     };
+    const selectedOmniKeyId = getSelectedOmniKeyId();
+    if (selectedOmniKeyId) {
+      payload2.sub2api_api_key_id = selectedOmniKeyId;
+    }
     if (isApi) {
       const apiMode = currentApiMode4();
       const action = state24.mode === "edit" || uploads.length || assets.length || galleries.length ? "edit" : "generate";
@@ -37023,6 +37270,12 @@ ${galleryText}`;
       setStatus17(customSizeError, "error");
       return;
     }
+    try {
+      requireOmniApiKeyBeforeSubmit();
+    } catch (error) {
+      setStatus17(errorMessage4(error, "Omni API Key is required"), "error");
+      return;
+    }
     const form = new FormData();
     form.append("prompt", prompt);
     form.append("prompt_for_model", promptForModel);
@@ -37039,9 +37292,11 @@ ${galleryText}`;
     form.append("n", String(params.n));
     form.append("prompt_fidelity", currentPromptFidelity3());
     if (params.web_search) form.append("web_search", "true");
+    const selectedOmniKeyId = getSelectedOmniKeyId();
+    if (selectedOmniKeyId) form.append("sub2api_key_id", selectedOmniKeyId);
     if (currentAuthSource3() === "api") {
       form.append("api_provider_id", currentApiProviderId3());
-      form.append("api_mode", currentApiMode4());
+      form.append("api_mode", isOmniPocMode() && params.web_search ? "responses" : currentApiMode4());
     } else if (currentAuthSource3() === "codex") {
       form.append("codex_mode", currentCodexMode4());
     }
@@ -37067,6 +37322,7 @@ ${galleryText}`;
     try {
       const response = await fetch(state24.mode === "edit" ? "/api/edit" : "/api/generate", {
         method: "POST",
+        headers: omniHeaders(),
         body: form,
         signal: controller.signal
       });
@@ -37130,8 +37386,39 @@ ${galleryText}`;
   var openBatchDeleteConfirm2 = (...args) => legacyMethod35("openBatchDeleteConfirm", ...args);
   var handleTaskListPointerDown2 = (...args) => legacyMethod35("handleTaskListPointerDown", ...args);
   var closeArchiveModal2 = (...args) => legacyMethod35("closeArchiveModal", ...args);
+  var openArchiveModal2 = (...args) => legacyMethod35("openArchiveModal", ...args);
   var taskListControlsInitialized = false;
   var taskListControlEventsBound = false;
+  var taskSearchAcceptManualInput = false;
+  var taskSearchHasUserEdited = false;
+  function setTaskSearchLocked(locked) {
+    const input = els34.taskSearch;
+    if (!input) return;
+    if (locked) {
+      input.setAttribute("readonly", "");
+    } else {
+      input.removeAttribute("readonly");
+    }
+  }
+  function isLikelyBrowserAutofillTaskSearchValue(value) {
+    const trimmed = String(value || "").trim();
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed);
+  }
+  function guardTaskSearchAutofill(delays = []) {
+    const input = els34.taskSearch;
+    if (!input) return false;
+    let cleared = false;
+    const clearIfAutofilled = () => {
+      if (taskSearchHasUserEdited || taskSearchAcceptManualInput || !isLikelyBrowserAutofillTaskSearchValue(input.value)) return;
+      input.value = "";
+      cleared = true;
+      renderTasks6();
+      void syncTaskSearchHistoryResults();
+    };
+    clearIfAutofilled();
+    delays.forEach((delay) => setTimeout(clearIfAutofilled, delay));
+    return cleared;
+  }
   function bindTaskListControlEvents() {
     if (taskListControlEventsBound) return;
     taskListControlEventsBound = true;
@@ -37140,9 +37427,56 @@ ${galleryText}`;
       if (event.target === els34.archiveModal) closeArchiveModal2();
     });
     els34.batchManageButton?.addEventListener("click", () => toggleBatchMode2());
+    els34.archiveButton?.addEventListener("click", openArchiveModal2);
     els34.batchArchiveButton?.addEventListener("click", archiveSelectedTasks2);
     els34.batchDeleteButton?.addEventListener("click", openBatchDeleteConfirm2);
     els34.batchCancelButton?.addEventListener("click", () => toggleBatchMode2(false));
+    setTaskSearchLocked(true);
+    guardTaskSearchAutofill([80, 240, 720]);
+    window.addEventListener("pageshow", () => guardTaskSearchAutofill([80, 240, 720]));
+    els34.taskSearch.addEventListener("pointerdown", (event) => {
+      const input = els34.taskSearch;
+      if (!input?.readOnly) return;
+      event.preventDefault();
+      setTaskSearchLocked(false);
+      guardTaskSearchAutofill();
+      input.focus({ preventScroll: true });
+    });
+    els34.taskSearch.addEventListener("keydown", (event) => {
+      const input = els34.taskSearch;
+      if (input?.readOnly && !event.metaKey && !event.ctrlKey && !event.altKey) {
+        const key = event.key || "";
+        const isPrintable = key.length === 1;
+        const isClearKey = key === "Backspace" || key === "Delete";
+        if (isPrintable || isClearKey) {
+          event.preventDefault();
+          setTaskSearchLocked(false);
+          taskSearchAcceptManualInput = true;
+          taskSearchHasUserEdited = true;
+          input.value = isClearKey ? "" : key;
+          handleTaskSearchInput();
+        }
+        return;
+      }
+      taskSearchAcceptManualInput = true;
+      taskSearchHasUserEdited = true;
+    });
+    els34.taskSearch.addEventListener("paste", () => {
+      taskSearchAcceptManualInput = true;
+      taskSearchHasUserEdited = true;
+    });
+    els34.taskSearch.addEventListener("drop", () => {
+      taskSearchAcceptManualInput = true;
+      taskSearchHasUserEdited = true;
+    });
+    els34.taskSearch.addEventListener("focus", () => {
+      taskSearchAcceptManualInput = false;
+      guardTaskSearchAutofill([120, 360, 900]);
+    });
+    els34.taskSearch.addEventListener("blur", () => {
+      taskSearchAcceptManualInput = false;
+      setTaskSearchLocked(true);
+    });
     els34.taskSearch.addEventListener("input", handleTaskSearchInput);
     [els34.taskRatioFilter, els34.taskOrientationFilter, els34.taskPromptFidelityFilter, els34.taskResolutionFilter].filter(Boolean).forEach((element2) => {
       element2.addEventListener("change", renderTasks6);
@@ -37150,6 +37484,11 @@ ${galleryText}`;
     bindTaskListEvents();
   }
   function handleTaskSearchInput() {
+    if (!taskSearchAcceptManualInput && guardTaskSearchAutofill([120, 360, 900])) return;
+    const input = els34.taskSearch;
+    if (!input) return;
+    taskSearchHasUserEdited = Boolean(input.value);
+    if (!input.value) taskSearchHasUserEdited = false;
     renderTasks6();
     void syncTaskSearchHistoryResults();
   }
@@ -37249,6 +37588,9 @@ ${galleryText}`;
   // codex_image/webui/frontend/src/queue.ts
   var REALTIME_EVENTS_URL = "/api/events?stream=1";
   var QUEUE_DISPATCH_RESYNC_DELAY_MS = 1500;
+  var REALTIME_RECONNECT_INITIAL_DELAY_MS = 1500;
+  var REALTIME_RECONNECT_MAX_DELAY_MS = 15e3;
+  var ACTIVE_TASK_POLL_INTERVAL_MS = 5e3;
   var queueFeatureInitialized = false;
   function initializeQueueFeature() {
     if (queueFeatureInitialized) return;
@@ -37272,10 +37614,15 @@ ${galleryText}`;
   function startRealtimeUpdates({ migrateLegacyArchives = false } = {}) {
     const state32 = getState();
     if (!window.EventSource) return false;
-    closeRealtimeUpdates();
+    closeRealtimeSource();
+    clearRealtimeReconnectTimer();
     state32.realtimeSnapshotNeedsArchiveMigration = migrateLegacyArchives;
     const source = new EventSource(REALTIME_EVENTS_URL);
     state32.realtimeSource = source;
+    source.onopen = () => {
+      if (state32.realtimeSource !== source) return;
+      state32.realtimeReconnectAttempts = 0;
+    };
     source.onmessage = (event) => {
       handleRealtimeMessage(event).catch((error) => {
         console.error(error);
@@ -37285,19 +37632,42 @@ ${galleryText}`;
     source.onerror = () => {
       if (state32.realtimeSource !== source) return;
       const shouldMigrateArchives = state32.realtimeSnapshotNeedsArchiveMigration;
-      closeRealtimeUpdates();
+      closeRealtimeSource();
       state32.realtimeSnapshotNeedsArchiveMigration = false;
       void refreshQueue();
       void getLegacyBridge().methods.refreshTasks({ migrateLegacyArchives: shouldMigrateArchives });
-      getLegacyBridge().methods.setStatus(translate("queue.realtimeDisconnected"), "error");
+      scheduleRealtimeReconnect({ migrateLegacyArchives: false });
     };
     return true;
   }
   function closeRealtimeUpdates() {
+    closeRealtimeSource();
+    clearRealtimeReconnectTimer();
+  }
+  function closeRealtimeSource() {
     const state32 = getState();
     if (!state32.realtimeSource) return;
     state32.realtimeSource.close();
     state32.realtimeSource = null;
+  }
+  function clearRealtimeReconnectTimer() {
+    const state32 = getState();
+    if (!state32.realtimeReconnectTimerId) return;
+    window.clearTimeout(state32.realtimeReconnectTimerId);
+    state32.realtimeReconnectTimerId = null;
+  }
+  function scheduleRealtimeReconnect({ migrateLegacyArchives = false } = {}) {
+    const state32 = getState();
+    if (state32.realtimeReconnectTimerId) return;
+    const delay = Math.min(
+      REALTIME_RECONNECT_INITIAL_DELAY_MS * Math.max(1, 2 ** state32.realtimeReconnectAttempts),
+      REALTIME_RECONNECT_MAX_DELAY_MS
+    );
+    state32.realtimeReconnectAttempts += 1;
+    state32.realtimeReconnectTimerId = window.setTimeout(() => {
+      state32.realtimeReconnectTimerId = null;
+      startRealtimeUpdates({ migrateLegacyArchives });
+    }, delay);
   }
   async function handleRealtimeMessage(event) {
     if (!event.data) return;
@@ -37333,7 +37703,7 @@ ${galleryText}`;
     const requestSeq = ++state32.queueRequestSeq;
     try {
       const response = await fetch("/api/queue");
-      const data = await response.json();
+      const data = await safeJson(response);
       if (requestSeq !== state32.queueRequestSeq) return;
       if (!response.ok) {
         throw new Error(data.detail || translate("queue.readFailed"));
@@ -37386,6 +37756,7 @@ ${galleryText}`;
     } else {
       clearQueueDispatchSync();
     }
+    syncActiveTaskPolling();
     const nextRenderKey = queueListRenderKey();
     if (state32.queueRenderKey === nextRenderKey) {
       updateQueueElapsedDisplays();
@@ -37448,6 +37819,40 @@ ${galleryText}`;
     if (!state32.queueDispatchSyncTimerId) return;
     window.clearTimeout(state32.queueDispatchSyncTimerId);
     state32.queueDispatchSyncTimerId = null;
+  }
+  function syncActiveTaskPolling() {
+    if (queueHasActiveTasks()) {
+      scheduleActiveTaskPolling();
+    } else {
+      clearActiveTaskPolling();
+    }
+  }
+  function queueHasActiveTasks(queue = getState().queue) {
+    const waitingCount = Number(queue?.summary?.waiting_count ?? queue?.waiting?.length ?? 0);
+    const runningCount = Number(queue?.summary?.running_count ?? queue?.running?.length ?? 0);
+    return waitingCount + runningCount > 0;
+  }
+  function scheduleActiveTaskPolling() {
+    const state32 = getState();
+    if (state32.activeTaskPollTimerId) return;
+    state32.activeTaskPollTimerId = window.setTimeout(activeTaskPollingTick, ACTIVE_TASK_POLL_INTERVAL_MS);
+  }
+  function clearActiveTaskPolling() {
+    const state32 = getState();
+    if (!state32.activeTaskPollTimerId) return;
+    window.clearTimeout(state32.activeTaskPollTimerId);
+    state32.activeTaskPollTimerId = null;
+  }
+  async function activeTaskPollingTick() {
+    const state32 = getState();
+    state32.activeTaskPollTimerId = null;
+    if (!queueHasActiveTasks()) return;
+    const bridge39 = getLegacyBridge();
+    await refreshQueue();
+    await bridge39.methods.refreshTasks();
+    if (queueHasActiveTasks()) {
+      scheduleActiveTaskPolling();
+    }
   }
   function queueListRenderKey() {
     const state32 = getState();
@@ -38026,7 +38431,7 @@ ${galleryText}`;
     <div class="task-context-menu-section">
       ${taskContextButton("copy-id", translate("taskContext.copyId"))}
       ${taskContextButton("copy-prompt", translate("taskContext.copyPrompt"), !taskCanCopyPrompt(task))}
-      ${taskContextButton("reveal-output", translate("taskContext.revealOutput"), !hasOutput)}
+      ${taskContextButton("download-output", translate("taskContext.downloadOutput"), !hasOutput)}
     </div>
     <div class="task-context-menu-section">
       ${taskContextButton("archive", translate("taskContext.archive"))}
@@ -38075,8 +38480,8 @@ ${galleryText}`;
         if (!prompt) throw new Error(translate("taskContext.noPrompt"));
         await copyText(prompt);
         setStatus18(translate("taskContext.promptCopied"), "ok");
-      } else if (action === "reveal-output") {
-        await revealTaskOutputDirectory(taskId);
+      } else if (action === "download-output") {
+        await downloadTaskOutputs(taskId, task);
       } else if (action === "archive") {
         await archiveTask3(taskId);
       }
@@ -38084,14 +38489,59 @@ ${galleryText}`;
       setStatus18(errorMessage6(error, translate("taskContext.actionFailed")), "error");
     }
   }
-  async function revealTaskOutputDirectory(taskId) {
-    const response = await fetch(`/api/tasks/${encodeURIComponent(taskId)}/reveal-output`, {
-      method: "POST",
-      headers: { "X-Requested-With": "codex-image-webui" }
-    });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data.detail || translate("taskContext.revealFailed"));
-    setStatus18(translate("taskContext.revealOpened"), "ok");
+  async function downloadTaskOutputs(taskId, task) {
+    const detailedTask = await ensureTaskContextTaskDetail(taskId, task);
+    const records = downloadableOutputRecords(detailedTask);
+    if (!records.length) throw new Error(translate("taskContext.noDownloadableOutputs"));
+    if (records.length === 1) {
+      const record = records[0];
+      triggerDownload(String(record.url), outputDownloadFilename(taskId, record, 1));
+    } else {
+      triggerDownload(`/api/tasks/${encodeURIComponent(taskId)}/outputs.zip`, `${taskId}-images.zip`);
+    }
+    setStatus18(translate("taskContext.downloadStarted"), "ok");
+  }
+  function downloadableOutputRecords(task) {
+    const records = [];
+    if (Array.isArray(task?.outputs)) {
+      task.outputs.forEach((record, fallbackIndex) => {
+        if (record?.status && record.status !== "completed") return;
+        const url = String(record?.url || "");
+        if (!url) return;
+        records.push({
+          index: positiveIndex(record?.index) || fallbackIndex + 1,
+          url,
+          file: String(record?.file || "")
+        });
+      });
+    }
+    if (!records.length) {
+      const urls = Array.isArray(task?.output_urls) ? task.output_urls : task?.output_url ? [task.output_url] : [];
+      urls.forEach((url, index) => {
+        if (!url) return;
+        records.push({ index: index + 1, url: String(url) });
+      });
+    }
+    return records.sort((a, b) => a.index - b.index);
+  }
+  function outputDownloadFilename(taskId, record, fallbackIndex) {
+    const source = String(record.file || record.url || "");
+    const pathname = source.split(/[?#]/)[0] || "";
+    const filename = pathname.split("/").filter(Boolean).pop() || "";
+    if (filename && /\.[a-z0-9]+$/i.test(filename)) return filename;
+    return `${taskId}-image-${record.index || fallbackIndex}.png`;
+  }
+  function triggerDownload(url, filename) {
+    const link = document.createElement("a");
+    link.href = url;
+    if (filename) link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  }
+  function positiveIndex(value) {
+    const parsed = Number.parseInt(String(value), 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
   }
   async function copyText(text) {
     if (navigator.clipboard?.writeText) {
@@ -38466,18 +38916,37 @@ ${galleryText}`;
     const bridge39 = getLegacyBridge();
     const urls = bridge39.methods.taskThumbnailUrls?.(task);
     if (Array.isArray(urls) && urls[0]) return String(urls[0]);
-    if (Array.isArray(task.thumbnail_urls) && task.thumbnail_urls[0]) return String(task.thumbnail_urls[0]);
-    const output = Array.isArray(task.outputs) ? task.outputs.find((record) => record?.status === "completed") : null;
-    if (output?.thumbnail_url) return String(output.thumbnail_url);
-    if (output?.thumbnail_file) return outputFileUrl(output.thumbnail_file);
-    if (output?.url || output?.file) {
-      const index = positiveNumber(output.index) || 1;
-      return `/api/tasks/${encodeURIComponent(task.task_id)}/outputs/${index}/thumbnail`;
+    if (Array.isArray(task.thumbnail_urls) && task.thumbnail_urls[0]) {
+      return normalizeNotificationThumbnailUrl(task, task.thumbnail_urls[0], 1);
+    }
+    const outputs = Array.isArray(task.outputs) ? task.outputs : [];
+    const output = outputs.find((record) => record?.status === "completed");
+    if (output) {
+      const index = positiveNumber(output.index) || outputs.indexOf(output) + 1 || 1;
+      const thumbnailUrl = taskThumbnailUrlForNotification(task, output, index);
+      if (thumbnailUrl) return thumbnailUrl;
     }
     if (Array.isArray(task.output_urls) && task.output_urls.some(Boolean)) {
-      return `/api/tasks/${encodeURIComponent(task.task_id)}/outputs/1/thumbnail`;
+      return normalizeNotificationThumbnailUrl(task, task.output_urls[0], 1);
     }
     return void 0;
+  }
+  function taskOutputThumbnailRoute(task, index) {
+    return `/api/tasks/${encodeURIComponent(task.task_id)}/outputs/${index}/thumbnail`;
+  }
+  function normalizeNotificationThumbnailUrl(task, value, index) {
+    const url = String(value || "").trim();
+    if (!url) return "";
+    if (url.startsWith("/api/tasks/")) return url;
+    if (url.startsWith("/outputs/")) {
+      const outputIndex = outputIndexFromUrl(url) || index;
+      return taskOutputThumbnailRoute(task, outputIndex);
+    }
+    return url;
+  }
+  function taskThumbnailUrlForNotification(task, output, index) {
+    const rawUrl = output?.thumbnail_url || outputFileUrl(output?.thumbnail_file) || output?.url || (output?.file ? taskOutputThumbnailRoute(task, index) : "");
+    return normalizeNotificationThumbnailUrl(task, rawUrl, index);
   }
   function taskNotificationItemHtml(notification) {
     const unreadClass = notification.unread ? " unread" : "";
@@ -38486,7 +38955,8 @@ ${galleryText}`;
   </button>`;
   }
   function taskNotificationInnerHtml(notification) {
-    const thumbnail = notification.thumbnail_url ? `<img class="task-notification-thumb" src="${escapeHtml17(notification.thumbnail_url)}" alt="">` : `<span class="task-notification-thumb task-notification-thumb-placeholder" aria-hidden="true">${escapeHtml17(statusGlyph(notification.status))}</span>`;
+    const fallback = escapeHtml17(statusGlyph(notification.status));
+    const thumbnail = notification.thumbnail_url ? `<span class="task-notification-thumb task-notification-thumb-image" data-fallback="${fallback}" aria-hidden="true"><img src="${escapeHtml17(notification.thumbnail_url)}" alt="" onerror="this.parentElement?.classList.add('image-load-failed');this.hidden=true"></span>` : `<span class="task-notification-thumb task-notification-thumb-placeholder" aria-hidden="true">${fallback}</span>`;
     return `${thumbnail}
     <span class="task-notification-body">
       <span class="task-notification-title">${escapeHtml17(taskNotificationDisplayTitle(notification))}</span>
@@ -38568,8 +39038,8 @@ ${galleryText}`;
   }
   function persistTaskNotificationSeenKeys() {
     try {
-      const keys = Array.from(getLegacyBridge().state.taskNotificationSeenKeys).slice(-MAX_SEEN_TASK_NOTIFICATION_KEYS);
-      localStorage.setItem(TASK_NOTIFICATION_SEEN_KEY, JSON.stringify(keys));
+      const keys2 = Array.from(getLegacyBridge().state.taskNotificationSeenKeys).slice(-MAX_SEEN_TASK_NOTIFICATION_KEYS);
+      localStorage.setItem(TASK_NOTIFICATION_SEEN_KEY, JSON.stringify(keys2));
     } catch {
     }
   }
@@ -38577,6 +39047,10 @@ ${galleryText}`;
     if (filename.startsWith("/outputs/")) return filename;
     const clean = filename.split("/").filter(Boolean).map(encodeURIComponent).join("/");
     return clean ? `/outputs/${clean}` : "";
+  }
+  function outputIndexFromUrl(value) {
+    const match = String(value || "").match(/-image-(\d+)(?=\.[a-z0-9]+(?:[?#].*)?$|$)/i);
+    return positiveNumber(match?.[1]);
   }
   function completedOutputCount(task) {
     if (Array.isArray(task.outputs)) {
@@ -38659,6 +39133,7 @@ ${galleryText}`;
       "21:9": [3808, 1632]
     }
   };
+  var MAX_PUBLIC_RUNTIME_SECONDS = 24 * 60 * 60;
   function legacyMethod37(name, ...args) {
     const method = getLegacyBridge().methods[name];
     if (typeof method !== "function") {
@@ -38778,13 +39253,27 @@ ${galleryText}`;
     if (!task?.task_id || outputIndex === null) return "";
     return `/api/tasks/${encodeURIComponent(task.task_id)}/outputs/${outputIndex}/thumbnail`;
   }
+  function normalizeTaskThumbnailUrl(task, url, index) {
+    const clean = String(url || "").trim();
+    if (!clean) return "";
+    if (clean.startsWith("/api/tasks/")) return clean;
+    if (clean.startsWith("/outputs/")) {
+      const outputIndex = taskOutputIndexFromUrl(clean) || positiveInt(index);
+      return outputIndex === null ? "" : taskThumbnailRoute(task, outputIndex);
+    }
+    return clean;
+  }
+  function taskThumbnailUrlForRecord(task, record, index) {
+    const rawUrl = record?.thumbnail_url || outputFileUrl2(record?.thumbnail_file) || record?.url || (record?.file ? taskThumbnailRoute(task, index) : "");
+    return normalizeTaskThumbnailUrl(task, rawUrl, index);
+  }
   function taskThumbnailUrls2(task) {
     if (!task) return [];
     const deletedIndexes = taskDeletedOutputIndexes(task);
     const urls = [];
     const pushUrl = (url, index) => {
-      const clean = String(url || "").trim();
       const outputIndex = positiveInt(index);
+      const clean = normalizeTaskThumbnailUrl(task, url, outputIndex);
       if (!clean || outputIndex !== null && deletedIndexes.has(outputIndex) || urls.includes(clean)) return;
       urls.push(clean);
     };
@@ -38799,14 +39288,14 @@ ${galleryText}`;
         if (!record || typeof record !== "object" || taskOutputRecordIsDeleted(record)) return;
         const index = positiveInt(record.index) || fallbackIndex + 1;
         if (deletedIndexes.has(index) || record.status !== "completed") return;
-        const recordUrl = record.thumbnail_url || outputFileUrl2(record.thumbnail_file) || (record.url || record.file ? taskThumbnailRoute(task, index) : "");
+        const recordUrl = taskThumbnailUrlForRecord(task, record, index);
         pushUrl(recordUrl, index);
       });
       if (urls.length) return urls;
     }
     taskOutputUrls2(task).forEach((url, fallbackIndex) => {
       const index = taskOutputIndexFromUrl(url) || fallbackIndex + 1;
-      pushUrl(taskThumbnailRoute(task, index), index);
+      pushUrl(url, index);
     });
     return urls;
   }
@@ -39094,13 +39583,36 @@ ${galleryText}`;
   }
   function taskRuntimeText3(task) {
     if (!task || !["completed", "failed", "partial_failed"].includes(task.status)) return "";
-    const startedAt = timestampMs3(task.started_at || task.created_at);
-    const endedAt = timestampMs3(task.completed_at || task.updated_at);
-    if (startedAt === null || endedAt === null || endedAt < startedAt) return "";
-    const seconds = Math.floor((endedAt - startedAt) / 1e3);
+    const seconds = taskStableRuntimeSeconds(task);
+    if (seconds === null) return "";
     const completion = taskCompletionTimestampText(task);
     const duration = formatDuration2(seconds);
     return completion ? formatTranslation("taskStatus.runtimeCompleted", { duration, time: completion.shortText }) : formatTranslation("taskStatus.runtime", { duration });
+  }
+  function taskStableRuntimeSeconds(task) {
+    const persisted = taskPersistedElapsedSeconds(task);
+    if (persisted !== null) return persisted;
+    const startedAt = timestampMs3(task.started_at || task.created_at);
+    const endedAt = timestampMs3(task.completed_at || task.updated_at);
+    if (startedAt === null || endedAt === null || endedAt < startedAt) return null;
+    const seconds = Math.floor((endedAt - startedAt) / 1e3);
+    if (seconds > MAX_PUBLIC_RUNTIME_SECONDS) {
+      console.warn("Ignoring implausible task runtime", {
+        task_id: task?.task_id,
+        seconds,
+        started_at: task?.started_at,
+        completed_at: task?.completed_at,
+        updated_at: task?.updated_at
+      });
+      return null;
+    }
+    return seconds;
+  }
+  function taskPersistedElapsedSeconds(task) {
+    if (!Array.isArray(task?.outputs)) return null;
+    const values = task.outputs.map((record) => Number(record?.elapsed_seconds)).filter((value) => Number.isFinite(value) && value >= 0);
+    if (!values.length) return null;
+    return Math.floor(Math.max(...values));
   }
   function taskCompletionTimestampText(task) {
     const completedAt = taskCompletionTimestampMs(task);
@@ -39249,6 +39761,8 @@ ${galleryText}`;
       taskHasNonRetryableError,
       taskPartialFailureCanRetryGenericInvalidRequest,
       taskRuntimeText: taskRuntimeText3,
+      taskStableRuntimeSeconds,
+      taskPersistedElapsedSeconds,
       taskCompletionTimestampText,
       taskCompletionTimestampTitle: taskCompletionTimestampTitle2,
       timestampMs: timestampMs3,
@@ -39274,6 +39788,8 @@ ${galleryText}`;
   var els37 = bridge34.els;
   var previewGridEventsBound = false;
   var pendingPreviewRenderToken = 0;
+  var PREVIEW_FINAL_STATUSES = /* @__PURE__ */ new Set(["completed", "failed", "partial_failed", "cancelled"]);
+  var ERROR_PREVIEW_SUMMARY_LIMIT = 180;
   function legacyMethod38(name, ...args) {
     const method = getLegacyBridge().methods[name];
     if (typeof method !== "function") {
@@ -39362,6 +39878,7 @@ ${galleryText}`;
   function taskPreviewStatus(task) {
     const status = String(task?.status || "");
     const taskId = String(task?.task_id || "");
+    if (PREVIEW_FINAL_STATUSES.has(status)) return status;
     if (queueContainsTask(state28.queue.running, taskId)) return "running";
     if (queueContainsTask(state28.queue.waiting, taskId)) return status === "submitting" ? "submitting" : "queued";
     return status;
@@ -39407,8 +39924,7 @@ ${galleryText}`;
       clearPreviewGridLayout();
       els37.previewGrid.innerHTML = `
       <div class="empty-preview error-preview">
-        <p>${escapeHtml19(taskFailureMessage3(selected) || translate("preview.taskFailed"))}</p>
-        ${retryFailureSummaryButton(selected)}
+        ${failedPreviewContent(selected)}
       </div>
     `;
       bindPreviewRetryButtons();
@@ -39599,7 +40115,7 @@ ${galleryText}`;
   function updatePreviewOutputCard(card, task, url, index, totalCount, { preservePreviousImage = true, imageAlreadyLoaded = false } = {}) {
     const outputIndex = taskOutputIndex2(task, url, index);
     const outputUrl = String(url || "");
-    const downloadName = outputDownloadFilename(task, url, index);
+    const downloadName = outputDownloadFilename2(task, url, index);
     card.setAttribute("data-preview-card-key", previewOutputCardKey(task, url, index));
     card.setAttribute("data-preview-output-url", outputUrl);
     card.dataset.previewTaskId = String(task?.task_id || "");
@@ -39748,6 +40264,11 @@ ${galleryText}`;
     const target = event.target instanceof Element ? event.target : null;
     if (!target) return;
     if (target.closest("[data-download-output-url]")) return;
+    const copyErrorButton = target.closest("[data-preview-copy-error]");
+    if (copyErrorButton) {
+      void copyPreviewError(copyErrorButton.dataset.previewCopyError || "");
+      return;
+    }
     const retryButton = target.closest("[data-preview-retry-failed-task-id]");
     if (retryButton) {
       retryFailedTask2(retryButton.dataset.previewRetryFailedTaskId);
@@ -39799,6 +40320,15 @@ ${galleryText}`;
   }
   function bindPreviewRetryButtons() {
     bindPreviewGridEvents();
+  }
+  async function copyPreviewError(message) {
+    if (!message) return;
+    try {
+      await navigator.clipboard.writeText(message);
+      setStatus20(translate("preview.errorCopied"), "ok");
+    } catch {
+      setStatus20(translate("preview.errorCopyFailed"), "error");
+    }
   }
   function updatePreviewDownloadActions(task) {
     updatePreviewSelectionActions(task);
@@ -39861,7 +40391,7 @@ ${galleryText}`;
     if (selectedUrls.length === 1) {
       const outputUrls = taskOutputUrls3(task);
       const index = Math.max(0, outputUrls.indexOf(selectedUrls[0]));
-      return outputDownloadFilename(task, selectedUrls[0], index);
+      return outputDownloadFilename2(task, selectedUrls[0], index);
     }
     return `${safeDownloadStem(task?.task_id || "image")}-selected-images.zip`;
   }
@@ -39925,7 +40455,7 @@ ${galleryText}`;
       setStatus20(error instanceof Error ? error.message : translate("preview.deleteUnselectedFailed"), "error");
     }
   }
-  function outputDownloadFilename(task, url, index) {
+  function outputDownloadFilename2(task, url, index) {
     return outputFilenameFromUrl(url) || `${safeDownloadStem(task?.task_id || "image")}-image-${taskOutputIndex2(task, url, index)}.png`;
   }
   function outputFilenameFromUrl(url) {
@@ -39980,9 +40510,14 @@ ${galleryText}`;
   }
   function promptPopoverData(task, index) {
     const originalPrompt = task.prompt || task.prompt_for_model || "";
-    const submittedPrompt = task.prompt_for_model || originalPrompt || "";
-    const optimizedPrompt = task.revised_prompts?.[index] || task.revised_prompt || "";
+    const optimizedPrompt = taskOptimizedPrompt(task, index);
+    const submittedPrompt = optimizedPrompt || task.prompt_for_model || originalPrompt || "";
     return { originalPrompt, submittedPrompt, optimizedPrompt };
+  }
+  function taskOptimizedPrompt(task, index) {
+    const outputIndex = Number.isFinite(Number(index)) ? Number(index) : 0;
+    const output = Array.isArray(task?.outputs) ? task.outputs[outputIndex] : null;
+    return task.revised_prompts?.[outputIndex] || output?.revised_prompt || task.revised_prompt || "";
   }
   function runningProgressCard(task, visibleOutputCount) {
     const elapsed = elapsedTimerSpan2("running", taskProgressStartValue3(task));
@@ -40034,7 +40569,7 @@ ${galleryText}`;
     const failed = Number.parseInt(task?.failed_count ?? "", 10);
     const failedCount = Number.isNaN(failed) ? Math.max(0, taskTotalCount2(task) - generated) : failed;
     const total = taskTotalCount2(task);
-    const message = escapeHtml19(taskFailureMessage3(task) || translate("preview.partialFailed"));
+    const message = taskFailureMessage3(task) || translate("preview.partialFailed");
     const retryState = taskRetryStateText4(task);
     const retryStateHtml = retryState ? `<p data-preview-retry-state>${escapeHtml19(retryState)}</p>` : "";
     return `
@@ -40042,8 +40577,52 @@ ${galleryText}`;
       <strong>${escapeHtml19(task.status === "partial_failed" ? translate("preview.partialFailed") : translate("preview.taskFailed"))}</strong>
       <p>${escapeHtml19(formatTranslation("preview.failureLine", { generated, total, failed: failedCount }))}</p>
       ${retryStateHtml}
-      <p>${message}</p>
-      ${retryFailureSummaryButton(task)}
+      <p>${escapeHtml19(failedPreviewSummary(message))}</p>
+      ${failedPreviewDetails(message)}
+      ${previewFailureActions(task, message)}
+    </div>
+  `;
+  }
+  function failedPreviewContent(task) {
+    const message = taskFailureMessage3(task) || translate("preview.taskFailed");
+    return `
+    <div class="error-preview-summary">
+      <strong>${escapeHtml19(translate("preview.taskFailed"))}</strong>
+      <p>${escapeHtml19(failedPreviewSummary(message))}</p>
+    </div>
+    ${failedPreviewDetails(message)}
+    ${previewFailureActions(task, message)}
+  `;
+  }
+  function failedPreviewSummary(message) {
+    const normalized = String(message || "").replace(/\s+/g, " ").trim();
+    if (!normalized) return translate("preview.taskFailed");
+    if (normalized.includes("without image_generation_call") || normalized.includes("completed without image")) {
+      return translate("preview.noImageResult");
+    }
+    return normalized.length > ERROR_PREVIEW_SUMMARY_LIMIT ? `${normalized.slice(0, ERROR_PREVIEW_SUMMARY_LIMIT - 1)}\u2026` : normalized;
+  }
+  function failedPreviewDetails(message) {
+    const clean = String(message || "").trim();
+    if (!clean || clean === failedPreviewSummary(clean)) return "";
+    return `
+    <details class="error-preview-details">
+      <summary>${escapeHtml19(translate("preview.errorDetails"))}</summary>
+      <pre class="error-preview-details-body">${escapeHtml19(clean)}</pre>
+    </details>
+  `;
+  }
+  function previewFailureActions(task, message) {
+    const actions = [];
+    const copyPayload = escapeHtml19(message || "");
+    if (message) {
+      actions.push(`<button class="ghost-button text-sm" type="button" data-preview-copy-error="${copyPayload}">${escapeHtml19(translate("preview.copyError"))}</button>`);
+    }
+    const retryActions = retryFailureSummaryButton(task);
+    return `
+    <div class="error-preview-actions">
+      ${actions.join("")}
+      ${retryActions}
     </div>
   `;
   }
@@ -40135,7 +40714,7 @@ ${galleryText}`;
       updateTaskOutputSelection,
       openDeleteUnselectedOutputsConfirm,
       deleteUnselectedOutputs,
-      outputDownloadFilename,
+      outputDownloadFilename: outputDownloadFilename2,
       outputFilenameFromUrl,
       retryFailureSummaryButton
     });
@@ -40158,6 +40737,7 @@ ${galleryText}`;
   var renderArchiveButton4 = (...args) => legacyMethod39("renderArchiveButton", ...args);
   var renderArchiveModal4 = (...args) => legacyMethod39("renderArchiveModal", ...args);
   var renderPreview6 = (...args) => legacyMethod39("renderPreview", ...args);
+  var setStatus21 = (...args) => legacyMethod39("setStatus", ...args);
   var migrateLegacyArchivedTasks2 = (...args) => legacyMethod39("migrateLegacyArchivedTasks", ...args);
   var revokeTaskUploadPreviewUrls3 = (...args) => legacyMethod39("revokeTaskUploadPreviewUrls", ...args);
   var taskHasViewableUpdate2 = (...args) => legacyMethod39("taskHasViewableUpdate", ...args);
@@ -40168,10 +40748,16 @@ ${galleryText}`;
   var taskSearchHistoryTimerId = 0;
   async function refreshTasks({ migrateLegacyArchives = false } = {}) {
     const requestSeq = ++state29.tasksRequestSeq;
-    const response = await fetch("/api/tasks/recent?limit=200");
-    const data = await response.json();
-    if (requestSeq !== state29.tasksRequestSeq) return;
-    await applyTasksSnapshot(data.tasks || [], { migrateLegacyArchives, requestSeq });
+    try {
+      const response = await fetch("/api/tasks/recent?limit=200");
+      const data = await safeJson(response);
+      if (requestSeq !== state29.tasksRequestSeq) return;
+      if (!response.ok) throw new Error(data.detail || "Task list read failed");
+      await applyTasksSnapshot(data.tasks || [], { migrateLegacyArchives, requestSeq });
+    } catch (error) {
+      if (requestSeq !== state29.tasksRequestSeq) return;
+      setStatus21(error.message || "\u670D\u52A1\u6682\u65F6\u4E0D\u53EF\u7528\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5", "error");
+    }
   }
   async function applyTasksSnapshot(tasks, { migrateLegacyArchives = false, requestSeq = state29.tasksRequestSeq } = {}) {
     const previousLocalPendingTasks = state29.tasks.filter((task) => task?.local_pending);
@@ -40349,7 +40935,7 @@ ${galleryText}`;
     }
     return method(...args);
   }
-  function setStatus21(message, type) {
+  function setStatus22(message, type) {
     legacyMethod40("setStatus", message, type);
   }
   function closePromptPopover8() {
@@ -40420,9 +41006,9 @@ ${galleryText}`;
     updateTaskSelectionVisuals3(taskId);
     renderPreview7(task);
     if (task.status === "failed") {
-      setStatus21(taskFailureMessage4(task) || translate("taskActions.failedFallback"), "error");
+      setStatus22(taskFailureMessage4(task) || translate("taskActions.failedFallback"), "error");
     } else if (task.status !== "running") {
-      setStatus21(formatTranslation("status.loadedTask", { taskId }), "ok");
+      setStatus22(formatTranslation("status.loadedTask", { taskId }), "ok");
     }
   }
   function isLegacyOutputInputUrl2(url) {
@@ -40492,7 +41078,7 @@ ${galleryText}`;
       let uploadInputIndex = 0;
       const uploadSources = task.input_sources.filter((source) => source?.kind === "upload" && source.image_url);
       if (uploadSources.length && selectedTaskInputRestoreCurrent(taskId, restoreSeq)) {
-        setStatus21(translate("status.loadingHistoryInputs"), "");
+        setStatus22(translate("status.loadingHistoryInputs"), "");
       }
       try {
         for (const [index, source] of task.input_sources.entries()) {
@@ -40528,7 +41114,7 @@ ${galleryText}`;
       return applyTaskInputRestoreSources(gallerySources, taskId, restoreSeq);
     }
     if (selectedTaskInputRestoreCurrent(taskId, restoreSeq)) {
-      setStatus21(translate("status.loadingHistoryInputs"), "");
+      setStatus22(translate("status.loadingHistoryInputs"), "");
     }
     const inputNames = Array.isArray(task.input_files) ? task.input_files : [];
     const files = [];
@@ -40560,14 +41146,14 @@ ${galleryText}`;
     if (task.summary_only) {
       const detailSeq = ++state30.taskInputRestoreSeq;
       updateTaskSelectionVisuals3(taskId);
-      setStatus21(translate("status.loadingHistoryInputs"), "");
+      setStatus22(translate("status.loadingHistoryInputs"), "");
       try {
         const fullTask = await loadFullTaskDetail(taskId);
         if (!selectedTaskInputRestoreCurrent(taskId, detailSeq)) return;
         task = replaceSelectedTaskDetail(taskId, fullTask);
       } catch (error) {
         if (!selectedTaskInputRestoreCurrent(taskId, detailSeq)) return;
-        setStatus21(error.message || translate("notifications.taskMissing"), "error");
+        setStatus22(error.message || translate("notifications.taskMissing"), "error");
         return;
       }
     }
@@ -40582,7 +41168,7 @@ ${galleryText}`;
       revokeUploadPreviewUrls2(state30.images);
       state30.images = [];
       renderImageStrip6();
-      setStatus21(error.message, "error");
+      setStatus22(error.message, "error");
       return;
     }
     if (!selectedTaskInputRestoreCurrent(taskId, restoreSeq)) return;
@@ -40596,6 +41182,8 @@ ${galleryText}`;
       if (!raw) return;
       localStorage.removeItem(HISTORY_TASK_REUSE_HANDOFF_KEY);
       const parsed = JSON.parse(raw);
+      const handoffIntent = String(parsed?.intent || "view");
+      if (handoffIntent !== "view") return;
       let task = parsed?.task || null;
       const taskId = String(parsed?.task_id || task?.task_id || "");
       if (!taskId) return;
@@ -40615,16 +41203,16 @@ ${galleryText}`;
         revokeUploadPreviewUrls2(state30.images);
         state30.images = [];
         renderImageStrip6();
-        setStatus21(error.message || translate("referenceCollector.addFailed"), "error");
+        setStatus22(error.message || translate("referenceCollector.addFailed"), "error");
         return;
       }
       if (!selectedTaskInputRestoreCurrent(taskId, restoreSeq)) return;
       applySelectedTaskRequestPreview(task);
       renderSelectedTask(task, taskId);
-      setStatus21(formatTranslation("status.reusedTask", { taskId }), "ok");
+      setStatus22(formatTranslation("status.reusedTask", { taskId }), "ok");
     } catch (error) {
       localStorage.removeItem(HISTORY_TASK_REUSE_HANDOFF_KEY);
-      setStatus21(error.message || translate("taskContext.actionFailed"), "error");
+      setStatus22(error.message || translate("taskContext.actionFailed"), "error");
     }
   }
   function initTaskSelectionFeature() {
@@ -41050,7 +41638,7 @@ ${galleryText}`;
     const current = String(els41.statusText.textContent || "").trim();
     const waitingLabels = [translate("status.waiting", "zh-CN"), translate("status.waiting", "en")];
     if (waitingLabels.includes(current)) {
-      setStatus22(translate("status.waiting"), "");
+      setStatus23(translate("status.waiting"), "");
     }
   }
   function bindShellUiEvents() {
@@ -41258,7 +41846,7 @@ ${galleryText}`;
     }
     document.title = status ? `${status} \xB7 ${getLegacyBridge().constants.defaultDocumentTitle}` : getLegacyBridge().constants.defaultDocumentTitle;
   }
-  function setStatus22(message, type) {
+  function setStatus23(message, type) {
     if (!els41.statusText) return;
     els41.statusText.textContent = message;
     els41.statusText.className = `status-text ${type || ""}`;
@@ -41280,10 +41868,10 @@ ${galleryText}`;
     setPromptText3("");
     if (els41.customSizeToggle) els41.customSizeToggle.checked = false;
     if (els41.nInput) els41.nInput.value = "1";
-    if (els41.resolution) els41.resolution.value = "standard";
+    if (els41.resolution) els41.resolution.value = "2k";
     if (els41.ratio) els41.ratio.value = "1:1";
     if (els41.orientation) els41.orientation.value = "square";
-    els41.size.value = "1024x1024";
+    els41.size.value = "2048x2048";
     els41.quality.value = "auto";
     els41.outputFormat.value = "png";
     els41.moderation.value = "auto";
@@ -41302,12 +41890,12 @@ ${galleryText}`;
     renderTasks9();
     renderPreview8();
     updateRequestPreview13();
-    setStatus22(translate("status.waiting"), "");
+    setStatus23(translate("status.waiting"), "");
   }
   async function copyJson() {
     if (!els41.requestJson) return;
     await navigator.clipboard.writeText(els41.requestJson.textContent);
-    setStatus22(translate("status.jsonCopied"), "ok");
+    setStatus23(translate("status.jsonCopied"), "ok");
   }
   function initShellUiFeature() {
     if (shellUiInitialized) return;
@@ -41334,7 +41922,7 @@ ${galleryText}`;
       schedulePreviewPanelHeightSync,
       syncPreviewPanelHeight,
       updateDocumentTitle: updateDocumentTitle2,
-      setStatus: setStatus22,
+      setStatus: setStatus23,
       resetForm,
       copyJson
     });
@@ -41384,7 +41972,7 @@ ${galleryText}`;
       source.textContent = payload?.source === "portable" ? translate("version.sourcePortable") : translate("version.sourceSource");
     }
     if (releaseLink) {
-      releaseLink.href = payload?.release_url || "https://github.com/kadevin/ilab-gpt-conjure/releases";
+      releaseLink.href = payload?.release_url || "https://github.com/Brisbanehuang/ilab-gpt-conjure-poc/tree/share/v0.2.25";
     }
     if (updateButton) {
       updateButton.disabled = !(payload?.update_available && payload?.updater_available);
@@ -41405,7 +41993,7 @@ ${galleryText}`;
         source: "source",
         update_available: false,
         updater_available: false,
-        release_url: "https://github.com/kadevin/ilab-gpt-conjure/releases"
+        release_url: "https://github.com/Brisbanehuang/ilab-gpt-conjure-poc/tree/share/v0.2.25"
       };
     }
     renderAppVersion();
@@ -41688,5 +42276,6 @@ ${galleryText}`;
   initializeQueueFeature();
   initSegmentedIndicatorFeature();
   window.__codexImageWebUI?.boot();
+  void initOmniPocKeyControl();
 })();
 //# sourceMappingURL=app.js.map

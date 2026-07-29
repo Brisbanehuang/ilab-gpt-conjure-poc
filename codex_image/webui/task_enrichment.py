@@ -17,6 +17,10 @@ def _input_thumbnail_route_url(task_id: str, input_index: int) -> str:
     return f"/api/tasks/{quote(task_id, safe='')}/inputs/{input_index}/thumbnail"
 
 
+def _input_route_url(task_id: str, input_index: int) -> str:
+    return f"/api/tasks/{quote(task_id, safe='')}/inputs/{input_index}"
+
+
 def _input_thumbnail_urls(task_id: str, input_files: list[str]) -> list[str]:
     if not task_id:
         return []
@@ -29,6 +33,10 @@ def _output_static_url(filename: str) -> str:
 
 def _thumbnail_route_url(task_id: str, output_index: int) -> str:
     return f"/api/tasks/{quote(task_id, safe='')}/outputs/{output_index}/thumbnail"
+
+
+def _output_route_url(task_id: str, output_index: int) -> str:
+    return f"/api/tasks/{quote(task_id, safe='')}/outputs/{output_index}"
 
 
 def _gallery_item_response(item: dict[str, Any]) -> dict[str, Any]:
@@ -116,6 +124,11 @@ def _enrich_reference_assets(reference_assets: Any, storage: ReferenceAssetStora
             continue
         asset_id = str(item.get("id") or "")
         fallback = dict(item)
+        if fallback.get("storage_key"):
+            fallback["missing"] = False
+            fallback.setdefault("image_url", "")
+            enriched.append(fallback)
+            continue
         try:
             stored = storage.read_item(asset_id) if storage is not None else fallback
             if storage is not None:
@@ -125,7 +138,13 @@ def _enrich_reference_assets(reference_assets: Any, storage: ReferenceAssetStora
             fallback["image_url"] = ""
             enriched.append(fallback)
             continue
-        enriched.append(_reference_asset_response(stored))
+        response = _reference_asset_response(stored)
+        for key in ("storage_driver", "storage_key", "content_type", "bytes", "expires_at", "thumbnail_url", "source_index"):
+            if fallback.get(key) is not None:
+                response[key] = fallback[key]
+        if fallback.get("storage_key") and fallback.get("image_url"):
+            response["image_url"] = fallback["image_url"]
+        enriched.append(response)
     return enriched
 
 
@@ -147,8 +166,8 @@ def _input_sources(
             start=1,
         )
     ]
-    sources.extend(
-        {
+    for source_offset, item in enumerate(reference_assets or [], start=len(sources) + 1):
+        source = {
             "kind": "asset",
             "id": item.get("id"),
             "filename": item.get("filename"),
@@ -156,8 +175,14 @@ def _input_sources(
             "image_url": item.get("image_url", ""),
             "missing": bool(item.get("missing")),
         }
-        for item in (reference_assets or [])
-    )
+        if item.get("storage_key"):
+            source["source_index"] = item.get("source_index") or source_offset
+            source["image_url"] = item.get("image_url") or _input_route_url(task_id, int(source["source_index"]))
+            source["thumbnail_url"] = item.get("thumbnail_url") or source["image_url"]
+            for key in ("storage_driver", "storage_key", "content_type", "bytes", "expires_at"):
+                if item.get(key) is not None:
+                    source[key] = item[key]
+        sources.append(source)
     sources.extend(
         {
             "kind": "gallery",
@@ -213,13 +238,15 @@ def _task_deleted_output_indexes(metadata: dict[str, Any]) -> set[int]:
 
 
 def _output_record_thumbnail_url(task_id: str, record: dict[str, Any], fallback_index: int) -> str:
+    index = _positive_int(record.get("index")) or fallback_index
+    if task_id and index and (str(record.get("storage_driver") or "") == "r2" or record.get("storage_key")):
+        return _output_route_url(task_id, index)
     existing_url = str(record.get("thumbnail_url") or "").strip()
     if existing_url:
         return existing_url
     thumbnail_file = str(record.get("thumbnail_file") or "").strip()
     if thumbnail_file:
         return _output_static_url(thumbnail_file)
-    index = _positive_int(record.get("index")) or fallback_index
     return _thumbnail_route_url(task_id, index) if task_id and index else ""
 
 
@@ -227,6 +254,8 @@ def _with_output_thumbnail_urls(enriched: dict[str, Any], metadata: dict[str, An
     if not task_id:
         return
     deleted_indexes = _task_deleted_output_indexes(metadata)
+    params = metadata.get("params") if isinstance(metadata.get("params"), dict) else {}
+    route_output_urls = bool(params.get("omni_poc"))
     thumbnail_urls_by_index: dict[int, str] = {}
     raw_outputs = enriched.get("outputs")
     if isinstance(raw_outputs, list):
@@ -237,6 +266,8 @@ def _with_output_thumbnail_urls(enriched: dict[str, Any], metadata: dict[str, An
                 continue
             record = dict(raw_record)
             index = _positive_int(record.get("index")) or fallback_index
+            if route_output_urls and record.get("status") == "completed" and index not in deleted_indexes and task_id:
+                record["url"] = _output_route_url(task_id, index)
             if record.get("status") == "completed" and index not in deleted_indexes and (record.get("url") or record.get("file")):
                 thumbnail_url = _output_record_thumbnail_url(task_id, record, fallback_index)
                 if thumbnail_url:
@@ -269,6 +300,9 @@ def _with_output_thumbnail_urls(enriched: dict[str, Any], metadata: dict[str, An
 
     if thumbnail_urls_by_index:
         enriched["thumbnail_urls"] = [thumbnail_urls_by_index[index] for index in sorted(thumbnail_urls_by_index)]
+        if route_output_urls:
+            enriched["output_urls"] = [_output_route_url(task_id, index) for index in sorted(thumbnail_urls_by_index)]
+            enriched["output_url"] = enriched["output_urls"][0]
 
 
 def _with_file_urls(

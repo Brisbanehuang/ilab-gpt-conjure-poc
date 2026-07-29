@@ -3,15 +3,16 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>历史库 - iLab GPT CONJURE</title>
-  <link rel="stylesheet" href="/static/styles.css?v=runtime-368" />
+  <title>历史库 - OmniAPi Image Studio</title>
+  <link rel="icon" type="image/svg+xml" href="/static/assets/omniapi-logo.svg" />
+  <link rel="stylesheet" href="/static/styles.css?v=runtime-371" />
 </head>
 <body>
   <main class="history-page">
     <aside class="history-sidebar">
       <a class="history-back-link" href="/" data-i18n="history.back">返回生成页</a>
       <div class="history-brand">
-        <strong data-i18n="history.title">历史库</strong>
+        <strong>OmniAPi Image Studio</strong>
         <span id="historyTotal" data-i18n="history.loading">载入中</span>
       </div>
       <label class="history-search-label" for="historySearch" data-i18n="history.search">搜索</label>
@@ -44,14 +45,6 @@
           <span data-i18n="history.orientation">方向</span>
         </h2>
         <div id="historyOrientationList" class="history-filter-list"></div>
-      </div>
-      <div class="history-filter-block">
-        <h2 data-i18n="history.backend">后端</h2>
-        <div id="historyBackendList" class="history-filter-list"></div>
-      </div>
-      <div class="history-filter-block">
-        <h2 data-i18n="history.provider">供应商</h2>
-        <div id="historyProviderList" class="history-filter-list"></div>
       </div>
       <div class="history-filter-block">
         <h2 data-i18n="history.archived">归档</h2>

@@ -353,18 +353,40 @@ function firstTaskThumbnailUrl(task: WebUITask): string | undefined {
   const bridge = getLegacyBridge();
   const urls = bridge.methods.taskThumbnailUrls?.(task);
   if (Array.isArray(urls) && urls[0]) return String(urls[0]);
-  if (Array.isArray(task.thumbnail_urls) && task.thumbnail_urls[0]) return String(task.thumbnail_urls[0]);
-  const output = Array.isArray(task.outputs) ? task.outputs.find((record) => record?.status === "completed") : null;
-  if (output?.thumbnail_url) return String(output.thumbnail_url);
-  if (output?.thumbnail_file) return outputFileUrl(output.thumbnail_file);
-  if (output?.url || output?.file) {
-    const index = positiveNumber(output.index) || 1;
-    return `/api/tasks/${encodeURIComponent(task.task_id)}/outputs/${index}/thumbnail`;
+  if (Array.isArray(task.thumbnail_urls) && task.thumbnail_urls[0]) {
+    return normalizeNotificationThumbnailUrl(task, task.thumbnail_urls[0], 1);
+  }
+  const outputs = Array.isArray(task.outputs) ? task.outputs : [];
+  const output = outputs.find((record) => record?.status === "completed");
+  if (output) {
+    const index = positiveNumber(output.index) || outputs.indexOf(output) + 1 || 1;
+    const thumbnailUrl = taskThumbnailUrlForNotification(task, output, index);
+    if (thumbnailUrl) return thumbnailUrl;
   }
   if (Array.isArray(task.output_urls) && task.output_urls.some(Boolean)) {
-    return `/api/tasks/${encodeURIComponent(task.task_id)}/outputs/1/thumbnail`;
+    return normalizeNotificationThumbnailUrl(task, task.output_urls[0], 1);
   }
   return undefined;
+}
+
+function taskOutputThumbnailRoute(task: WebUITask, index: number): string {
+  return `/api/tasks/${encodeURIComponent(task.task_id)}/outputs/${index}/thumbnail`;
+}
+
+function normalizeNotificationThumbnailUrl(task: WebUITask, value: unknown, index: number): string {
+  const url = String(value || "").trim();
+  if (!url) return "";
+  if (url.startsWith("/api/tasks/")) return url;
+  if (url.startsWith("/outputs/")) {
+    const outputIndex = outputIndexFromUrl(url) || index;
+    return taskOutputThumbnailRoute(task, outputIndex);
+  }
+  return url;
+}
+
+function taskThumbnailUrlForNotification(task: WebUITask, output: any, index: number): string {
+  const rawUrl = output?.thumbnail_url || outputFileUrl(output?.thumbnail_file) || output?.url || (output?.file ? taskOutputThumbnailRoute(task, index) : "");
+  return normalizeNotificationThumbnailUrl(task, rawUrl, index);
 }
 
 function taskNotificationItemHtml(notification: TaskNotification): string {
@@ -375,9 +397,10 @@ function taskNotificationItemHtml(notification: TaskNotification): string {
 }
 
 function taskNotificationInnerHtml(notification: TaskNotification): string {
+  const fallback = escapeHtml(statusGlyph(notification.status));
   const thumbnail = notification.thumbnail_url
-    ? `<img class="task-notification-thumb" src="${escapeHtml(notification.thumbnail_url)}" alt="">`
-    : `<span class="task-notification-thumb task-notification-thumb-placeholder" aria-hidden="true">${escapeHtml(statusGlyph(notification.status))}</span>`;
+    ? `<span class="task-notification-thumb task-notification-thumb-image" data-fallback="${fallback}" aria-hidden="true"><img src="${escapeHtml(notification.thumbnail_url)}" alt="" onerror="this.parentElement?.classList.add('image-load-failed');this.hidden=true"></span>`
+    : `<span class="task-notification-thumb task-notification-thumb-placeholder" aria-hidden="true">${fallback}</span>`;
   return `${thumbnail}
     <span class="task-notification-body">
       <span class="task-notification-title">${escapeHtml(taskNotificationDisplayTitle(notification))}</span>
@@ -482,6 +505,11 @@ function outputFileUrl(filename: string): string {
   if (filename.startsWith("/outputs/")) return filename;
   const clean = filename.split("/").filter(Boolean).map(encodeURIComponent).join("/");
   return clean ? `/outputs/${clean}` : "";
+}
+
+function outputIndexFromUrl(value: unknown): number {
+  const match = String(value || "").match(/-image-(\d+)(?=\.[a-z0-9]+(?:[?#].*)?$|$)/i);
+  return positiveNumber(match?.[1]);
 }
 
 function completedOutputCount(task: WebUITask): number {

@@ -19,7 +19,7 @@ export const DEFAULT_API_MODE = "images";
 export const DEFAULT_CODEX_MODE = "images";
 export const DEFAULT_API_IMAGES_CONCURRENCY = 4;
 export const API_SETTINGS_STORAGE_KEY = "codex-image-api-settings";
-export const DEFAULT_DOCUMENT_TITLE = document.title || "iLab GPT CONJURE";
+export const DEFAULT_DOCUMENT_TITLE = document.title || "OmniAPi Image Studio";
 export const SUBMIT_TASK_TIMEOUT_MS = 45000;
 export const TASK_CARD_SELECTOR = ".task-card[data-task-id]";
 export const TASK_HISTORY_EXPANDED_GROUP_STORAGE_KEY = "codex-image-task-history-expanded-group";
@@ -103,6 +103,9 @@ export function createDefaultState(): WebUIState {
   tasksRequestSeq: 0,
   realtimeSource: null,
   realtimeSnapshotNeedsArchiveMigration: false,
+  realtimeReconnectTimerId: null,
+  realtimeReconnectAttempts: 0,
+  activeTaskPollTimerId: null,
   queueDragTaskId: null,
   expandedTaskGroupKey: null,
   expandedTaskGroupAnimationPending: false,

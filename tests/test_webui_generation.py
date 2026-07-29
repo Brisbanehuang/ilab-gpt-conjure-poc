@@ -12,7 +12,7 @@ import zipfile
 from io import BytesIO
 from pathlib import Path
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 from fastapi.testclient import TestClient
 from PIL import Image
@@ -126,6 +126,147 @@ class WebUIGenerationTests(unittest.TestCase):
         self.assertEqual(body["request"]["tool_choice"], "required")
         self.assertFalse(body["request"]["parallel_tool_calls"])
 
+    def test_generate_route_deduplicates_identical_short_window_submit(self) -> None:
+        from codex_image.webui.app import create_app
+
+        fake = FakeImageClient()
+        with tempfile.TemporaryDirectory() as tmp:
+            app = create_app(output_root=Path(tmp), client_factory=lambda: fake, auth_checker=lambda: True, auto_start_queue=False)
+            client = TestClient(app)
+            first = client.post(
+                "/api/generate",
+                data={
+                    "prompt": "same prompt",
+                    "model": "gpt-image-2",
+                    "size": "1024x1024",
+                    "quality": "low",
+                    "n": "1",
+                },
+            )
+            second = client.post(
+                "/api/generate",
+                data={
+                    "prompt": "same prompt",
+                    "model": "gpt-image-2",
+                    "size": "1024x1024",
+                    "quality": "low",
+                    "n": "1",
+                },
+            )
+            queue = client.get("/api/queue").json()
+
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(second.status_code, 200)
+        self.assertEqual(second.json()["task"]["task_id"], first.json()["task"]["task_id"])
+        self.assertTrue(second.json()["task"].get("deduplicated"))
+        self.assertEqual(queue["summary"]["waiting_count"], 1)
+        self.assertEqual([task["task_id"] for task in queue["waiting"]], [first.json()["task"]["task_id"]])
+
+    def test_generate_route_allows_identical_submit_after_dedupe_window(self) -> None:
+        from codex_image.webui.app import create_app
+        from codex_image.webui.submit_dedupe import SubmitDedupeCache
+
+        fake = FakeImageClient()
+        with tempfile.TemporaryDirectory() as tmp:
+            app = create_app(output_root=Path(tmp), client_factory=lambda: fake, auth_checker=lambda: True, auto_start_queue=False)
+            app.state.submit_dedupe_cache = SubmitDedupeCache(window_seconds=0)
+            client = TestClient(app)
+            first = client.post(
+                "/api/generate",
+                data={
+                    "prompt": "same prompt after window",
+                    "model": "gpt-image-2",
+                    "size": "1024x1024",
+                    "quality": "low",
+                    "n": "1",
+                },
+            )
+            second = client.post(
+                "/api/generate",
+                data={
+                    "prompt": "same prompt after window",
+                    "model": "gpt-image-2",
+                    "size": "1024x1024",
+                    "quality": "low",
+                    "n": "1",
+                },
+            )
+            queue = client.get("/api/queue").json()
+
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(second.status_code, 200)
+        self.assertNotEqual(second.json()["task"]["task_id"], first.json()["task"]["task_id"])
+        self.assertFalse(second.json()["task"].get("deduplicated", False))
+        self.assertEqual(queue["summary"]["waiting_count"], 2)
+
+    def test_submit_dedupe_cache_put_if_absent_is_atomic(self) -> None:
+        from codex_image.webui.submit_dedupe import SubmitDedupeCache
+
+        cache = SubmitDedupeCache(window_seconds=8)
+
+        self.assertIsNone(cache.put_if_absent("same-key", "task-one"))
+        self.assertEqual(cache.put_if_absent("same-key", "task-two"), "task-one")
+        self.assertEqual(cache.get("same-key"), "task-one")
+
+    def test_title_generation_normalizes_and_falls_back_like_omni_studio(self) -> None:
+        from codex_image.webui.title_generation import fallback_title, normalize_generated_title
+
+        self.assertEqual(normalize_generated_title("《赛博护肤产品海报。》"), "赛博护肤产品海报")
+        self.assertEqual(normalize_generated_title("  猫咪 海报！！ "), "猫咪海报")
+        self.assertEqual(fallback_title("生成一张高完成度艺术海报，主题为黑神话"), "生成一张高完成度…")
+
+    def test_omni_generate_route_stores_small_model_title(self) -> None:
+        from cryptography.fernet import Fernet
+
+        from codex_image.webui.app import create_app
+
+        old_env = os.environ.copy()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            os.environ.update(
+                {
+                    "OMNI_POC_MODE": "1",
+                    "OMNI_POC_SECRET_KEY": Fernet.generate_key().decode("ascii"),
+                    "OMNI_BASE_URL": "http://127.0.0.1:8080/v1",
+                    "OMNI_POC_DB_PATH": str(root / "omni-poc.db"),
+                    "OMNI_POC_LOGIN_URL": "https://portal.example.test/image-generator",
+                }
+            )
+            self.addCleanup(lambda: os.environ.clear() or os.environ.update(old_env))
+            app = create_app(output_root=root / "output", auto_start_queue=False)
+            session_store = app.state.ctx.route_helpers["omni_session_store"]
+            session = session_store.create_session(
+                {"id": 123, "email": "user@example.test", "username": "user", "balance": 12.5},
+                "sub2api-token",
+            )
+            with (
+                patch(
+                    "codex_image.webui.routes.generation.resolve_omni_image_key",
+                    return_value={
+                        "id": "456",
+                        "key": "sk-task-secret",
+                        "name": "image key",
+                        "group": {"name": "default"},
+                        "supports_title_model": True,
+                    },
+                ),
+                patch("codex_image.webui.routes.generation.generate_task_title", new_callable=AsyncMock) as generate_title,
+            ):
+                generate_title.return_value = "黑神话李清照"
+                response = TestClient(app).post(
+                    "/api/generate",
+                    cookies={"omni_lens_session": session.id},
+                    data={"prompt": "生成一张黑神话风格李清照海报", "model": "gpt-image-2", "sub2api_key_id": "456"},
+                )
+
+            body = response.json()
+            metadata = json.loads(metadata_path(root / "output", body["task"]["task_id"]).read_text(encoding="utf-8"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(body["task"]["title"], "黑神话李清照")
+        self.assertEqual(metadata["title"], "黑神话李清照")
+        self.assertEqual(metadata["display_title"], "黑神话李清照")
+
     def test_queue_worker_generates_output_thumbnail_metadata(self) -> None:
         from codex_image.client import ImageResult
         from codex_image.webui.app import create_app
@@ -161,6 +302,37 @@ class WebUIGenerationTests(unittest.TestCase):
         self.assertRegex(output["thumbnail_url"], rf"^/outputs/thumbnails/{task_id[:4]}-{task_id[4:6]}-{task_id[6:8]}/{task_id}-image-1-thumb\.jpg$")
         self.assertEqual(metadata["outputs"][0]["thumbnail_file"], output["thumbnail_file"])
         self.assertTrue(thumbnail_file_exists)
+
+    def test_queue_worker_keeps_local_output_file_after_r2_sync(self) -> None:
+        from codex_image.client import ImageResult
+        from codex_image.webui.app import create_app
+
+        class SyncImageClient(FakeImageClient):
+            def generate_image(inner_self, **kwargs: Any):
+                inner_self.generate_calls.append(kwargs)
+                return ImageResult(self._png_bytes(), "revised", "png", kwargs["size"], "auto", kwargs["quality"], {})
+
+        fake = SyncImageClient()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            app = create_app(
+                output_root=root,
+                client_factory=lambda: fake,
+                auth_checker=lambda: True,
+                auth_settings_path=root / "auth-settings.json",
+                batch_delay_seconds=0,
+                auto_start_queue=False,
+            )
+            client = TestClient(app)
+            created = client.post("/api/generate", data={"prompt": "keep local", "size": "1024x1024", "quality": "low"})
+            task_id = created.json()["task"]["task_id"]
+
+            asyncio.run(app.state.queue_manager.run_available_once())
+            task = client.get(f"/api/tasks/{task_id}").json()["task"]
+            output_file = root / task["output_files"][0]
+            thumbnail_file = root / task["outputs"][0]["thumbnail_file"]
+            self.assertTrue(output_file.is_file())
+            self.assertTrue(thumbnail_file.is_file())
 
     def test_queue_worker_persists_web_search_tool_usage(self) -> None:
         from codex_image.client import ImageResult

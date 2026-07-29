@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
@@ -44,6 +45,7 @@ from .thumbnails import create_image_thumbnail, input_thumbnail_filename, output
 
 TASK_SOURCE_DATA_SUBDIR = "tasks"
 TASK_SOURCE_DATA_SUFFIXES = ("metadata.json", "request.json", "debug-sse.jsonl")
+DIMENSION_SIZE_RE = re.compile(r"^\s*(\d{1,5})\s*[xX×]\s*(\d{1,5})\s*$")
 
 
 class TaskStorage:
@@ -139,32 +141,32 @@ class TaskStorage:
         for path in source_data_dirs:
             self._prune_empty_source_data_dir(path)
 
-    def list_tasks(self) -> list[dict[str, Any]]:
-        indexed_tasks = self.task_index.list_summaries()
+    def list_tasks(self, *, owner_id: str | None = None) -> list[dict[str, Any]]:
+        indexed_tasks = self.task_index.list_summaries(owner_id=owner_id)
         if indexed_tasks:
             return indexed_tasks
         if not self.source_data_root.exists():
             return []
-        return self.rebuild_task_index()
+        return _filter_tasks_by_owner(self.rebuild_task_index(), owner_id)
 
-    def list_recent_tasks(self, limit: int = 200) -> list[dict[str, Any]]:
-        indexed_tasks = self.task_index.list_summaries(limit=limit)
+    def list_recent_tasks(self, limit: int = 200, *, owner_id: str | None = None) -> list[dict[str, Any]]:
+        indexed_tasks = self.task_index.list_summaries(limit=limit, owner_id=owner_id)
         if indexed_tasks:
             return indexed_tasks
-        return self.rebuild_task_index()[: max(0, limit)]
+        return _filter_tasks_by_owner(self.rebuild_task_index(), owner_id)[: max(0, limit)]
 
-    def list_recent_task_cards(self, limit: int = 200) -> list[dict[str, Any]]:
-        indexed_tasks = self.task_index.list_summaries(limit=limit)
+    def list_recent_task_cards(self, limit: int = 200, *, owner_id: str | None = None) -> list[dict[str, Any]]:
+        indexed_tasks = self.task_index.list_summaries(limit=limit, owner_id=owner_id)
         if not indexed_tasks:
-            indexed_tasks = self.rebuild_task_index()[: max(0, limit)]
+            indexed_tasks = _filter_tasks_by_owner(self.rebuild_task_index(), owner_id)[: max(0, limit)]
         return [_sidebar_task_card(task) for task in indexed_tasks]
 
     def task_sidebar_card(self, task_id: str) -> dict[str, Any]:
         return _sidebar_task_card(self.read_metadata(task_id))
 
-    def task_history_summary(self) -> dict[str, Any]:
+    def task_history_summary(self, *, owner_id: str | None = None) -> dict[str, Any]:
         self.refresh_stale_task_index()
-        return self.task_index.history_summary()
+        return self.task_index.history_summary(owner_id=owner_id)
 
     def query_task_history(
         self,
@@ -184,6 +186,7 @@ class TaskStorage:
         archived: bool | None = None,
         sort: str = "newest",
         direction: str = "next",
+        owner_id: str | None = None,
     ) -> dict[str, Any]:
         self.refresh_stale_task_index()
         return self.task_index.query_history(
@@ -202,6 +205,7 @@ class TaskStorage:
             archived=archived,
             sort=sort,
             direction=direction,
+            owner_id=owner_id,
         )
 
     def refresh_stale_task_index(self, *, limit: int = 500) -> int:
@@ -230,6 +234,36 @@ class TaskStorage:
         sharded_root = self.source_data_root / TASK_SOURCE_DATA_SUBDIR
         sharded_paths = list(sharded_root.glob("*/*.metadata.json")) if sharded_root.exists() else []
         return [*flat_paths, *sharded_paths]
+
+    def stored_bytes_for_owner(self, owner_id: str, *, now: datetime | None = None) -> int:
+        cutoff = now or datetime.now(UTC)
+        total = 0
+        for metadata_path in self.iter_metadata_paths():
+            try:
+                metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                continue
+            if not isinstance(metadata, dict) or str(metadata.get("owner_id") or "") != owner_id:
+                continue
+            expires_at = _parse_datetime(metadata.get("expires_at"))
+            if expires_at is not None and expires_at <= cutoff:
+                continue
+            for collection_key in ("outputs", "input_sources"):
+                records = metadata.get(collection_key)
+                if not isinstance(records, list):
+                    continue
+                for record in records:
+                    if not isinstance(record, dict):
+                        continue
+                    if record.get("deleted") or record.get("status") == "deleted":
+                        continue
+                    if str(record.get("storage_driver") or "") != "r2":
+                        continue
+                    record_expires_at = _parse_datetime(record.get("expires_at")) or expires_at
+                    if record_expires_at is not None and record_expires_at <= cutoff:
+                        continue
+                    total += _nonnegative_int(record.get("bytes"), 0)
+        return total
 
     def migrate_source_data_files(self) -> dict[str, int]:
         self.source_data_root.mkdir(parents=True, exist_ok=True)
@@ -398,8 +432,9 @@ class TaskStorage:
 def _sidebar_task_card(metadata: dict[str, Any]) -> dict[str, Any]:
     task_id = str(metadata.get("task_id") or "")
     params = metadata.get("params") if isinstance(metadata.get("params"), dict) else {}
-    size = str(metadata.get("output_size") or params.get("size") or "")
+    size = _sidebar_display_size(metadata, params)
     thumbnail_url = _first_sidebar_thumbnail_url(metadata)
+    title = _truncate_text(metadata.get("title") or metadata.get("display_title") or "", 80)
     card = {
         "task_id": task_id,
         "summary_only": True,
@@ -413,6 +448,8 @@ def _sidebar_task_card(metadata: dict[str, Any]) -> dict[str, Any]:
         "archived_at": metadata.get("archived_at") or "",
         "status": metadata.get("status") or "",
         "mode": metadata.get("mode") or "",
+        "title": title,
+        "display_title": title,
         "prompt": _truncate_text(metadata.get("prompt") or metadata.get("prompt_for_model") or "", 260),
         "output_size": size,
         "params": {
@@ -440,6 +477,54 @@ def _sidebar_task_card(metadata: dict[str, Any]) -> dict[str, Any]:
     return {key: value for key, value in card.items() if value not in ("", [], {}) or key in {"task_id", "summary_only", "params"}}
 
 
+def _sidebar_display_size(metadata: dict[str, Any], params: dict[str, Any]) -> str:
+    for value in (
+        metadata.get("output_size"),
+        _first_dimension_list_value(metadata.get("output_sizes")),
+        _first_output_dimension_value(metadata),
+        params.get("size"),
+    ):
+        size = _normalize_dimension_size(value)
+        if size:
+            return size
+    requested_size = str(params.get("size") or "")
+    return requested_size if requested_size and not requested_size.isdigit() else ""
+
+
+def _normalize_dimension_size(value: Any) -> str:
+    match = DIMENSION_SIZE_RE.match(str(value or ""))
+    if not match:
+        return ""
+    width = int(match.group(1))
+    height = int(match.group(2))
+    if width <= 0 or height <= 0:
+        return ""
+    return f"{width}x{height}"
+
+
+def _first_dimension_list_value(value: Any) -> str:
+    if not isinstance(value, list):
+        return ""
+    for item in value:
+        size = _normalize_dimension_size(item)
+        if size:
+            return size
+    return ""
+
+
+def _first_output_dimension_value(metadata: dict[str, Any]) -> str:
+    outputs = metadata.get("outputs")
+    if not isinstance(outputs, list):
+        return ""
+    for output in outputs:
+        if not isinstance(output, dict):
+            continue
+        size = _normalize_dimension_size(output.get("size"))
+        if size:
+            return size
+    return ""
+
+
 def _sidebar_input_thumbnail_urls(metadata: dict[str, Any]) -> list[str]:
     urls = metadata.get("input_thumbnail_urls")
     if isinstance(urls, list):
@@ -465,6 +550,7 @@ def _sidebar_input_thumbnail_urls(metadata: dict[str, Any]) -> list[str]:
 
 
 def _first_sidebar_thumbnail_url(metadata: dict[str, Any]) -> str:
+    task_id = str(metadata.get("task_id") or "")
     thumbnail_route = _first_output_thumbnail_route(metadata)
     if thumbnail_route:
         return thumbnail_route
@@ -478,6 +564,10 @@ def _first_sidebar_thumbnail_url(metadata: dict[str, Any]) -> str:
         for output in outputs:
             if not isinstance(output, dict):
                 continue
+            if str(output.get("storage_driver") or "") == "r2" and output.get("url"):
+                index = _positive_int(output.get("index"))
+                if index:
+                    return f"/api/tasks/{task_id}/outputs/{index}/thumbnail"
             thumbnail_url = output.get("thumbnail_url") or _output_file_url(output.get("thumbnail_file"))
             if thumbnail_url:
                 return thumbnail_url
@@ -498,6 +588,7 @@ def _first_output_thumbnail_route(metadata: dict[str, Any]) -> str:
     output_files = metadata.get("output_files") if isinstance(metadata.get("output_files"), list) else []
     output_urls = metadata.get("output_urls") if isinstance(metadata.get("output_urls"), list) else []
     outputs = metadata.get("outputs")
+    has_r2_output = False
     if isinstance(outputs, list):
         for fallback_index, output in enumerate(outputs, start=1):
             if not isinstance(output, dict):
@@ -506,6 +597,9 @@ def _first_output_thumbnail_route(metadata: dict[str, Any]) -> str:
             if status != "completed":
                 continue
             index = _positive_int(output.get("index")) or fallback_index
+            if str(output.get("storage_driver") or "") == "r2" or output.get("storage_key"):
+                has_r2_output = True
+                return f"/api/tasks/{task_id}/outputs/{index}/thumbnail"
             if (
                 output.get("file")
                 or (index <= len(output_files) and output_files[index - 1])
@@ -513,6 +607,8 @@ def _first_output_thumbnail_route(metadata: dict[str, Any]) -> str:
                 or (index <= len(output_urls) and _is_local_output_url(output_urls[index - 1]))
             ):
                 return f"/api/tasks/{task_id}/outputs/{index}/thumbnail"
+    if has_r2_output:
+        return f"/api/tasks/{task_id}/outputs/1/thumbnail"
     if output_files:
         return f"/api/tasks/{task_id}/outputs/1/thumbnail"
     if output_urls and _is_local_output_url(output_urls[0]):
@@ -557,8 +653,42 @@ def _nonnegative_int(value: Any, fallback: int) -> int:
     return number if number >= 0 else fallback
 
 
+def _parse_datetime(value: Any) -> datetime | None:
+    text = str(value or "").strip()
+    if not text:
+        return None
+    if text.endswith("Z"):
+        text = text[:-1] + "+00:00"
+    try:
+        parsed = datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=UTC)
+    return parsed.astimezone(UTC)
+
+
 def _same_file_bytes(first: Path, second: Path) -> bool:
     try:
         return first.read_bytes() == second.read_bytes()
     except OSError:
         return False
+
+
+def _filter_tasks_by_owner(tasks: list[dict[str, Any]], owner_id: str | None) -> list[dict[str, Any]]:
+    clean_owner = str(owner_id or "").strip()
+    if not clean_owner:
+        return tasks
+    return [task for task in tasks if _owner_id_for_metadata(task) == clean_owner]
+
+
+def _owner_id_for_metadata(metadata: dict[str, Any]) -> str:
+    owner_id = str(metadata.get("owner_id") or "").strip()
+    if owner_id:
+        return owner_id
+    params = metadata.get("params") if isinstance(metadata.get("params"), dict) else {}
+    try:
+        user_id = int(params.get("sub2api_user_id"))
+    except (TypeError, ValueError):
+        return ""
+    return f"user_{user_id}" if user_id > 0 else ""

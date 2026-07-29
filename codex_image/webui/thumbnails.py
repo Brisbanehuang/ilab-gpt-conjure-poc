@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from io import BytesIO
 from pathlib import Path
 from typing import Any
 
@@ -20,12 +21,36 @@ def create_image_thumbnail(
 ) -> Path | None:
     try:
         with Image.open(source_path) as image:
-            image = ImageOps.exif_transpose(image)
-            image.thumbnail((max_edge, max_edge), Image.Resampling.LANCZOS)
-            thumbnail = _flatten_for_jpeg(image)
-            thumbnail_path.parent.mkdir(parents=True, exist_ok=True)
-            thumbnail.save(thumbnail_path, "JPEG", quality=quality, optimize=True)
-            return thumbnail_path
+            thumbnail_bytes = generate_image_thumbnail_bytes(
+                image,
+                max_edge=max_edge,
+                quality=quality,
+            )
+        if thumbnail_bytes is None:
+            return None
+        thumbnail_path.parent.mkdir(parents=True, exist_ok=True)
+        thumbnail_path.write_bytes(thumbnail_bytes)
+        return thumbnail_path
+    except (OSError, UnidentifiedImageError, ValueError):
+        return None
+
+
+def generate_image_thumbnail_bytes(
+    source: Image.Image | bytes,
+    *,
+    max_edge: int = THUMBNAIL_MAX_EDGE,
+    quality: int = THUMBNAIL_QUALITY,
+) -> bytes | None:
+    try:
+        if isinstance(source, bytes):
+            with Image.open(BytesIO(source)) as image:
+                return generate_image_thumbnail_bytes(image, max_edge=max_edge, quality=quality)
+        image = ImageOps.exif_transpose(source)
+        image.thumbnail((max_edge, max_edge), Image.Resampling.LANCZOS)
+        thumbnail = _flatten_for_jpeg(image)
+        output = BytesIO()
+        thumbnail.save(output, "JPEG", quality=quality, optimize=True)
+        return output.getvalue()
     except (OSError, UnidentifiedImageError, ValueError):
         return None
 

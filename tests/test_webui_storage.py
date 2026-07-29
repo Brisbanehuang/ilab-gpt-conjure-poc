@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import asyncio
 from io import BytesIO
 import json
 import threading
 import tempfile
 import time
 import unittest
+import unittest.mock
 from pathlib import Path
 
 from PIL import Image
@@ -18,6 +20,370 @@ def _png_bytes(size: tuple[int, int] = (400, 600)) -> bytes:
 
 
 class WebUIStorageTests(unittest.TestCase):
+    def test_readable_object_keys_use_owner_date_task_and_safe_title(self) -> None:
+        from codex_image.webui.object_storage import input_object_key, output_object_key
+
+        task_id = "20260626144923-a63df6c2"
+
+        self.assertEqual(
+            output_object_key(
+                owner_id="user_123",
+                task_id=task_id,
+                title="黑神话李清照",
+                index=1,
+                ext="png",
+            ),
+            "users/user_123/images/2026/0626/144923-20260626144923-a63df6c2/outputs/01-黑神话李清照.png",
+        )
+        self.assertEqual(
+            output_object_key(owner_id="user_123", task_id=task_id, title="../../猫:海报", index=2, ext=".webp"),
+            "users/user_123/images/2026/0626/144923-20260626144923-a63df6c2/outputs/02-猫海报.webp",
+        )
+        self.assertEqual(
+            output_object_key(owner_id="user_123", task_id=task_id, title="", index=1, ext="png"),
+            "users/user_123/images/2026/0626/144923-20260626144923-a63df6c2/outputs/01-output.png",
+        )
+        self.assertEqual(
+            input_object_key(owner_id="user_123", task_id=task_id, filename="../参考 图.PNG", index=1, ext="png"),
+            "users/user_123/images/2026/0626/144923-20260626144923-a63df6c2/inputs/01-参考图.png",
+        )
+        self.assertEqual(
+            input_object_key(owner_id="user_123", task_id=task_id, filename="", index=2, ext=".webp"),
+            "users/user_123/images/2026/0626/144923-20260626144923-a63df6c2/inputs/02-input.webp",
+        )
+
+    def test_owner_id_for_session_uses_sub2api_user_id_only(self) -> None:
+        from codex_image.webui.object_storage import owner_id_for_session
+        from codex_image.webui.omni_session import OmniSession
+
+        session = OmniSession(
+            id="session",
+            sub2api_user_id=123,
+            email="user@example.test",
+            username="alice",
+            balance=0,
+            token_cipher="cipher",
+            expires_at="2026-06-26T00:00:00+00:00",
+        )
+
+        self.assertEqual(owner_id_for_session(session), "user_123")
+
+    def test_owner_id_from_params_rejects_missing_or_invalid_user_id(self) -> None:
+        from codex_image.webui.object_storage import owner_id_from_params
+
+        self.assertEqual(owner_id_from_params({"sub2api_user_id": 123}), "user_123")
+        for params in ({}, {"sub2api_user_id": 0}, {"sub2api_user_id": "bad"}):
+            with self.subTest(params=params):
+                with self.assertRaisesRegex(ValueError, "Sub2API user id is required"):
+                    owner_id_from_params(params)
+
+    def test_r2_config_reads_retry_and_timeout_settings(self) -> None:
+        from codex_image.webui.object_storage import load_object_storage_config
+
+        config = load_object_storage_config(
+            {
+                "OMNI_OBJECT_STORAGE_DRIVER": "r2",
+                "OMNI_R2_REQUEST_TIMEOUT_SECONDS": "12",
+                "OMNI_R2_RETRY_ATTEMPTS": "4",
+                "OMNI_R2_RETRY_BASE_DELAY_SECONDS": "0",
+            }
+        )
+
+        self.assertEqual(config.request_timeout_seconds, 12)
+        self.assertEqual(config.retry_attempts, 4)
+        self.assertEqual(config.retry_base_delay_seconds, 0.0)
+
+    def test_r2_put_retries_transient_status_before_succeeding(self) -> None:
+        import httpx
+        from codex_image.webui.object_storage import ObjectStorageConfig, R2ObjectStorage
+
+        calls: list[tuple[str, str, bytes, float]] = []
+
+        class FakeAsyncClient:
+            def __init__(self, *, timeout: float) -> None:
+                self.timeout = timeout
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, exc_type, exc, tb) -> None:
+                return None
+
+            async def put(self, url: str, *, content: bytes, headers: dict[str, str]):
+                calls.append(("put", url, content, float(self.timeout)))
+                status = 503 if len(calls) == 1 else 200
+                return httpx.Response(status, request=httpx.Request("PUT", url))
+
+        config = ObjectStorageConfig(
+            driver="r2",
+            account_id="account",
+            access_key_id="access",
+            secret_access_key="secret",
+            bucket="bucket",
+            request_timeout_seconds=7,
+            retry_attempts=3,
+            retry_base_delay_seconds=0,
+        )
+
+        with unittest.mock.patch("codex_image.webui.object_storage.httpx.AsyncClient", FakeAsyncClient):
+            stored = asyncio.run(R2ObjectStorage(config).put("users/user_1/image.png", b"data", "image/png"))
+
+        self.assertEqual(stored.key, "users/user_1/image.png")
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(calls[0][3], 7.0)
+
+    def test_r2_get_retries_transport_errors_before_succeeding(self) -> None:
+        import httpx
+        from codex_image.webui.object_storage import ObjectStorageConfig, R2ObjectStorage
+
+        calls: list[str] = []
+
+        class FakeAsyncClient:
+            def __init__(self, *, timeout: float) -> None:
+                self.timeout = timeout
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, exc_type, exc, tb) -> None:
+                return None
+
+            async def get(self, url: str, *, headers: dict[str, str]):
+                calls.append(url)
+                request = httpx.Request("GET", url)
+                if len(calls) == 1:
+                    raise httpx.ConnectError("temporary network failure", request=request)
+                return httpx.Response(200, content=b"image-bytes", request=request)
+
+        config = ObjectStorageConfig(
+            driver="r2",
+            account_id="account",
+            access_key_id="access",
+            secret_access_key="secret",
+            bucket="bucket",
+            request_timeout_seconds=7,
+            retry_attempts=3,
+            retry_base_delay_seconds=0,
+        )
+
+        with unittest.mock.patch("codex_image.webui.object_storage.httpx.AsyncClient", FakeAsyncClient):
+            payload = asyncio.run(R2ObjectStorage(config).get("users/user_1/image.png"))
+
+        self.assertEqual(payload, b"image-bytes")
+        self.assertEqual(len(calls), 2)
+
+    def test_complete_task_stores_omni_output_with_readable_object_key(self) -> None:
+        from codex_image.client import ImageResult
+        from codex_image.webui.object_storage import StoredObject
+        from codex_image.webui.storage import TaskStorage
+        from codex_image.webui.task_metadata import _complete_task, _write_queued_metadata
+
+        class FakeObjectStorage:
+            def __init__(self) -> None:
+                self.puts: list[tuple[str, bytes, str]] = []
+
+            async def put(self, key: str, data: bytes, content_type: str) -> StoredObject:
+                self.puts.append((key, data, content_type))
+                return StoredObject(driver="r2", key=key, size=len(data), content_type=content_type)
+
+        fake = FakeObjectStorage()
+        task_id = "20260626144923-a63df6c2"
+        with tempfile.TemporaryDirectory() as tmp:
+            storage = TaskStorage(input_root=Path(tmp) / "inputs", output_root=Path(tmp) / "outputs", source_data_root=Path(tmp) / "source-data")
+            storage._task_source_data_dir(task_id).mkdir(parents=True, exist_ok=True)
+            _write_queued_metadata(
+                storage,
+                task_id,
+                created_at="2026-06-26T14:49:23+00:00",
+                mode="generate",
+                prompt="生成一张黑神话李清照海报",
+                prompt_for_model="生成一张黑神话李清照海报",
+                params={"omni_poc": True, "sub2api_user_id": 123, "output_format": "png", "n": 1},
+                input_files=[],
+                mask_file=None,
+                gallery_refs=[],
+                title="黑神话李清照",
+            )
+            with unittest.mock.patch("codex_image.webui.task_outputs.object_storage_from_env", return_value=fake):
+                metadata = _complete_task(
+                    storage,
+                    task_id,
+                    "2026-06-26T14:49:23+00:00",
+                    "generate",
+                    "生成一张黑神话李清照海报",
+                    "生成一张黑神话李清照海报",
+                    ImageResult(b"png-bytes", "revised", "png", "1024x1024", "auto", "low", {}),
+                    [],
+                    [],
+                    None,
+                    {},
+                    {"omni_poc": True, "sub2api_user_id": 123, "output_format": "png", "n": 1},
+                )
+
+        self.assertEqual(fake.puts[0], ("users/user_123/images/2026/0626/144923-20260626144923-a63df6c2/outputs/01-黑神话李清照.png", b"png-bytes", "image/png"))
+        self.assertEqual(metadata["outputs"][0]["storage_driver"], "r2")
+        self.assertEqual(metadata["outputs"][0]["storage_key"], fake.puts[0][0])
+        self.assertEqual(metadata["outputs"][0]["url"], f"/api/tasks/{task_id}/outputs/1")
+
+    def test_complete_task_stores_omni_reference_assets_in_task_r2_inputs(self) -> None:
+        from codex_image.client import ImageResult
+        from codex_image.webui.object_storage import StoredObject
+        from codex_image.webui.storage import ReferenceAssetStorage, TaskStorage
+        from codex_image.webui.task_metadata import _complete_task, _write_queued_metadata
+
+        class FakeObjectStorage:
+            def __init__(self) -> None:
+                self.puts: list[tuple[str, bytes, str]] = []
+
+            async def put(self, key: str, data: bytes, content_type: str) -> StoredObject:
+                self.puts.append((key, data, content_type))
+                return StoredObject(driver="r2", key=key, size=len(data), content_type=content_type)
+
+        fake = FakeObjectStorage()
+        task_id = "20260627173625-4c1c1b7e"
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            storage = TaskStorage(input_root=root / "inputs", output_root=root / "outputs", source_data_root=root / "source-data")
+            reference_storage = ReferenceAssetStorage(root / "reference-assets").scoped("user_123")
+            reference_asset = reference_storage.create_or_touch("参考 图.png", b"reference-bytes", "image/png")
+            storage._task_source_data_dir(task_id).mkdir(parents=True, exist_ok=True)
+            _write_queued_metadata(
+                storage,
+                task_id,
+                created_at="2026-06-27T17:36:25+00:00",
+                mode="generate",
+                prompt="用参考图生成",
+                prompt_for_model="用参考图生成",
+                params={"omni_poc": True, "sub2api_user_id": 123, "output_format": "png", "n": 1},
+                input_files=[],
+                mask_file=None,
+                gallery_refs=[],
+                reference_assets=[reference_asset],
+                title="参考任务",
+            )
+            with unittest.mock.patch("codex_image.webui.task_outputs.object_storage_from_env", return_value=fake):
+                metadata = _complete_task(
+                    storage,
+                    task_id,
+                    "2026-06-27T17:36:25+00:00",
+                    "generate",
+                    "用参考图生成",
+                    "用参考图生成",
+                    ImageResult(b"png-bytes", "revised", "png", "1024x1024", "auto", "low", {}),
+                    [],
+                    [],
+                    [reference_asset],
+                    {},
+                    {"omni_poc": True, "sub2api_user_id": 123, "output_format": "png", "n": 1},
+                    reference_asset_storage=reference_storage,
+                )
+
+        input_key = "users/user_123/images/2026/0627/173625-20260627173625-4c1c1b7e/inputs/01-参考图.png"
+        self.assertIn((input_key, b"reference-bytes", "image/png"), fake.puts)
+        self.assertEqual(metadata["reference_assets"][0]["storage_driver"], "r2")
+        self.assertEqual(metadata["reference_assets"][0]["storage_key"], input_key)
+        self.assertEqual(metadata["reference_assets"][0]["image_url"], f"/api/tasks/{task_id}/inputs/1")
+        self.assertEqual(metadata["input_sources"][0]["storage_key"], input_key)
+        self.assertEqual(metadata["input_sources"][0]["image_url"], f"/api/tasks/{task_id}/inputs/1")
+        self.assertEqual(metadata["input_sources"][0]["thumbnail_url"], f"/api/tasks/{task_id}/inputs/1")
+        self.assertEqual(metadata["input_sources"][0]["expires_at"], "2026-07-27T17:36:25Z")
+
+    def test_enriched_r2_outputs_use_output_route_for_thumbnail_url(self) -> None:
+        from codex_image.webui.task_enrichment import _with_file_urls
+
+        task_id = "20260626144923-a63df6c2"
+        metadata = _with_file_urls(
+            {
+                "task_id": task_id,
+                "status": "completed",
+                "params": {"omni_poc": True},
+                "outputs": [
+                    {
+                        "index": 1,
+                        "status": "completed",
+                        "storage_driver": "r2",
+                        "storage_key": "users/user_9/images/2026/0626/144923-task/outputs/01-output.png",
+                        "url": f"/api/tasks/{task_id}/outputs/1",
+                    }
+                ],
+            }
+        )
+
+        self.assertEqual(metadata["outputs"][0]["thumbnail_url"], f"/api/tasks/{task_id}/outputs/1")
+        self.assertEqual(metadata["thumbnail_urls"], [f"/api/tasks/{task_id}/outputs/1"])
+
+    def test_recent_task_card_uses_output_route_for_r2_thumbnail_despite_legacy_files(self) -> None:
+        from codex_image.webui.storage import TaskStorage
+
+        task_id = "20260627160206-445ec5e7"
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            storage = TaskStorage(input_root=root / "inputs", output_root=root / "outputs", source_data_root=root / "outputs" / "source-data")
+            storage.write_metadata(
+                task_id,
+                {
+                    "task_id": task_id,
+                    "created_at": "2026-06-27T16:02:06+00:00",
+                    "updated_at": "2026-06-27T16:03:28+00:00",
+                    "status": "completed",
+                    "owner_id": "user_9",
+                    "params": {"omni_poc": True},
+                    "output_file": "2026-06-27/20260627160206-445ec5e7-image-1.png",
+                    "output_files": ["2026-06-27/20260627160206-445ec5e7-image-1.png"],
+                    "output_url": f"/api/tasks/{task_id}/outputs/1",
+                    "output_urls": [f"/api/tasks/{task_id}/outputs/1"],
+                    "outputs": [
+                        {
+                            "index": 1,
+                            "status": "completed",
+                            "file": "2026-06-27/20260627160206-445ec5e7-image-1.png",
+                            "url": f"/api/tasks/{task_id}/outputs/1",
+                            "thumbnail_file": "thumbnails/2026-06-27/20260627160206-445ec5e7-image-1-thumb.jpg",
+                            "thumbnail_url": "/outputs/thumbnails/2026-06-27/20260627160206-445ec5e7-image-1-thumb.jpg",
+                            "storage_driver": "r2",
+                            "storage_key": "users/user_9/images/2026/0627/160206-task/outputs/01-output.png",
+                        }
+                    ],
+                },
+            )
+
+            cards = storage.list_recent_task_cards(owner_id="user_9")
+
+        self.assertEqual(cards[0]["thumbnail_urls"], [f"/api/tasks/{task_id}/outputs/1/thumbnail"])
+
+    def test_recent_task_card_ignores_legacy_thumbnail_url_for_r2_outputs(self) -> None:
+        from codex_image.webui.storage import TaskStorage
+
+        task_id = "20260627160206-445ec5e7"
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            storage = TaskStorage(input_root=root / "inputs", output_root=root / "outputs", source_data_root=root / "outputs" / "source-data")
+            storage.write_metadata(
+                task_id,
+                {
+                    "task_id": task_id,
+                    "created_at": "2026-06-27T16:02:06+00:00",
+                    "updated_at": "2026-06-27T16:03:28+00:00",
+                    "status": "completed",
+                    "owner_id": "user_9",
+                    "params": {"omni_poc": True},
+                    "thumbnail_urls": ["/outputs/thumbnails/2026-06-27/20260627160206-445ec5e7-image-1-thumb.jpg"],
+                    "outputs": [
+                        {
+                            "index": 1,
+                            "status": "completed",
+                            "thumbnail_url": "/outputs/thumbnails/2026-06-27/20260627160206-445ec5e7-image-1-thumb.jpg",
+                            "storage_driver": "r2",
+                            "storage_key": "users/user_9/images/2026/0627/160206-task/outputs/01-output.png",
+                        }
+                    ],
+                },
+            )
+
+            cards = storage.list_recent_task_cards(owner_id="user_9")
+
+        self.assertEqual(cards[0]["thumbnail_urls"], [f"/api/tasks/{task_id}/outputs/1/thumbnail"])
+
     def test_creates_sharded_task_files_and_lists_newest_first(self) -> None:
         from codex_image.webui.storage import TaskStorage
 

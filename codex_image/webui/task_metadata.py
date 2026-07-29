@@ -78,6 +78,8 @@ class TaskMetadata(TypedDict, total=False):
     started_at: str
     mode: str
     status: str
+    title: str
+    display_title: str
     prompt: str
     prompt_for_model: str
     params: dict[str, Any]

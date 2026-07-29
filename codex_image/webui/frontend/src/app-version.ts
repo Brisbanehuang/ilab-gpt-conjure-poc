@@ -57,7 +57,7 @@ function renderAppVersion(statusText?: string): void {
     source.textContent = payload?.source === "portable" ? translate("version.sourcePortable") : translate("version.sourceSource");
   }
   if (releaseLink) {
-    releaseLink.href = payload?.release_url || "https://github.com/kadevin/ilab-gpt-conjure/releases";
+    releaseLink.href = payload?.release_url || "https://github.com/Brisbanehuang/ilab-gpt-conjure-poc/tree/share/v0.2.25";
   }
   if (updateButton) {
     updateButton.disabled = !(payload?.update_available && payload?.updater_available);
@@ -85,7 +85,7 @@ async function refreshAppVersion(): Promise<void> {
       source: "source",
       update_available: false,
       updater_available: false,
-      release_url: "https://github.com/kadevin/ilab-gpt-conjure/releases",
+      release_url: "https://github.com/Brisbanehuang/ilab-gpt-conjure-poc/tree/share/v0.2.25",
     };
   }
   renderAppVersion();

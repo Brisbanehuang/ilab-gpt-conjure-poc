@@ -1,6 +1,8 @@
 import { getLegacyBridge } from "./state";
+import { safeJson } from "./api";
 import { updateModeSpecificSettings } from "./api-mode-settings";
 import { formatTranslation, translate } from "./i18n";
+import { isOmniPocMode, updateOmniLegacyAuthState } from "./omni-poc-key";
 
 const bridge = getLegacyBridge();
 const state = bridge.state;
@@ -23,9 +25,14 @@ function apiModeLabel(mode: any): string { return legacyMethod("apiModeLabel", m
 function codexModeLabel(mode: any): string { return legacyMethod("codexModeLabel", mode); }
 
 export async function refreshHealth(): Promise<void> {
+  if (isOmniPocMode()) {
+    updateOmniLegacyAuthState();
+    updateRequestPreview();
+    return;
+  }
   try {
     const response = await fetch("/api/health");
-    const data = await response.json();
+    const data = await safeJson(response);
     state.authAvailable = Boolean(data.auth_available);
     state.authStatus = data.auth || null;
     renderAuthSource(state.authStatus);
@@ -53,7 +60,7 @@ export async function setAuthSource(source: any): Promise<void> {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ source }),
     });
-    const data = await response.json();
+    const data = await safeJson(response);
     if (!response.ok) {
       throw new Error(data.detail || translate("auth.switchFailed"));
     }
@@ -81,6 +88,14 @@ export function handleAuthSourceClick(event: any): void {
 }
 
 export function renderAuthSource(auth: any): void {
+  if (isOmniPocMode()) {
+    if (els.authSourceDetail) {
+      els.authSourceDetail.textContent = "Omni API Key";
+      els.authSourceDetail.title = "Omni API Key";
+    }
+    applyAuthSourceSelection("api");
+    return;
+  }
   const selected = state.pendingAuthSource || auth?.selected_source || "codex";
   applyAuthSourceSelection(selected);
   if (els.authSourceDetail) {
@@ -126,6 +141,7 @@ export function sourceLabel(source: any): string {
 }
 
 export function currentAuthSource(): string {
+  if (isOmniPocMode()) return "api";
   return state.pendingAuthSource || state.authStatus?.selected_source || "codex";
 }
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from fastapi import Body, FastAPI, File, HTTPException, UploadFile
+from fastapi import Body, FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.responses import Response
 
 from codex_image.webui.context import WebUIContext
@@ -15,6 +15,7 @@ from codex_image.webui.settings_store import (
     _parse_color_palette_import,
 )
 from codex_image.webui.startup_auth import AUTH_SOURCES
+from codex_image.webui.user_settings import prompt_snippet_settings_for_request, prompt_template_settings_for_request
 
 
 def register_settings_routes(app: FastAPI, ctx: WebUIContext) -> None:
@@ -29,6 +30,14 @@ def register_settings_routes(app: FastAPI, ctx: WebUIContext) -> None:
             "ok": True,
             "auth_available": auth_available,
             "auth": auth,
+            "omni_poc": {
+                "enabled": bool(getattr(app.state, "omni_poc_config", None) and app.state.omni_poc_config.enabled),
+                "base_url": str(getattr(getattr(app.state, "omni_poc_config", None), "base_url", "")),
+                "image_model": str(getattr(getattr(app.state, "omni_poc_config", None), "image_model", "")),
+                "source_url": str(getattr(getattr(app.state, "omni_poc_config", None), "source_url", "")),
+                "login_url": str(getattr(getattr(app.state, "omni_poc_config", None), "login_url", "")),
+                "dashboard_url": str(getattr(getattr(app.state, "omni_poc_config", None), "dashboard_url", "")),
+            },
             "input_root": str(ctx.input_root),
             "output_root": str(ctx.output_root),
             "gallery_root": str(ctx.gallery_root),
@@ -100,150 +109,164 @@ def register_settings_routes(app: FastAPI, ctx: WebUIContext) -> None:
         return {"palette": saved, "imported": imported, "skipped": skipped, "restart_required": False}
 
     @app.get("/api/prompt-snippets")
-    def get_prompt_snippets() -> dict[str, Any]:
-        return {"snippets": ctx.prompt_snippet_settings.list(), "restart_required": False}
+    def get_prompt_snippets(request: Request) -> dict[str, Any]:
+        settings = prompt_snippet_settings_for_request(ctx, request)
+        return {"snippets": settings.list(), "restart_required": False}
 
     @app.post("/api/prompt-snippets")
-    def create_prompt_snippet(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
+    def create_prompt_snippet(request: Request, payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
+        settings = prompt_snippet_settings_for_request(ctx, request)
         try:
-            snippet = ctx.prompt_snippet_settings.create(payload)
+            snippet = settings.create(payload)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
-        return {"snippet": snippet, "snippets": ctx.prompt_snippet_settings.list(), "restart_required": False}
+        return {"snippet": snippet, "snippets": settings.list(), "restart_required": False}
 
     @app.patch("/api/prompt-snippets/{snippet_id}")
-    def update_prompt_snippet(snippet_id: str, payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
+    def update_prompt_snippet(snippet_id: str, request: Request, payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
+        settings = prompt_snippet_settings_for_request(ctx, request)
         try:
-            snippet = ctx.prompt_snippet_settings.update(snippet_id, payload)
+            snippet = settings.update(snippet_id, payload)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
-        return {"snippet": snippet, "snippets": ctx.prompt_snippet_settings.list(), "restart_required": False}
+        return {"snippet": snippet, "snippets": settings.list(), "restart_required": False}
 
     @app.delete("/api/prompt-snippets/{snippet_id}")
-    def delete_prompt_snippet(snippet_id: str) -> dict[str, Any]:
+    def delete_prompt_snippet(snippet_id: str, request: Request) -> dict[str, Any]:
+        settings = prompt_snippet_settings_for_request(ctx, request)
         try:
-            ctx.prompt_snippet_settings.delete(snippet_id)
+            settings.delete(snippet_id)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
-        return {"snippets": ctx.prompt_snippet_settings.list(), "restart_required": False}
+        return {"snippets": settings.list(), "restart_required": False}
 
     @app.get("/api/prompt-templates")
-    def get_prompt_templates() -> dict[str, Any]:
+    def get_prompt_templates(request: Request) -> dict[str, Any]:
+        settings = prompt_template_settings_for_request(ctx, request)
         return {
-            "templates": ctx.prompt_template_settings.list(),
-            "categories": ctx.prompt_template_settings.list_categories(),
+            "templates": settings.list(),
+            "categories": settings.list_categories(),
             "restart_required": False,
         }
 
     @app.post("/api/prompt-templates")
-    def create_prompt_template(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
+    def create_prompt_template(request: Request, payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
+        settings = prompt_template_settings_for_request(ctx, request)
         try:
-            template = ctx.prompt_template_settings.create(payload)
+            template = settings.create(payload)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         return {
             "template": template,
-            "templates": ctx.prompt_template_settings.list(),
-            "categories": ctx.prompt_template_settings.list_categories(),
+            "templates": settings.list(),
+            "categories": settings.list_categories(),
             "restart_required": False,
         }
 
     @app.get("/api/prompt-templates/export.json")
-    def export_prompt_templates() -> Response:
+    def export_prompt_templates(request: Request) -> Response:
+        settings = prompt_template_settings_for_request(ctx, request)
         return Response(
-            json.dumps(ctx.prompt_template_settings.export_pack(), ensure_ascii=False, indent=2),
+            json.dumps(settings.export_pack(), ensure_ascii=False, indent=2),
             media_type="application/json",
             headers={"Content-Disposition": 'attachment; filename="webui-prompt-templates.json"'},
         )
 
     @app.post("/api/prompt-templates/import")
-    async def import_prompt_templates(file: UploadFile = File(...)) -> dict[str, Any]:
+    async def import_prompt_templates(request: Request, file: UploadFile = File(...)) -> dict[str, Any]:
+        template_settings = prompt_template_settings_for_request(ctx, request)
         payload = await file.read(MAX_PROMPT_TEMPLATE_IMPORT_BYTES + 1)
         if len(payload) > MAX_PROMPT_TEMPLATE_IMPORT_BYTES:
             raise HTTPException(status_code=400, detail="Prompt template pack is too large")
         try:
-            settings, imported, skipped = ctx.prompt_template_settings.import_pack(file.filename or "prompt-pack", payload, file.content_type)
+            saved, imported, skipped = template_settings.import_pack(file.filename or "prompt-pack", payload, file.content_type)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         return {
-            "templates": settings["templates"],
-            "categories": settings["categories"],
+            "templates": saved["templates"],
+            "categories": saved["categories"],
             "imported": imported,
             "skipped": skipped,
             "restart_required": False,
         }
 
     @app.patch("/api/prompt-templates/{template_id}")
-    def update_prompt_template(template_id: str, payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
+    def update_prompt_template(template_id: str, request: Request, payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
+        settings = prompt_template_settings_for_request(ctx, request)
         try:
-            template = ctx.prompt_template_settings.update(template_id, payload)
+            template = settings.update(template_id, payload)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         return {
             "template": template,
-            "templates": ctx.prompt_template_settings.list(),
-            "categories": ctx.prompt_template_settings.list_categories(),
+            "templates": settings.list(),
+            "categories": settings.list_categories(),
             "restart_required": False,
         }
 
     @app.post("/api/prompt-templates/{template_id}/use")
-    def use_prompt_template(template_id: str) -> dict[str, Any]:
+    def use_prompt_template(template_id: str, request: Request) -> dict[str, Any]:
+        settings = prompt_template_settings_for_request(ctx, request)
         try:
-            template = ctx.prompt_template_settings.mark_used(template_id)
+            template = settings.mark_used(template_id)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         return {
             "template": template,
-            "templates": ctx.prompt_template_settings.list(),
-            "categories": ctx.prompt_template_settings.list_categories(),
+            "templates": settings.list(),
+            "categories": settings.list_categories(),
             "restart_required": False,
         }
 
     @app.delete("/api/prompt-templates/{template_id}")
-    def delete_prompt_template(template_id: str) -> dict[str, Any]:
+    def delete_prompt_template(template_id: str, request: Request) -> dict[str, Any]:
+        settings = prompt_template_settings_for_request(ctx, request)
         try:
-            ctx.prompt_template_settings.delete(template_id)
+            settings.delete(template_id)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         return {
-            "templates": ctx.prompt_template_settings.list(),
-            "categories": ctx.prompt_template_settings.list_categories(),
+            "templates": settings.list(),
+            "categories": settings.list_categories(),
             "restart_required": False,
         }
 
     @app.post("/api/prompt-template-categories")
-    def create_prompt_template_category(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
+    def create_prompt_template_category(request: Request, payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
+        settings = prompt_template_settings_for_request(ctx, request)
         try:
-            category = ctx.prompt_template_settings.create_category(payload)
+            category = settings.create_category(payload)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         return {
             "category": category,
-            "templates": ctx.prompt_template_settings.list(),
-            "categories": ctx.prompt_template_settings.list_categories(),
+            "templates": settings.list(),
+            "categories": settings.list_categories(),
             "restart_required": False,
         }
 
     @app.patch("/api/prompt-template-categories/{category_id}")
-    def update_prompt_template_category(category_id: str, payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
+    def update_prompt_template_category(category_id: str, request: Request, payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
+        settings = prompt_template_settings_for_request(ctx, request)
         try:
-            category = ctx.prompt_template_settings.update_category(category_id, payload)
+            category = settings.update_category(category_id, payload)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         return {
             "category": category,
-            "templates": ctx.prompt_template_settings.list(),
-            "categories": ctx.prompt_template_settings.list_categories(),
+            "templates": settings.list(),
+            "categories": settings.list_categories(),
             "restart_required": False,
         }
 
     @app.delete("/api/prompt-template-categories/{category_id}")
-    def delete_prompt_template_category(category_id: str) -> dict[str, Any]:
+    def delete_prompt_template_category(category_id: str, request: Request) -> dict[str, Any]:
+        template_settings = prompt_template_settings_for_request(ctx, request)
         try:
-            settings = ctx.prompt_template_settings.delete_category(category_id)
+            saved = template_settings.delete_category(category_id)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
-        return {"templates": settings["templates"], "categories": settings["categories"], "restart_required": False}
+        return {"templates": saved["templates"], "categories": saved["categories"], "restart_required": False}
 
     @app.get("/api/auth")
     def get_auth() -> dict[str, Any]:

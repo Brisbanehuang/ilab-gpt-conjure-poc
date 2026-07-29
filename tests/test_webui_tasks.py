@@ -200,6 +200,48 @@ class WebUITaskTests(unittest.TestCase):
         self.assertNotIn("prompt_for_model", task)
         self.assertNotIn("request", task)
 
+    def test_recent_tasks_api_falls_back_to_requested_size_when_output_size_is_numeric(self) -> None:
+        from codex_image.webui.app import create_app
+
+        task_id = "20260624095053-12bdaf0e"
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            app = create_app(output_root=root, auth_checker=lambda: True, auto_start_queue=False)
+            metadata_path(root, task_id).parent.mkdir(parents=True, exist_ok=True)
+            metadata_path(root, task_id).write_text(
+                json.dumps(
+                    {
+                        "task_id": task_id,
+                        "created_at": "2026-06-24T09:50:53+00:00",
+                        "status": "completed",
+                        "prompt": "sidebar numeric output size",
+                        "params": {"size": "2336x3504", "n": 1},
+                        "output_size": "952614",
+                        "output_sizes": ["952614"],
+                        "outputs": [
+                            {
+                                "index": 1,
+                                "status": "completed",
+                                "size": "952614",
+                                "url": output_url(task_id, 1, "jpg"),
+                            }
+                        ],
+                        "generated_count": 1,
+                        "failed_count": 0,
+                        "total_count": 1,
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            client = TestClient(app)
+            response = client.get("/api/tasks/recent", params={"limit": 10})
+
+        self.assertEqual(response.status_code, 200)
+        task = response.json()["tasks"][0]
+        self.assertEqual(task["output_size"], "2336x3504")
+        self.assertEqual(task["params"]["size"], "2336x3504")
+
     def test_task_outputs_zip_downloads_multiple_outputs(self) -> None:
         from codex_image.webui.app import create_app
 
@@ -237,6 +279,229 @@ class WebUITaskTests(unittest.TestCase):
                 )
                 self.assertEqual(archive.read(f"{task_id}-image-1.png"), b"first-image")
                 self.assertEqual(archive.read(f"{task_id}-image-2.webp"), b"second-image")
+
+    def test_task_output_route_streams_r2_object_through_backend(self) -> None:
+        from codex_image.webui.app import create_app
+
+        class FakeObjectStorage:
+            async def get(self, key: str) -> bytes:
+                self.key = key
+                return b"r2-image"
+
+        fake = FakeObjectStorage()
+        task_id = "20260505010203-abcdef01"
+        storage_key = "users/user_123/images/2026/05/05/010203-20260505010203-abcdef01/outputs/01-title.png"
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            metadata_path(root, task_id).parent.mkdir(parents=True, exist_ok=True)
+            metadata_path(root, task_id).write_text(
+                json.dumps(
+                    {
+                        "task_id": task_id,
+                        "status": "completed",
+                        "outputs": [
+                            {
+                                "index": 1,
+                                "status": "completed",
+                                "storage_driver": "r2",
+                                "storage_key": storage_key,
+                                "content_type": "image/png",
+                                "size": 8,
+                                "url": f"/api/tasks/{task_id}/outputs/1",
+                            }
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            app = create_app(output_root=root, auth_checker=lambda: True, auto_start_queue=False)
+            with patch("codex_image.webui.routes.tasks.object_storage_from_env", return_value=fake):
+                response = TestClient(app).get(f"/api/tasks/{task_id}/outputs/1")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers["content-type"], "image/png")
+        self.assertEqual(response.content, b"r2-image")
+        self.assertEqual(fake.key, storage_key)
+
+    def test_task_output_route_prefers_local_file_before_r2(self) -> None:
+        from codex_image.webui.app import create_app
+
+        class FakeObjectStorage:
+            async def get(self, key: str) -> bytes:
+                self.key = key
+                return b"r2-image"
+
+        fake = FakeObjectStorage()
+        task_id = "20260505010203-abcdef01"
+        storage_key = "users/user_123/images/2026/05/05/010203-20260505010203-abcdef01/outputs/01-title.png"
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            local_output = root / "2026-05-05" / f"{task_id}-image-1.png"
+            local_output.parent.mkdir(parents=True, exist_ok=True)
+            local_output.write_bytes(b"local-image")
+            metadata_path(root, task_id).parent.mkdir(parents=True, exist_ok=True)
+            metadata_path(root, task_id).write_text(
+                json.dumps(
+                    {
+                        "task_id": task_id,
+                        "status": "completed",
+                        "outputs": [
+                            {
+                                "index": 1,
+                                "status": "completed",
+                                "storage_driver": "r2",
+                                "storage_key": storage_key,
+                                "content_type": "image/png",
+                                "size": 10,
+                                "file": f"2026-05-05/{task_id}-image-1.png",
+                                "url": f"/api/tasks/{task_id}/outputs/1",
+                            }
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            app = create_app(output_root=root, auth_checker=lambda: True, auto_start_queue=False)
+            with patch("codex_image.webui.routes.tasks.object_storage_from_env", return_value=fake):
+                response = TestClient(app).get(f"/api/tasks/{task_id}/outputs/1")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content, b"local-image")
+        self.assertFalse(hasattr(fake, "key"))
+
+    def test_task_output_thumbnail_route_generates_thumbnail_from_r2_when_local_missing(self) -> None:
+        from codex_image.webui.app import create_app
+        from PIL import Image
+
+        class FakeObjectStorage:
+            async def get(self, key: str) -> bytes:
+                self.key = key
+                image = Image.new("RGB", (1600, 1200), (120, 180, 160))
+                buffer = BytesIO()
+                image.save(buffer, format="PNG")
+                return buffer.getvalue()
+
+        fake = FakeObjectStorage()
+        task_id = "20260505010203-abcdef01"
+        storage_key = "users/user_123/images/2026/0505/010203-task/outputs/01-title.png"
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            metadata_path(root, task_id).parent.mkdir(parents=True, exist_ok=True)
+            metadata_path(root, task_id).write_text(
+                json.dumps(
+                    {
+                        "task_id": task_id,
+                        "status": "completed",
+                        "outputs": [
+                            {
+                                "index": 1,
+                                "status": "completed",
+                                "storage_driver": "r2",
+                                "storage_key": storage_key,
+                                "content_type": "image/png",
+                                "size": 8,
+                                "url": f"/api/tasks/{task_id}/outputs/1",
+                            }
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            app = create_app(output_root=root, auth_checker=lambda: True, auto_start_queue=False)
+            with patch("codex_image.webui.routes.tasks.object_storage_from_env", return_value=fake):
+                response = TestClient(app).get(f"/api/tasks/{task_id}/outputs/1/thumbnail")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers["content-type"], "image/jpeg")
+        with Image.open(BytesIO(response.content)) as image:
+            self.assertLessEqual(max(image.size), 768)
+        self.assertEqual(fake.key, storage_key)
+
+    def test_recent_tasks_use_output_thumbnail_route_as_r2_thumbnail_url(self) -> None:
+        from codex_image.webui.app import create_app
+
+        task_id = "20260505010203-abcdef01"
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            metadata_path(root, task_id).parent.mkdir(parents=True, exist_ok=True)
+            metadata_path(root, task_id).write_text(
+                json.dumps(
+                    {
+                        "task_id": task_id,
+                        "created_at": "2026-05-05T01:02:03+00:00",
+                        "updated_at": "2026-05-05T01:03:03+00:00",
+                        "status": "completed",
+                        "mode": "generate",
+                        "prompt": "r2 sidebar image",
+                        "params": {"omni_poc": True, "size": "1024x1024"},
+                        "outputs": [
+                            {
+                                "index": 1,
+                                "status": "completed",
+                                "storage_driver": "r2",
+                                "storage_key": "users/user_9/images/2026/0505/010203-task/outputs/01-output.png",
+                                "url": f"/api/tasks/{task_id}/outputs/1",
+                            }
+                        ],
+                        "output_urls": [f"/api/tasks/{task_id}/outputs/1"],
+                        "generated_count": 1,
+                        "failed_count": 0,
+                        "total_count": 1,
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            app = create_app(output_root=root, auth_checker=lambda: True, auto_start_queue=False)
+            response = TestClient(app).get("/api/tasks/recent", params={"limit": 10})
+
+        self.assertEqual(response.status_code, 200)
+        task = response.json()["tasks"][0]
+        self.assertEqual(task["thumbnail_urls"], [f"/api/tasks/{task_id}/outputs/1/thumbnail"])
+
+    def test_delete_completed_task_removes_r2_objects(self) -> None:
+        from codex_image.webui.app import create_app
+
+        class FakeObjectStorage:
+            def __init__(self) -> None:
+                self.deleted: list[str] = []
+
+            async def delete(self, key: str) -> None:
+                self.deleted.append(key)
+
+        fake = FakeObjectStorage()
+        task_id = "20260505010203-abcdef01"
+        storage_key = "users/user_123/images/2026/0505/010203-task/outputs/01-title.png"
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            metadata_path(root, task_id).parent.mkdir(parents=True, exist_ok=True)
+            metadata_path(root, task_id).write_text(
+                json.dumps(
+                    {
+                        "task_id": task_id,
+                        "status": "completed",
+                        "outputs": [
+                            {
+                                "index": 1,
+                                "status": "completed",
+                                "storage_driver": "r2",
+                                "storage_key": storage_key,
+                                "url": f"/api/tasks/{task_id}/outputs/1",
+                            }
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            app = create_app(output_root=root, auth_checker=lambda: True, auto_start_queue=False)
+            with patch("codex_image.webui.routes.tasks.object_storage_from_env", return_value=fake):
+                response = TestClient(app).delete(f"/api/tasks/{task_id}")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(fake.deleted, [storage_key])
 
     def test_task_reveal_output_endpoint_opens_output_directory(self) -> None:
         from codex_image.webui.app import create_app
@@ -374,6 +639,82 @@ class WebUITaskTests(unittest.TestCase):
             self.assertTrue((root / "thumbnails" / "2026-05-05" / f"{task_id}-image-1-thumb.jpg").is_file())
             self.assertTrue((root / "thumbnails" / "2026-05-05" / f"{task_id}-image-2-thumb.jpg").is_file())
             self.assertFalse((root / "thumbnails" / "2026-05-05" / f"{task_id}-image-3-thumb.jpg").exists())
+
+    def test_delete_unselected_outputs_removes_r2_objects(self) -> None:
+        from codex_image.webui.app import create_app
+
+        class FakeObjectStorage:
+            def __init__(self) -> None:
+                self.deleted: list[str] = []
+
+            async def delete(self, key: str) -> None:
+                self.deleted.append(key)
+
+        fake = FakeObjectStorage()
+        task_id = "20260505010203-abcdef01"
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            metadata_path(root, task_id).parent.mkdir(parents=True, exist_ok=True)
+            metadata_path(root, task_id).write_text(
+                json.dumps(
+                    {
+                        "task_id": task_id,
+                        "status": "completed",
+                        "selected_output_indexes": [1],
+                        "output_urls": [output_url(task_id, 1), output_url(task_id, 2)],
+                        "outputs": [
+                            {"index": 1, "status": "completed", "storage_driver": "r2", "storage_key": "keep", "url": output_url(task_id, 1)},
+                            {"index": 2, "status": "completed", "storage_driver": "r2", "storage_key": "delete", "url": output_url(task_id, 2)},
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            app = create_app(output_root=root, auth_checker=lambda: True, auto_start_queue=False)
+            with patch("codex_image.webui.routes.tasks.object_storage_from_env", return_value=fake):
+                response = TestClient(app).post(f"/api/tasks/{task_id}/outputs/delete-unselected")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(fake.deleted, ["delete"])
+
+    def test_delete_unselected_outputs_attempts_all_r2_deletes_before_failing(self) -> None:
+        from codex_image.webui.app import create_app
+
+        class FakeObjectStorage:
+            def __init__(self) -> None:
+                self.deleted: list[str] = []
+
+            async def delete(self, key: str) -> None:
+                self.deleted.append(key)
+                if key == "broken":
+                    raise RuntimeError("delete failed")
+
+        fake = FakeObjectStorage()
+        task_id = "20260505010203-abcdef01"
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            metadata_path(root, task_id).parent.mkdir(parents=True, exist_ok=True)
+            metadata_path(root, task_id).write_text(
+                json.dumps(
+                    {
+                        "task_id": task_id,
+                        "status": "completed",
+                        "selected_output_indexes": [1],
+                        "outputs": [
+                            {"index": 1, "status": "completed", "storage_driver": "r2", "storage_key": "keep", "url": output_url(task_id, 1)},
+                            {"index": 2, "status": "completed", "storage_driver": "r2", "storage_key": "broken", "url": output_url(task_id, 2)},
+                            {"index": 3, "status": "completed", "storage_driver": "r2", "storage_key": "still-tried", "url": output_url(task_id, 3)},
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            app = create_app(output_root=root, auth_checker=lambda: True, auto_start_queue=False)
+            with patch("codex_image.webui.routes.tasks.object_storage_from_env", return_value=fake):
+                response = TestClient(app).post(f"/api/tasks/{task_id}/outputs/delete-unselected")
+
+        self.assertEqual(response.status_code, 502)
+        self.assertEqual(fake.deleted, ["broken", "still-tried"])
 
     def test_task_thumbnail_route_backfills_legacy_output_thumbnail(self) -> None:
         from codex_image.webui.app import create_app

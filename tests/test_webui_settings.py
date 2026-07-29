@@ -105,7 +105,7 @@ class WebUISettingsTests(unittest.TestCase):
                         "current_version": "0.3.6",
                         "latest_version": "0.3.7",
                         "checked_at": "2026-06-14T00:00:00Z",
-                        "release_url": "https://github.com/kadevin/ilab-gpt-conjure/releases/tag/v0.3.7",
+                        "release_url": "https://github.com/Brisbanehuang/ilab-gpt-conjure-poc/releases/tag/v0.3.7",
                     }
                 ),
                 encoding="utf-8",
@@ -1537,8 +1537,8 @@ class WebUISettingsTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertTrue(body["task"]["params"]["web_search"])
-        self.assertEqual([tool["type"] for tool in body["request"]["tools"]], ["web_search", "image_generation"])
-        self.assertEqual(body["request"]["tools"][1]["quality"], "low")
+        self.assertEqual([tool["type"] for tool in body["request"]["tools"]], ["web_search"])
+        self.assertEqual(body["request"]["tools"][0]["search_context_size"], "low")
         self.assertEqual(body["request"]["tool_choice"], "required")
         self.assertFalse(body["request"]["parallel_tool_calls"])
 
@@ -2034,6 +2034,103 @@ class WebUISettingsTests(unittest.TestCase):
             )
             self.assertEqual(external_model.status_code, 400)
             self.assertIn("Unsupported prompt template model hint", external_model.json()["detail"])
+
+    def test_prompt_templates_are_private_to_omni_user(self) -> None:
+        from cryptography.fernet import Fernet
+
+        from codex_image.webui.app import create_app
+        from codex_image.webui.omni_session import SESSION_COOKIE_NAME
+
+        with tempfile.TemporaryDirectory() as tmp, patch.dict(
+            os.environ,
+            {
+                "OMNI_POC_MODE": "1",
+                "OMNI_POC_SECRET_KEY": Fernet.generate_key().decode("ascii"),
+                "OMNI_BASE_URL": "http://127.0.0.1:8080/v1",
+                "OMNI_POC_DB_PATH": str(Path(tmp) / "omni-poc.db"),
+                "OMNI_POC_LOGIN_URL": "https://portal.example.test/image-generator",
+            },
+        ):
+            root = Path(tmp)
+            app = create_app(
+                output_root=root / "outputs",
+                prompt_templates_path=root / "webui-prompt-templates.json",
+                auth_checker=lambda: True,
+                auto_start_queue=False,
+            )
+            client = TestClient(app)
+            session_store = app.state.ctx.route_helpers["omni_session_store"]
+            session_1 = session_store.create_session({"id": 1, "email": "one@example.test", "username": "one", "balance": 1}, "token-1")
+            session_9 = session_store.create_session({"id": 9, "email": "nine@example.test", "username": "nine", "balance": 1}, "token-9")
+            user_1 = {SESSION_COOKIE_NAME: session_1.id}
+            user_9 = {SESSION_COOKIE_NAME: session_9.id}
+
+            created = client.post(
+                "/api/prompt-templates",
+                cookies=user_1,
+                json={"title": "管理员模板", "content": "只属于 user 1 的提示词"},
+            )
+            template_id = created.json()["template"]["id"]
+            user_9_list = client.get("/api/prompt-templates", cookies=user_9)
+            user_9_use = client.post(f"/api/prompt-templates/{template_id}/use", cookies=user_9)
+            user_9_delete = client.delete(f"/api/prompt-templates/{template_id}", cookies=user_9)
+            user_1_list = client.get("/api/prompt-templates", cookies=user_1)
+
+        self.assertEqual(created.status_code, 200)
+        self.assertEqual(user_9_list.status_code, 200)
+        self.assertEqual(user_9_list.json()["templates"], [])
+        self.assertEqual(user_9_use.status_code, 400)
+        self.assertEqual(user_9_delete.status_code, 400)
+        self.assertEqual([item["id"] for item in user_1_list.json()["templates"]], [template_id])
+
+    def test_prompt_snippets_are_private_to_omni_user(self) -> None:
+        from cryptography.fernet import Fernet
+
+        from codex_image.webui.app import create_app
+        from codex_image.webui.omni_session import SESSION_COOKIE_NAME
+
+        with tempfile.TemporaryDirectory() as tmp, patch.dict(
+            os.environ,
+            {
+                "OMNI_POC_MODE": "1",
+                "OMNI_POC_SECRET_KEY": Fernet.generate_key().decode("ascii"),
+                "OMNI_BASE_URL": "http://127.0.0.1:8080/v1",
+                "OMNI_POC_DB_PATH": str(Path(tmp) / "omni-poc.db"),
+                "OMNI_POC_LOGIN_URL": "https://portal.example.test/image-generator",
+            },
+        ):
+            root = Path(tmp)
+            app = create_app(
+                output_root=root / "outputs",
+                prompt_snippets_path=root / "webui-prompt-snippets.json",
+                auth_checker=lambda: True,
+                auto_start_queue=False,
+            )
+            client = TestClient(app)
+            session_store = app.state.ctx.route_helpers["omni_session_store"]
+            session_1 = session_store.create_session({"id": 1, "email": "one@example.test", "username": "one", "balance": 1}, "token-1")
+            session_9 = session_store.create_session({"id": 9, "email": "nine@example.test", "username": "nine", "balance": 1}, "token-9")
+            user_1 = {SESSION_COOKIE_NAME: session_1.id}
+            user_9 = {SESSION_COOKIE_NAME: session_9.id}
+
+            created = client.post(
+                "/api/prompt-snippets",
+                cookies=user_1,
+                json={"tag": "~管理员片段", "content": "只属于 user 1 的片段"},
+            )
+            snippet_id = created.json()["snippet"]["id"]
+            user_9_list = client.get("/api/prompt-snippets", cookies=user_9)
+            user_9_update = client.patch(f"/api/prompt-snippets/{snippet_id}", cookies=user_9, json={"content": "越权修改"})
+            user_9_delete = client.delete(f"/api/prompt-snippets/{snippet_id}", cookies=user_9)
+            user_1_list = client.get("/api/prompt-snippets", cookies=user_1)
+
+        self.assertEqual(created.status_code, 200)
+        self.assertEqual(user_9_list.status_code, 200)
+        self.assertEqual(user_9_list.json()["snippets"], [])
+        self.assertEqual(user_9_update.status_code, 400)
+        self.assertEqual(user_9_delete.status_code, 400)
+        self.assertEqual([item["id"] for item in user_1_list.json()["snippets"]], [snippet_id])
+
     def test_settings_store_exports_webui_settings_classes(self) -> None:
         from codex_image.webui.settings_store import (
             ApiSettings,

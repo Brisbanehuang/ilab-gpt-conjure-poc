@@ -12,7 +12,7 @@ from typing import Any
 from codex_image.version import APP_VERSION, APP_VERSION_TAG
 
 UPDATE_NOTICE_FILENAME = "update-notice.json"
-RELEASES_URL = "https://github.com/kadevin/ilab-gpt-conjure/releases"
+RELEASES_URL = "https://github.com/Brisbanehuang/ilab-gpt-conjure-poc/tree/share/v0.2.25"
 
 
 def _parse_semver(value: str | None) -> tuple[int, int, int] | None:
@@ -80,7 +80,7 @@ def _read_update_notice(data_dir: Path | None, current_version: str) -> dict[str
         "latest_version": latest_version,
         "latest_version_label": _version_tag(latest_version),
         "checked_at": payload.get("checked_at"),
-        "release_url": payload.get("release_url") or f"{RELEASES_URL}/tag/{_version_tag(latest_version)}",
+        "release_url": payload.get("release_url") or RELEASES_URL,
     }
 
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
+import logging
 from typing import Any, AsyncContextManager, Callable
 
 from fastapi import FastAPI
@@ -26,8 +27,13 @@ from .executor import (
     _is_usage_limit_error,
     _task_cancel_requested,
 )
+from .omni_poc import client_for_task
+from .object_storage import load_object_storage_config
 from .queue import NonRetryableTaskError, QueueChannel, QueueManager
 from .storage import utc_now
+from .storage_cleanup import cleanup_expired_storage
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -76,10 +82,33 @@ async def _queue_worker_loop(app_instance: FastAPI) -> None:
             raise
 
 
+async def _storage_cleanup_loop(app_instance: FastAPI) -> None:
+    while True:
+        config = load_object_storage_config()
+        await asyncio.sleep(float(max(60, config.cleanup_interval_seconds)))
+        try:
+            result = await asyncio.to_thread(cleanup_expired_storage, app_instance.state.output_root)
+            logger.info(
+                "omni_storage_cleanup deleted_objects=%s deleted_metadata=%s deleted_local_files=%s errors=%s dry_run=%s",
+                result.deleted_objects,
+                result.deleted_metadata,
+                result.deleted_local_files,
+                result.errors,
+                str(result.dry_run).lower(),
+            )
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.exception("omni_storage_cleanup failed")
+
+
 @asynccontextmanager
 async def queue_lifespan(app_instance: FastAPI):
     if app_instance.state.auto_start_queue:
         app_instance.state.queue_worker_task = asyncio.create_task(_queue_worker_loop(app_instance))
+    cleanup_config = load_object_storage_config()
+    if cleanup_config.driver == "r2":
+        app_instance.state.storage_cleanup_task = asyncio.create_task(_storage_cleanup_loop(app_instance))
     try:
         yield
     finally:
@@ -88,6 +117,13 @@ async def queue_lifespan(app_instance: FastAPI):
             worker.cancel()
             try:
                 await worker
+            except asyncio.CancelledError:
+                pass
+        cleanup_worker = getattr(app_instance.state, "storage_cleanup_task", None)
+        if cleanup_worker is not None:
+            cleanup_worker.cancel()
+            try:
+                await cleanup_worker
             except asyncio.CancelledError:
                 pass
 
@@ -107,9 +143,16 @@ def _queue_channel_available(ctx: WebUIContext, channel: QueueChannel) -> bool:
 def _client_for_queue_channel(ctx: WebUIContext, channel: QueueChannel, metadata: dict[str, Any] | None = None, *, client_factory_overridden: bool = False) -> Any:
     if client_factory_overridden:
         return ctx.client_factory()
+    params = metadata.get("params") if isinstance(metadata, dict) and isinstance(metadata.get("params"), dict) else {}
+    if bool(params.get("omni_poc")):
+        config = ctx.route_helpers.get("omni_poc_config")
+        store = ctx.route_helpers.get("omni_task_secret_store")
+        task_id = str((metadata or {}).get("task_id") or "")
+        if config is None or store is None or not getattr(config, "enabled", False):
+            raise RuntimeError("Omni POC is not configured")
+        return client_for_task(config, store, task_id, api_mode=str(params.get("api_mode") or "images"))
     if channel.auth_source == "api":
         settings_payload = ctx.api_settings.read()
-        params = metadata.get("params") if isinstance(metadata, dict) and isinstance(metadata.get("params"), dict) else {}
         provider_settings = ctx.api_settings.provider_settings(str(params.get("api_provider_id") or settings_payload.get("active_provider_id") or ""))
         api_mode = _normalize_api_mode(params.get("api_mode") or provider_settings.get("api_mode"))
         return _api_client_from_settings(provider_settings, api_mode=api_mode)
@@ -173,10 +216,11 @@ async def execute_task(
         ctx.storage.write_metadata(task_id, metadata)
 
         client = _client_for_queue_channel(ctx, channel, metadata, client_factory_overridden=client_factory_overridden)
+        owner_id = _metadata_owner_id(metadata)
         await _execute_stored_task(
             storage=ctx.storage,
-            gallery_storage=ctx.gallery_storage,
-            reference_asset_storage=ctx.reference_asset_storage,
+            gallery_storage=ctx.gallery_storage if not owner_id else ctx.gallery_storage.scoped(owner_id),
+            reference_asset_storage=ctx.reference_asset_storage if not owner_id else ctx.reference_asset_storage.scoped(owner_id),
             task_id=task_id,
             client=client,
             batch_delay_seconds=batch_delay_seconds,
@@ -205,12 +249,33 @@ async def execute_task(
     finally:
         if ctx.running_worker_tasks.get(task_id) is current_task:
             ctx.running_worker_tasks.pop(task_id, None)
+        try:
+            metadata_for_cleanup = ctx.storage.read_metadata(task_id)
+            params_for_cleanup = metadata_for_cleanup.get("params") if isinstance(metadata_for_cleanup.get("params"), dict) else {}
+            if bool(params_for_cleanup.get("omni_poc")):
+                store = ctx.route_helpers.get("omni_task_secret_store")
+                if store is not None:
+                    store.clear_task_key(task_id)
+        except FileNotFoundError:
+            pass
         ctx.active_task_ids.discard(task_id)
 
 
 def _queue_max_attempts_for_channels(channels: list[QueueChannel]) -> int:
     retry_identities = {(channel.auth_source, channel.account_id) for channel in channels}
     return max(2, len(retry_identities))
+
+
+def _metadata_owner_id(metadata: dict[str, Any]) -> str:
+    owner_id = str(metadata.get("owner_id") or "").strip()
+    if owner_id:
+        return owner_id
+    params = metadata.get("params") if isinstance(metadata.get("params"), dict) else {}
+    try:
+        user_id = int(params.get("sub2api_user_id"))
+    except (TypeError, ValueError):
+        return ""
+    return f"user_{user_id}" if user_id > 0 else ""
 
 
 def install_queue_runtime(
@@ -229,7 +294,9 @@ def install_queue_runtime(
         batch_delay_seconds=batch_delay_seconds,
         client_factory_overridden=client_factory_overridden,
     )
-    initial_channels = _queue_channels_for_source(ctx.auth_settings.read_source(), api_settings=ctx.api_settings)
+    omni_config = ctx.route_helpers.get("omni_poc_config")
+    initial_source = "api" if omni_config is not None and getattr(omni_config, "enabled", False) else ctx.auth_settings.read_source()
+    initial_channels = _queue_channels_for_source(initial_source, api_settings=ctx.api_settings)
     ctx.queue_manager = QueueManager(
         queue_storage=ctx.queue_storage,
         channels=initial_channels,

@@ -56,6 +56,7 @@ const GPT_IMAGE_2_SIZE_PRESETS: Record<string, Record<string, [number, number]>>
     "21:9": [3808, 1632],
   },
 };
+const MAX_PUBLIC_RUNTIME_SECONDS = 24 * 60 * 60;
 
 function legacyMethod(name: string, ...args: any[]): any {
   const method = getLegacyBridge().methods[name];
@@ -189,13 +190,32 @@ function taskThumbnailRoute(task: any, index: any) {
   return `/api/tasks/${encodeURIComponent(task.task_id)}/outputs/${outputIndex}/thumbnail`;
 }
 
+function normalizeTaskThumbnailUrl(task: any, url: any, index: any) {
+  const clean = String(url || "").trim();
+  if (!clean) return "";
+  if (clean.startsWith("/api/tasks/")) return clean;
+  if (clean.startsWith("/outputs/")) {
+    const outputIndex = taskOutputIndexFromUrl(clean) || positiveInt(index);
+    return outputIndex === null ? "" : taskThumbnailRoute(task, outputIndex);
+  }
+  return clean;
+}
+
+function taskThumbnailUrlForRecord(task: any, record: any, index: any) {
+  const rawUrl = record?.thumbnail_url
+    || outputFileUrl(record?.thumbnail_file)
+    || record?.url
+    || (record?.file ? taskThumbnailRoute(task, index) : "");
+  return normalizeTaskThumbnailUrl(task, rawUrl, index);
+}
+
 function taskThumbnailUrls(task: any) {
   if (!task) return [];
   const deletedIndexes = taskDeletedOutputIndexes(task);
   const urls: string[] = [];
   const pushUrl = (url: any, index: any) => {
-    const clean = String(url || "").trim();
     const outputIndex = positiveInt(index);
+    const clean = normalizeTaskThumbnailUrl(task, url, outputIndex);
     if (!clean || (outputIndex !== null && deletedIndexes.has(outputIndex)) || urls.includes(clean)) return;
     urls.push(clean);
   };
@@ -212,7 +232,7 @@ function taskThumbnailUrls(task: any) {
       if (!record || typeof record !== "object" || taskOutputRecordIsDeleted(record)) return;
       const index = positiveInt(record.index) || fallbackIndex + 1;
       if (deletedIndexes.has(index) || record.status !== "completed") return;
-      const recordUrl = record.thumbnail_url || outputFileUrl(record.thumbnail_file) || (record.url || record.file ? taskThumbnailRoute(task, index) : "");
+      const recordUrl = taskThumbnailUrlForRecord(task, record, index);
       pushUrl(recordUrl, index);
     });
     if (urls.length) return urls;
@@ -220,7 +240,7 @@ function taskThumbnailUrls(task: any) {
 
   taskOutputUrls(task).forEach((url: any, fallbackIndex: any) => {
     const index = taskOutputIndexFromUrl(url) || fallbackIndex + 1;
-    pushUrl(taskThumbnailRoute(task, index), index);
+    pushUrl(url, index);
   });
   return urls;
 }
@@ -545,15 +565,42 @@ function taskPartialFailureCanRetryGenericInvalidRequest(task: any) {
 
 function taskRuntimeText(task: any) {
   if (!task || !["completed", "failed", "partial_failed"].includes(task.status)) return "";
-  const startedAt = timestampMs(task.started_at || task.created_at);
-  const endedAt = timestampMs(task.completed_at || task.updated_at);
-  if (startedAt === null || endedAt === null || endedAt < startedAt) return "";
-  const seconds = Math.floor((endedAt - startedAt) / 1000);
+  const seconds = taskStableRuntimeSeconds(task);
+  if (seconds === null) return "";
   const completion = taskCompletionTimestampText(task);
   const duration = formatDuration(seconds);
   return completion
     ? formatTranslation("taskStatus.runtimeCompleted", { duration, time: completion.shortText })
     : formatTranslation("taskStatus.runtime", { duration });
+}
+
+function taskStableRuntimeSeconds(task: any) {
+  const persisted = taskPersistedElapsedSeconds(task);
+  if (persisted !== null) return persisted;
+  const startedAt = timestampMs(task.started_at || task.created_at);
+  const endedAt = timestampMs(task.completed_at || task.updated_at);
+  if (startedAt === null || endedAt === null || endedAt < startedAt) return null;
+  const seconds = Math.floor((endedAt - startedAt) / 1000);
+  if (seconds > MAX_PUBLIC_RUNTIME_SECONDS) {
+    console.warn("Ignoring implausible task runtime", {
+      task_id: task?.task_id,
+      seconds,
+      started_at: task?.started_at,
+      completed_at: task?.completed_at,
+      updated_at: task?.updated_at,
+    });
+    return null;
+  }
+  return seconds;
+}
+
+function taskPersistedElapsedSeconds(task: any) {
+  if (!Array.isArray(task?.outputs)) return null;
+  const values = task.outputs
+    .map((record: any) => Number(record?.elapsed_seconds))
+    .filter((value: number) => Number.isFinite(value) && value >= 0);
+  if (!values.length) return null;
+  return Math.floor(Math.max(...values));
 }
 
 function taskCompletionTimestampText(task: any) {
@@ -728,6 +775,8 @@ export function initTaskDerivedFeature() {
     taskHasNonRetryableError,
     taskPartialFailureCanRetryGenericInvalidRequest,
     taskRuntimeText,
+    taskStableRuntimeSeconds,
+    taskPersistedElapsedSeconds,
     taskCompletionTimestampText,
     taskCompletionTimestampTitle,
     timestampMs,

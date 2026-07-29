@@ -1,7 +1,7 @@
 $ErrorActionPreference = "Stop"
 
-$RepoSlug = "kadevin/ilab-gpt-conjure"
-$LatestReleaseUrl = "https://api.github.com/repos/kadevin/ilab-gpt-conjure/releases/latest"
+$RepoSlug = "Brisbanehuang/ilab-gpt-conjure-poc"
+$LatestReleaseUrl = "https://api.github.com/repos/Brisbanehuang/ilab-gpt-conjure-poc/releases/latest"
 $AssetPattern = "^ilab-gpt-conjure_windows_portable_x64_.+\.zip$"
 $BundleDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $DataDir = Join-Path $BundleDir "data"

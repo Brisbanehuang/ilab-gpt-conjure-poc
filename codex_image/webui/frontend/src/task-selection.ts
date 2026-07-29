@@ -253,6 +253,8 @@ async function restoreHistoryTaskReuseHandoff() {
     if (!raw) return;
     localStorage.removeItem(HISTORY_TASK_REUSE_HANDOFF_KEY);
     const parsed = JSON.parse(raw);
+    const handoffIntent = String(parsed?.intent || "view");
+    if (handoffIntent !== "view") return;
     let task = parsed?.task || null;
     const taskId = String(parsed?.task_id || task?.task_id || "");
     if (!taskId) return;

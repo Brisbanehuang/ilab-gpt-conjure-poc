@@ -3,8 +3,8 @@ set -e
 set -o pipefail
 export PATH="/usr/bin:/bin:/usr/sbin:/sbin:${PATH:-}"
 
-REPO_SLUG="kadevin/ilab-gpt-conjure"
-LATEST_RELEASE_URL="https://api.github.com/repos/kadevin/ilab-gpt-conjure/releases/latest"
+REPO_SLUG="Brisbanehuang/ilab-gpt-conjure-poc"
+LATEST_RELEASE_URL="https://api.github.com/repos/Brisbanehuang/ilab-gpt-conjure-poc/releases/latest"
 BUNDLE_DIR="$(cd "$(dirname "$0")" && pwd)"
 DATA_DIR="${BUNDLE_DIR}/data"
 VERSION_FILE="${BUNDLE_DIR}/portable-version.txt"

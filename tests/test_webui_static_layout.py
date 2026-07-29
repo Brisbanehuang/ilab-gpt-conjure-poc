@@ -135,8 +135,8 @@ class WebUIStaticLayoutTests(WebUIStaticTestCase):
         script = self._frontend_script_source()
         styles = Path("codex_image/webui/static/styles.css").read_text(encoding="utf-8")
 
-        self.assertIn('/static/app.js?v=runtime-368', html)
-        self.assertIn('/static/styles.css?v=runtime-368', html)
+        self.assertIn('/static/app.js?v=runtime-371', html)
+        self.assertIn('/static/styles.css?v=runtime-371', html)
         self.assertIn('id="recentAssetDock"', html)
         self.assertRegex(html, r'class="image-input-footer"[\s\S]*id="recentAssetDock"[\s\S]*id="recentAssetList"')
         self.assertRegex(html, r'id="recentAssetDock"[\s\S]*id="quickGalleryDock"[\s\S]*id="galleryManagePanel"')
@@ -642,24 +642,42 @@ class WebUIStaticLayoutTests(WebUIStaticTestCase):
         self.assertRegex(styles, r"\.drawer-close-button\s*\{[^}]*min-width:\s*44px")
         self.assertRegex(styles, r"\.drawer-close-button\s*\{[^}]*align-items:\s*center")
         self.assertRegex(styles, r"\.drawer-close-icon\s*\{[^}]*stroke:\s*currentColor")
-    def test_sidebar_brand_uses_ilab_conjure_identity(self) -> None:
+    def test_sidebar_brand_uses_omniapi_image_studio_identity(self) -> None:
         html = Path("codex_image/webui/static/index.html").read_text(encoding="utf-8")
         styles = Path("codex_image/webui/static/styles.css").read_text(encoding="utf-8")
 
-        self.assertIn("<title>iLab GPT CONJURE</title>", html)
+        self.assertIn("<title>OmniAPi Image Studio</title>", html)
+        self.assertIn('<link rel="icon" type="image/svg+xml" href="/static/assets/omniapi-logo.svg" />', html)
         self.assertIn('<div class="brand-lockup">', html)
-        self.assertIn('<div class="brand-name">iLab GPT</div>', html)
-        self.assertIn('<div class="brand-subtitle">CONJURE</div>', html)
-        self.assertIn('aria-label="iLab GPT CONJURE"', html)
+        self.assertIn('<img src="/static/assets/omniapi-logo.svg" alt="" />', html)
+        self.assertIn('<div class="brand-name">OmniAPi</div>', html)
+        self.assertIn('<div class="brand-subtitle">Image Studio</div>', html)
+        self.assertIn('aria-label="OmniAPi Image Studio"', html)
+        self.assertNotIn("Omni Lens", html)
+        self.assertNotIn("BYOK STUDIO", html)
         self.assertNotIn("GPT-image-2 Studio", html)
 
-        self.assertRegex(styles, r"\.brand-mark\s*\{[^}]*width:\s*42px")
-        self.assertRegex(styles, r"\.brand-mark\s*\{[^}]*height:\s*42px")
-        self.assertRegex(styles, r"\.brand-mark\s*\{[^}]*border-radius:\s*15px")
+        self.assertRegex(styles, r"\.brand\s*\{[^}]*min-height:\s*52px")
+        self.assertRegex(styles, r"\.brand-lockup\s*\{[^}]*min-height:\s*52px")
+        self.assertRegex(styles, r"\.brand-mark\s*\{[^}]*width:\s*48px")
+        self.assertRegex(styles, r"\.brand-mark\s*\{[^}]*height:\s*48px")
+        self.assertRegex(styles, r"\.brand-mark\s*\{[^}]*flex:\s*0\s+0\s+48px")
+        self.assertRegex(styles, r"\.brand-mark\s*\{[^}]*border-radius:\s*16px")
+        self.assertRegex(styles, r"\.brand-mark\s+img\s*\{[^}]*width:\s*100%")
         self.assertRegex(styles, r"\.brand-name\s*\{[^}]*font-size:\s*17px")
+        self.assertRegex(styles, r"\.brand-title\s*\{[^}]*line-height:\s*1\.05")
+        self.assertRegex(styles, r"\.brand-subtitle\s*\{[^}]*font-size:\s*13px")
         self.assertRegex(styles, r"\.brand-subtitle\s*\{[^}]*font-weight:\s*700")
-        self.assertRegex(styles, r"\.brand-subtitle\s*\{[^}]*letter-spacing:\s*0\.12em")
-        self.assertRegex(styles, r"\.brand-subtitle\s*\{[^}]*text-transform:\s*uppercase")
+
+    def test_footer_shows_storage_retention_notice(self) -> None:
+        html = Path("codex_image/webui/static/index.html").read_text(encoding="utf-8")
+        styles = Path("codex_image/webui/static/styles.css").read_text(encoding="utf-8")
+
+        self.assertIn('data-i18n="footer.retentionNotice"', html)
+        self.assertIn("图片仅保存 30 天", html)
+        self.assertRegex(styles, r"\.api-retention-note\s*\{[^}]*color:\s*var\(--muted\)")
+        self.assertRegex(styles, r"\.brand-subtitle\s*\{[^}]*letter-spacing:\s*0")
+        self.assertRegex(styles, r"\.brand-subtitle\s*\{[^}]*text-transform:\s*none")
     def test_sidebar_footer_utilities_are_centered(self) -> None:
         html = Path("codex_image/webui/static/index.html").read_text(encoding="utf-8")
         styles = Path("codex_image/webui/static/styles.css").read_text(encoding="utf-8")
@@ -914,7 +932,7 @@ class WebUIStaticLayoutTests(WebUIStaticTestCase):
         self.assertIn('id="galleryManageButton"', html)
         self.assertNotIn('id="galleryManageSummary"', html)
         self.assertNotIn("查看全部", html)
-        self.assertIn(">管理公用库</button>", html)
+        self.assertIn(">管理素材库</button>", html)
         self.assertIn('data-quick-gallery-category="portrait"', html)
         self.assertIn('data-quick-gallery-category="character"', html)
         self.assertIn('data-quick-gallery-category="product"', html)
@@ -1554,6 +1572,7 @@ class WebUIStaticLayoutTests(WebUIStaticTestCase):
         auth_source = Path("codex_image/webui/frontend/src/auth-source.ts").read_text(encoding="utf-8")
         styles = Path("codex_image/webui/static/styles.css").read_text(encoding="utf-8")
 
+        self.assertNotIn('<html lang="zh-CN" class="omni-poc-mode">', html)
         self.assertIn('id="authSourceGroup"', html)
         self.assertIn('data-auth-source="codex"', html)
         self.assertIn('data-auth-source="api"', html)
@@ -1584,8 +1603,10 @@ class WebUIStaticLayoutTests(WebUIStaticTestCase):
         self.assertIn('title="系统设置"', html)
         self.assertNotIn("双击打开 API 设置", html)
         self.assertIn('id="githubLink"', html)
-        self.assertIn('href="https://github.com/kadevin/ilab-gpt-conjure"', html)
-        self.assertIn('aria-label="GitHub"', html)
+        self.assertIn('href="https://github.com/Brisbanehuang/ilab-gpt-conjure-poc/tree/share/v0.2.25"', html)
+        self.assertIn('aria-label="项目主页"', html)
+        self.assertIn('const dashboardUrl = config.enabled ? String(config.dashboard_url || "").trim() : ""', script)
+        self.assertIn('const label = dashboardUrl ? "主站 Dashboard" : "项目主页"', script)
         self.assertIn('target="_blank"', html)
         self.assertIn('rel="noreferrer"', html)
         nav_actions = html[html.index('<div class="nav-actions">'):html.index('<div id="taskNotificationCenter"')]
@@ -1631,6 +1652,9 @@ class WebUIStaticLayoutTests(WebUIStaticTestCase):
         self.assertRegex(styles, r"\.auth-source-detail\s*\{[^}]*text-overflow:\s*ellipsis")
         self.assertNotRegex(styles, r"\.auth-source-detail\s*\{[^}]*width:\s*128px")
         self.assertIn("els.authSourceDetail.title = text", script)
+        self.assertIn('if (isOmniPocMode()) return "api";', auth_source)
+        self.assertIn('if (isOmniPocMode()) {', auth_source)
+        self.assertIn('updateOmniLegacyAuthState();', auth_source)
         self.assertIn('function currentApiProviderLabel(): string { return legacyMethod("currentApiProviderLabel"); }', auth_source)
         self.assertNotIn("自动 →", auth_source)
         self.assertIn('return `API · ${provider} · ${mode}`;', auth_source)
@@ -1638,6 +1662,8 @@ class WebUIStaticLayoutTests(WebUIStaticTestCase):
         self.assertIn('formatTranslation("auth.sourceUnavailable", { source: selected })', auth_source)
         self.assertNotIn('return `${effective} · ${mode} · ${imageModel}`', auth_source)
         self.assertRegex(styles, r"\.auth-source-button\.active\s*\{[^}]*background:\s*var\(--primary\)")
+        self.assertNotIn('data-i18n="auth.checking"', html)
+        self.assertNotIn('没有检测到 Codex 登录态', html)
         self.assertNotIn("文档中心", html)
         self.assertNotIn("user-profile", html)
     def test_output_and_auth_switchers_use_sliding_segmented_indicator(self) -> None:
@@ -1747,6 +1773,13 @@ class WebUIStaticLayoutTests(WebUIStaticTestCase):
         self.assertIn('class="model-tool-row"', html)
         self.assertIn('id="webSearchField"', html)
         self.assertIn('id="webSearch"', html)
+        self.assertIn('aria-describedby="webSearchTooltip"', html)
+        self.assertIn('id="webSearchTooltip"', html)
+        self.assertIn('role="tooltip"', html)
+        self.assertIn('data-i18n="output.webSearchTitle"', html)
+        web_search_toggle_match = re.search(r'<label\s+class="web-search-toggle"[^>]*>', html)
+        self.assertIsNotNone(web_search_toggle_match)
+        self.assertNotIn("title=", web_search_toggle_match.group(0))
         self.assertIn('id="apiProvider"', html)
         self.assertIn('id="apiProviderCount"', html)
         self.assertIn('id="apiProviderList"', html)
@@ -1895,7 +1928,7 @@ class WebUIStaticLayoutTests(WebUIStaticTestCase):
         self.assertIn("payload.main_model = params.main_model", script)
         self.assertIn('payload.codex_mode = codexMode', script)
         self.assertIn('form.append("codex_mode", currentCodexMode())', script)
-        self.assertIn('form.append("api_mode", currentApiMode())', script)
+        self.assertIn('form.append("api_mode", isOmniPocMode() && params.web_search ? "responses" : currentApiMode())', script)
         self.assertIn('form.append("api_provider_id", currentApiProviderId())', script)
         self.assertIn('form.append("web_search", "true")', script)
         self.assertIn("params.web_search = true", script)
@@ -1985,8 +2018,8 @@ class WebUIStaticLayoutTests(WebUIStaticTestCase):
             "archiveModalClose": "关闭会话归档面板",
             "systemSettingsModalClose": "关闭系统设置面板",
             "imageEditorClose": "关闭编辑输入图片面板",
-            "galleryDrawerClose": "关闭公用图库面板",
-            "addToGalleryClose": "关闭添加到图库面板",
+            "galleryDrawerClose": "关闭我的素材库面板",
+            "addToGalleryClose": "关闭添加到素材库面板",
         }
         for button_id, aria_label in expected_buttons.items():
             with self.subTest(button_id=button_id):
@@ -2096,8 +2129,9 @@ class WebUIStaticLayoutTests(WebUIStaticTestCase):
         script = self._frontend_script_source()
 
         self.assertIn('id="resolutionGroup"', html)
-        self.assertRegex(html, r'id="resolutionGroup"[\s\S]*data-val="standard"[^>]*>1K')
-        self.assertRegex(html, r'<select id="resolution" class="hidden">[\s\S]*<option value="standard" selected>1K</option>')
+        self.assertRegex(html, r'id="resolutionGroup"[\s\S]*class="radio-btn" data-val="standard"[^>]*>1K')
+        self.assertRegex(html, r'id="resolutionGroup"[\s\S]*class="radio-btn active" data-val="2k"[^>]*>2K')
+        self.assertRegex(html, r'<select id="resolution" class="hidden">[\s\S]*<option value="standard">1K</option>[\s\S]*<option value="2k" selected>2K</option>')
         resolution_controls = re.search(r'id="resolutionGroup"[\s\S]*?<select id="resolution" class="hidden">[\s\S]*?</select>', html)
         self.assertIsNotNone(resolution_controls)
         self.assertNotIn('data-val="auto"', resolution_controls.group(0))
@@ -2111,7 +2145,9 @@ class WebUIStaticLayoutTests(WebUIStaticTestCase):
         self.assertIsNotNone(orientation_controls)
         self.assertNotIn('data-val="auto"', orientation_controls.group(0))
         self.assertNotIn('<option value="auto"', orientation_controls.group(0))
-        self.assertIn('DEFAULT_RESOLUTION = "standard"', script)
+        self.assertIn('DEFAULT_RESOLUTION = "2k"', script)
+        self.assertIn('els.resolution) els.resolution.value = "2k"', script)
+        self.assertIn('els.size.value = "2048x2048"', script)
         self.assertIn('DEFAULT_RATIO = "1:1"', script)
         self.assertIn('DEFAULT_ORIENTATION = "square"', script)
         self.assertIn("syncRatioAndOrientation", script)
@@ -2841,8 +2877,8 @@ class WebUIStaticLayoutTests(WebUIStaticTestCase):
         script = self._frontend_script_source()
         styles = Path("codex_image/webui/static/styles.css").read_text(encoding="utf-8")
 
-        self.assertIn('/static/app.js?v=runtime-368', html)
-        self.assertIn('/static/styles.css?v=runtime-368', html)
+        self.assertIn('/static/app.js?v=runtime-371', html)
+        self.assertIn('/static/styles.css?v=runtime-371', html)
         self.assertIn('id="pasteClipboardButton"', html)
         self.assertIn('id="statusText"', html)
         self.assertRegex(
@@ -3286,8 +3322,8 @@ class WebUIStaticLayoutTests(WebUIStaticTestCase):
         script = self._frontend_script_source()
         styles = Path("codex_image/webui/static/styles.css").read_text(encoding="utf-8")
 
-        self.assertIn("/static/app.js?v=runtime-368", html)
-        self.assertIn("/static/styles.css?v=runtime-368", html)
+        self.assertIn("/static/app.js?v=runtime-371", html)
+        self.assertIn("/static/styles.css?v=runtime-371", html)
         self.assertIn('const THEME_STORAGE_KEY = "codex-image-theme-preference";', script)
         self.assertIn('themePreference: "system"', script)
         self.assertIn('call(methods, "restoreThemePreference")', script)

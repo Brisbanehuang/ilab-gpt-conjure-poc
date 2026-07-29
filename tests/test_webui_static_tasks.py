@@ -25,12 +25,29 @@ class WebUIStaticTaskTests(WebUIStaticTestCase):
         self.assertIn("taskHistoryLibrarySlot", render_source)
         self.assertNotIn("olderCount", render_source)
         self.assertIn('href="/history"', render_source)
-        self.assertNotIn('id="archiveButton"', html)
-        self.assertNotIn('data-i18n="footer.historyLibrary"', html)
+        self.assertIn('id="archiveButton"', html)
+        self.assertIn('data-i18n="footer.historyLibrary"', html)
         self.assertIn('id="taskHistoryLibrarySlot"', html)
         self.assertIn('"footer.historyLibrary": "历史库"', i18n_source)
         self.assertIn('"historyLibrary.openFull": "打开完整历史库"', i18n_source)
         self.assertRegex(sidebar_styles, r"\.task-history-library-slot\s*\{[^}]*margin-bottom:\s*12px")
+
+    def test_history_library_entry_is_not_hidden_when_visible_tasks_are_archived(self) -> None:
+        render_source = self._task_list_render_source()
+        html = Path("codex_image/webui/static/index.html").read_text(encoding="utf-8")
+
+        history_group = render_source[
+            render_source.index("function historyLibraryGroup"):
+            render_source.index("function isAlwaysVisibleTask")
+        ]
+        self.assertIn('href="/history"', history_group)
+        self.assertIn('if (query) return "";', history_group)
+        self.assertNotIn("tasks.some", history_group)
+        self.assertNotIn("isAlwaysVisibleTask", history_group)
+        self.assertRegex(
+            html,
+            r'id="batchManageButton"[\s\S]*id="archiveButton"[\s\S]*data-i18n="footer.historyLibrary"',
+        )
 
     def test_history_page_static_contract_exists(self) -> None:
         history_html = Path("codex_image/webui/static/history.html").read_text(encoding="utf-8")
@@ -350,8 +367,31 @@ class WebUIStaticTaskTests(WebUIStaticTestCase):
         self.assertNotIn(".nav-search", styles)
         self.assertIn("taskSearch: document.querySelector(\"#taskSearch\")", script)
         self.assertIn("els.taskSearch.addEventListener(\"input\", handleTaskSearchInput)", script)
+
+    def test_task_search_input_disables_browser_autofill(self) -> None:
+        html = Path("codex_image/webui/static/index.html").read_text(encoding="utf-8")
+        script = self._frontend_script_source()
+
+        self.assertIn('id="taskSearch" type="text" name="omni-studio-sidebar-query"', html)
+        self.assertIn('inputmode="search"', html)
+        self.assertIn('readonly', html)
+        self.assertIn('autocorrect="off"', html)
+        self.assertIn('data-lpignore="true"', html)
+        self.assertNotIn('id="taskSearch" type="search" name="task-search"', html)
+        self.assertIn('autocomplete="new-password"', html)
+        self.assertIn('autocapitalize="off"', html)
+        self.assertIn('spellcheck="false"', html)
+        task_list_controls_source = self._task_list_controls_source()
         self.assertIn("function handleTaskSearchInput()", self._task_list_controls_source())
-        self.assertIn("syncTaskSearchHistoryResults", self._task_list_controls_source())
+        self.assertIn("syncTaskSearchHistoryResults", task_list_controls_source)
+        self.assertIn("function guardTaskSearchAutofill", task_list_controls_source)
+        self.assertIn("isLikelyBrowserAutofillTaskSearchValue", task_list_controls_source)
+        self.assertIn("let taskSearchHasUserEdited = false", task_list_controls_source)
+        self.assertIn("if (taskSearchHasUserEdited", task_list_controls_source)
+        self.assertIn("taskSearchHasUserEdited = true", task_list_controls_source)
+        self.assertIn("if (!input.value) taskSearchHasUserEdited = false", task_list_controls_source)
+        self.assertIn("setTaskSearchLocked(true)", task_list_controls_source)
+        self.assertIn('window.addEventListener("pageshow", () => guardTaskSearchAutofill([80, 240, 720]))', task_list_controls_source)
         self.assertIn("async function syncTaskSearchHistoryResults", Path("codex_image/webui/frontend/src/tasks.ts").read_text(encoding="utf-8"))
         self.assertIn('fetch(`/api/task-history/tasks?${params.toString()}`)', Path("codex_image/webui/frontend/src/tasks.ts").read_text(encoding="utf-8"))
         self.assertIn('params.set("q", query)', Path("codex_image/webui/frontend/src/tasks.ts").read_text(encoding="utf-8"))
@@ -363,6 +403,30 @@ class WebUIStaticTaskTests(WebUIStaticTestCase):
         self.assertIn('"sidebar.searchPlaceholder": "搜索提示词或任务 ID"', script)
         self.assertIn('"sidebar.searchPlaceholder": "Search prompts or task ID"', script)
         self.assertRegex(script, r"const text = `\$\{task\.task_id \|\| \"\"\} \$\{task\.prompt")
+
+    def test_frontend_startup_requests_use_safe_json_parser(self) -> None:
+        http_source = Path("codex_image/webui/frontend/src/api.ts").read_text(encoding="utf-8")
+        task_source = self._task_source()
+        queue_source = self._queue_source()
+        for source_path in [
+            "codex_image/webui/frontend/src/auth-source.ts",
+            "codex_image/webui/frontend/src/recent-assets.ts",
+            "codex_image/webui/frontend/src/gallery.ts",
+            "codex_image/webui/frontend/src/prompt-templates.ts",
+            "codex_image/webui/frontend/src/prompt-snippets.ts",
+        ]:
+            source = Path(source_path).read_text(encoding="utf-8")
+            self.assertIn("safeJson", source)
+
+        self.assertIn("export class JsonResponseParseError", http_source)
+        self.assertIn("export async function safeJson", http_source)
+        self.assertIn("服务暂时不可用，请稍后重试", http_source)
+        self.assertIn("bodySnippet", http_source)
+        self.assertIn('import { safeJson } from "./api"', task_source)
+        self.assertIn('const data = await safeJson(response)', task_source)
+        self.assertNotIn("const data = await response.json();", task_source)
+        self.assertIn('import { safeJson } from "./api"', queue_source)
+        self.assertIn('const data = await safeJson(response)', queue_source)
     def test_sidebar_new_task_button_is_compact_brand_action(self) -> None:
         html = Path("codex_image/webui/static/index.html").read_text(encoding="utf-8")
         styles = Path("codex_image/webui/static/styles.css").read_text(encoding="utf-8")
@@ -495,17 +559,25 @@ class WebUIStaticTaskTests(WebUIStaticTestCase):
         self.assertIn("function taskFailureMessage", script)
         self.assertIn("task.error || task.last_error", script)
         self.assertIn('`${formatTaskStatus(task)} · ${failure}`', script)
-        self.assertIn('taskFailureMessage(selected) || translate("preview.taskFailed")', script)
+        self.assertIn("failedPreviewContent(selected)", script)
     def test_failed_preview_wraps_long_error_messages(self) -> None:
+        script = self._frontend_script_source()
         styles = Path("codex_image/webui/static/styles.css").read_text(encoding="utf-8")
 
+        self.assertIn("function failedPreviewSummary", script)
+        self.assertIn("error-preview-summary", script)
+        self.assertIn("error-preview-details", script)
+        self.assertIn("error-preview-actions", script)
+        self.assertIn("data-preview-copy-error", script)
         self.assertRegex(styles, r"\.error-preview\s*\{[^}]*overflow-wrap:\s*anywhere")
         self.assertRegex(styles, r"\.error-preview\s*\{[^}]*word-break:\s*break-word")
-        self.assertRegex(styles, r"\.error-preview\s*\{[^}]*white-space:\s*pre-wrap")
         self.assertRegex(styles, r"\.error-preview\s*\{[^}]*padding:\s*24px")
         self.assertRegex(styles, r"\.error-preview\s*\{[^}]*flex-direction:\s*column")
         self.assertRegex(styles, r"\.error-preview\s*\{[^}]*align-items:\s*stretch")
-        self.assertRegex(styles, r"\.error-preview\s+p\s*\{[^}]*margin:\s*0")
+        self.assertRegex(styles, r"\.error-preview\s*\{[^}]*justify-content:\s*space-between")
+        self.assertRegex(styles, r"\.error-preview-details\s*\{[^}]*max-height:\s*min\(42vh,\s*420px\)")
+        self.assertRegex(styles, r"\.error-preview-details-body\s*\{[^}]*overflow:\s*auto")
+        self.assertRegex(styles, r"\.error-preview-actions\s*\{[^}]*display:\s*flex")
     def test_failed_history_cards_use_static_failed_thumbnail(self) -> None:
         script = self._frontend_script_source()
         styles = Path("codex_image/webui/static/styles.css").read_text(encoding="utf-8")
@@ -561,7 +633,11 @@ class WebUIStaticTaskTests(WebUIStaticTestCase):
 
         self.assertIn("function taskThumbnailUrls", derived_source)
         self.assertIn("task.thumbnail_urls", derived_source)
-        self.assertIn("record.thumbnail_url", derived_source)
+        self.assertIn("record?.thumbnail_url", derived_source)
+        self.assertIn("taskThumbnailUrlForRecord(task, record, index)", derived_source)
+        self.assertIn("function normalizeTaskThumbnailUrl(task: any, url: any, index: any)", derived_source)
+        self.assertIn("const clean = normalizeTaskThumbnailUrl(task, url, outputIndex)", derived_source)
+        self.assertIn('startsWith("/outputs/")', derived_source)
         self.assertIn("taskThumbnailRoute(task, index)", derived_source)
         self.assertIn("function taskInputThumbnailUrls", derived_source)
         self.assertIn("task.input_thumbnail_urls", derived_source)
@@ -570,6 +646,26 @@ class WebUIStaticTaskTests(WebUIStaticTestCase):
         self.assertIn("const outputThumbnailUrl = taskThumbnailUrls(task)[0]", render_source)
         self.assertIn("const imageUrl = outputThumbnailUrl || outputUrl || task.preview_url || inputPreviewUrl", render_source)
         self.assertNotIn("const imageUrl = outputUrl || task.preview_url || inputPreviewUrl", render_source)
+    def test_r2_output_routes_are_not_rewritten_to_thumbnail_routes_in_frontend_fallbacks(self) -> None:
+        derived_source = self._task_derived_source()
+        notification_source = Path("codex_image/webui/frontend/src/task-notifications.ts").read_text(encoding="utf-8")
+
+        self.assertIn("|| record?.url", derived_source)
+        self.assertIn("pushUrl(url, index)", derived_source)
+        self.assertNotIn("pushUrl(taskThumbnailRoute(task, index), index)", derived_source)
+        self.assertIn("|| output?.url", notification_source)
+        self.assertIn("normalizeNotificationThumbnailUrl(task, task.output_urls[0], 1)", notification_source)
+        self.assertNotIn("return taskOutputThumbnailRoute(task, 1);", notification_source)
+    def test_failed_reference_and_notification_images_do_not_show_native_broken_icon(self) -> None:
+        render_source = self._task_list_render_source()
+        notification_source = Path("codex_image/webui/frontend/src/task-notifications.ts").read_text(encoding="utf-8")
+        styles = Path("codex_image/webui/static/styles.css").read_text(encoding="utf-8")
+
+        self.assertRegex(render_source, r'class="task-thumb-reference"[^>]*onerror="this\.hidden=true"')
+        self.assertIn("task-notification-thumb-image", notification_source)
+        self.assertIn("data-fallback", notification_source)
+        self.assertIn("image-load-failed", notification_source)
+        self.assertRegex(styles, r"\.task-notification-thumb-image\.image-load-failed::before\s*\{[^}]*content:\s*attr\(data-fallback\)")
     def test_history_task_thumbnails_lazy_load_images(self) -> None:
         source = self._task_list_render_source()
         styles = Path("codex_image/webui/static/styles.css").read_text(encoding="utf-8")
@@ -792,6 +888,7 @@ class WebUIStaticTaskTests(WebUIStaticTestCase):
         self.assertNotIn(">顶</button>", render_source)
         self.assertNotIn(">删</button>", render_source)
         self.assertNotIn("const title = escapeHtml(task.prompt || task.mode || task.task_id || \"Untitled\")", render_source)
+        self.assertIn("task.title || task.display_title || task.prompt", render_source)
         self.assertRegex(styles, r"\.task-queue-drag-handle\s*\{[^}]*cursor:\s*grab")
         self.assertRegex(styles, r"\.task-queue-action,\s*\.task-queue-drag-handle\s*\{[^}]*width:\s*24px")
         self.assertRegex(styles, r"\.task-queue-action,\s*\.task-queue-drag-handle\s*\{[^}]*padding:\s*0")
@@ -887,10 +984,19 @@ class WebUIStaticTaskTests(WebUIStaticTestCase):
         self.assertIn("const QUEUE_DISPATCH_RESYNC_DELAY_MS = 1500", queue_source)
         self.assertIn("tasksRequestSeq", state_defaults_source)
         self.assertIn("realtimeSource: null", state_defaults_source)
+        self.assertIn("realtimeReconnectTimerId: null", state_defaults_source)
+        self.assertIn("realtimeReconnectAttempts: 0", state_defaults_source)
+        self.assertIn("activeTaskPollTimerId: null", state_defaults_source)
         self.assertIn("const REALTIME_EVENTS_URL = \"/api/events?stream=1\"", queue_source)
+        self.assertIn("const REALTIME_RECONNECT_INITIAL_DELAY_MS = 1500", queue_source)
+        self.assertIn("const REALTIME_RECONNECT_MAX_DELAY_MS = 15000", queue_source)
+        self.assertIn("const ACTIVE_TASK_POLL_INTERVAL_MS = 5000", queue_source)
         self.assertIn("new EventSource(REALTIME_EVENTS_URL)", queue_source)
         self.assertIn("function startRealtimeUpdates", queue_source)
         self.assertIn("function closeRealtimeUpdates", queue_source)
+        self.assertIn("function scheduleRealtimeReconnect", queue_source)
+        self.assertIn("function scheduleActiveTaskPolling", queue_source)
+        self.assertIn("function activeTaskPollingTick", queue_source)
         self.assertIn("function handleRealtimeMessage", queue_source)
         self.assertIn("function handleRealtimePayload", queue_source)
         self.assertIn("applyTasksSnapshot", queue_source)
@@ -949,9 +1055,10 @@ class WebUIStaticTaskTests(WebUIStaticTestCase):
         self.assertIn("function clearQueueDispatchSync", queue_source)
         self.assertIn('formatTranslation("queue.dispatching"', queue_source)
         self.assertIn('formatTranslation("queue.availableChannels"', queue_source)
+        self.assertIn("void bridge.methods.refreshTasks();", queue_source)
+        self.assertIn("scheduleActiveTaskPolling();", queue_source)
+        self.assertIn("clearActiveTaskPolling();", queue_source)
         self.assertNotIn("window.setInterval(pollQueueAndTasks", queue_source)
-        self.assertNotIn("function pollQueueAndTasks", queue_source)
-        self.assertNotIn("function shouldRefreshTasksDuringQueuePoll", queue_source)
         self.assertNotIn("openQueueDrawer", queue_source)
         self.assertNotIn("closeQueueDrawer", queue_source)
         self.assertIn("promoteQueueTask", queue_source)
@@ -1127,6 +1234,10 @@ class WebUIStaticTaskTests(WebUIStaticTestCase):
         self.assertIn('els.taskNotificationButton.title = unreadLabel', source)
         self.assertIn('formatTranslation("notifications.unreadSummary"', source)
         self.assertNotIn('els.taskNotificationBadge.textContent = String(unreadCount)', source)
+        self.assertIn("taskThumbnailUrlForNotification(task, output, index)", source)
+        self.assertIn("normalizeNotificationThumbnailUrl(task", source)
+        self.assertIn('url.startsWith("/outputs/")', source)
+        self.assertIn('return taskOutputThumbnailRoute(task, outputIndex)', source)
         self.assertIn(".task-notification-button", styles)
         self.assertIn(".task-notification-button.has-unread", styles)
         self.assertIn(".task-notification-dot", styles)
@@ -1316,6 +1427,8 @@ class WebUIStaticTaskTests(WebUIStaticTestCase):
         source = self._task_preview_source()
 
         self.assertIn("function taskPreviewStatus(", source)
+        self.assertIn('const PREVIEW_FINAL_STATUSES = new Set(["completed", "failed", "partial_failed", "cancelled"])', source)
+        self.assertIn("if (PREVIEW_FINAL_STATUSES.has(status)) return status;", source)
         self.assertIn("state.queue.running", source)
         self.assertIn("state.queue.waiting", source)
         self.assertIn("const status = taskPreviewStatus(selected)", source)
@@ -1413,6 +1526,85 @@ class WebUIStaticTaskTests(WebUIStaticTestCase):
         result = subprocess.run([node, "-e", harness], check=False, text=True, capture_output=True)
 
         self.assertEqual(result.returncode, 0, result.stderr)
+    def test_restored_task_does_not_replace_current_api_provider(self) -> None:
+        node = shutil.which("node")
+        if node is None:
+            self.skipTest("node is required for frontend behavior checks")
+        script = self._frontend_script_source()
+        output_source = Path("codex_image/webui/frontend/src/output-controls.ts").read_text(encoding="utf-8")
+        harness = "\n".join(
+            [
+                """
+                function Event(type) { this.type = type; }
+                const quantityButtons = [{ value: "1" }, { value: "2" }, { value: "3" }, { value: "4" }];
+                const els = {
+                  promptFidelity: { value: "strict", dispatchEvent() {} },
+                  mainModel: { value: "" },
+                  model: { value: "gpt-image-2" },
+                  quality: { value: "low", dispatchEvent() {} },
+                  outputFormat: { value: "png", dispatchEvent() {} },
+                  moderation: { value: "auto", dispatchEvent() {} },
+                  compression: { value: "80" },
+                  nInput: { value: "1", dispatchEvent() {} },
+                  webSearch: { checked: false, dispatchEvent() {} },
+                };
+                const state = {
+                  apiSettings: {
+                    active_provider_id: "current",
+                    codex_mode: "images",
+                    providers: [
+                      { id: "current", name: "Current", api_mode: "images", images_concurrency: 4 },
+                      { id: "old", name: "Old", api_mode: "responses", images_concurrency: 20 },
+                    ],
+                  },
+                };
+                function setMode() {}
+                function setPromptWithGalleryRefs() {}
+                function persistMainModel() {}
+                function syncSizeControlsFromSize() {}
+                function updatePromptCount() {}
+                function updateCompression() {}
+                function updateCustomSize() {}
+                function updateRequestPreview() {}
+                function updateRangeProgress() {}
+                function normalizeApiSettings(settings) { return settings || { providers: [] }; }
+                function normalizeApiImagesConcurrency(value) { return Number.parseInt(value, 10); }
+                function persistApiSettings() {}
+                function populateApiSettingsForm() {}
+                """,
+                self._extract_javascript_function(output_source, "currentQuantity"),
+                self._extract_javascript_function(output_source, "updateRangeProgress"),
+                self._extract_javascript_function(output_source, "updateQuantity"),
+                self._extract_javascript_function(output_source, "syncRadioButtons"),
+                self._extract_javascript_function(script, "applyTaskToForm"),
+                """
+                applyTaskToForm({
+                  mode: "generate",
+                  prompt: "history",
+                  params: {
+                    api_provider_id: "old",
+                    api_mode: "responses",
+                    api_images_concurrency: 20,
+                    codex_mode: "responses",
+                    n: 2,
+                  },
+                });
+                if (state.apiSettings.active_provider_id !== "current") {
+                  throw new Error(`expected current provider to stay current, got ${state.apiSettings.active_provider_id}`);
+                }
+                const current = state.apiSettings.providers.find((provider) => provider.id === "current");
+                if (current.api_mode !== "images" || current.images_concurrency !== 4) {
+                  throw new Error(`expected current provider settings unchanged, got ${JSON.stringify(current)}`);
+                }
+                if (state.apiSettings.codex_mode !== "images") {
+                  throw new Error(`expected codex mode unchanged, got ${state.apiSettings.codex_mode}`);
+                }
+                """,
+            ]
+        )
+        result = subprocess.run([node, "-e", harness], check=False, text=True, capture_output=True)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
     def test_history_cards_are_fixed_height_and_deletable(self) -> None:
         script = self._frontend_script_source()
         styles = Path("codex_image/webui/static/styles.css").read_text(encoding="utf-8")
@@ -1454,6 +1646,11 @@ class WebUIStaticTaskTests(WebUIStaticTestCase):
         styles = Path("codex_image/webui/static/styles.css").read_text(encoding="utf-8")
 
         self.assertIn("function taskRuntimeText", script)
+        self.assertIn("function taskStableRuntimeSeconds", script)
+        self.assertIn("function taskPersistedElapsedSeconds", script)
+        self.assertIn("elapsed_seconds", script)
+        self.assertIn("MAX_PUBLIC_RUNTIME_SECONDS", script)
+        self.assertIn("console.warn(\"Ignoring implausible task runtime\"", script)
         self.assertIn("function taskCompletionTimestampText", script)
         self.assertIn("function taskCompletionTimestampTitle", script)
         self.assertIn('["completed", "failed", "partial_failed"].includes(task.status)', script)
@@ -1481,17 +1678,21 @@ class WebUIStaticTaskTests(WebUIStaticTestCase):
         self.assertNotIn('taskContextButton("restore"', script)
         self.assertIn('taskContextButton("copy-id", translate("taskContext.copyId"))', script)
         self.assertIn('taskContextButton("copy-prompt", translate("taskContext.copyPrompt")', script)
-        self.assertIn('taskContextButton("reveal-output", translate("taskContext.revealOutput")', script)
+        self.assertIn('taskContextButton("download-output", translate("taskContext.downloadOutput")', script)
         self.assertIn('taskContextButton("archive", translate("taskContext.archive"))', script)
         self.assertIn('taskContextButton("delete", translate("taskContext.delete")', script)
         self.assertIn('data-task-context-action="${action}"', script)
-        self.assertIn('fetch(`/api/tasks/${encodeURIComponent(taskId)}/reveal-output`', script)
-        self.assertIn('"X-Requested-With": "codex-image-webui"', script)
+        self.assertNotIn('data-task-context-action="reveal-output"', script)
+        self.assertNotIn('fetch(`/api/tasks/${encodeURIComponent(taskId)}/reveal-output`', script)
+        self.assertIn('triggerDownload(`/api/tasks/${encodeURIComponent(taskId)}/outputs.zip`', script)
+        self.assertIn('translate("taskContext.downloadStarted")', script)
         self.assertIn("closeTaskContextMenu", script)
         self.assertIn("async function ensureTaskContextTaskDetail", context_source)
         self.assertIn("await ensureTaskContextTaskDetail(taskId, task)", context_source)
         self.assertIn('fetch(`/api/tasks/${encodeURIComponent(taskId)}`)', context_source)
         self.assertIn("replaceTaskInState(taskId, fullTask)", context_source)
+        self.assertIn("function downloadableOutputRecords", context_source)
+        self.assertIn("function triggerDownload", context_source)
         self.assertNotIn('await copyText(taskPromptText(task));', context_source)
         self.assertRegex(styles, r"\.task-context-menu\s*\{[^}]*position:\s*fixed")
         self.assertRegex(styles, r"\.task-context-menu\s*\{[^}]*z-index:\s*9300")
@@ -2054,7 +2255,7 @@ class WebUIStaticTaskTests(WebUIStaticTestCase):
         script = self._frontend_script_source()
         styles = Path("codex_image/webui/static/styles.css").read_text(encoding="utf-8")
 
-        self.assertNotIn('id="archiveButton"', html)
+        self.assertIn('id="archiveButton"', html)
         self.assertIn('id="batchManageButton"', html)
         self.assertIn('id="archiveModal"', html)
         self.assertIn('id="archiveList"', html)
@@ -2070,6 +2271,8 @@ class WebUIStaticTaskTests(WebUIStaticTestCase):
         self.assertIn("migrateLegacyArchivedTasks", script)
         self.assertIn("Boolean(task?.archived_at)", script)
         self.assertIn("batchManageButton: document.querySelector(\"#batchManageButton\")", script)
+        self.assertIn("archiveButton: document.querySelector(\"#archiveButton\")", script)
+        self.assertIn('els.archiveButton?.addEventListener("click", openArchiveModal)', script)
         self.assertIn("openArchiveModal", script)
         self.assertIn("archiveTask", script)
         self.assertIn("restoreArchivedTask", script)
