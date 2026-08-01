@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import os
 import re
+import tempfile
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
@@ -76,7 +78,28 @@ class TaskStorage:
     def write_metadata(self, task_id: str, metadata: dict[str, Any]) -> Path:
         path = self.metadata_path(task_id)
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(metadata, indent=2, ensure_ascii=False), encoding="utf-8")
+        tmp_path: str | None = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                mode="w",
+                encoding="utf-8",
+                delete=False,
+                dir=path.parent,
+                prefix=f".{path.name}.",
+                suffix=".tmp",
+            ) as tmp:
+                tmp_path = tmp.name
+                tmp.write(json.dumps(metadata, indent=2, ensure_ascii=False))
+                tmp.flush()
+                os.fsync(tmp.fileno())
+            os.replace(tmp_path, path)
+            tmp_path = None
+        finally:
+            if tmp_path is not None:
+                try:
+                    Path(tmp_path).unlink()
+                except FileNotFoundError:
+                    pass
         self.task_index.upsert(metadata)
         return path
 
