@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from io import BytesIO
 import json
+import os
 import threading
 import tempfile
 import time
@@ -20,6 +21,32 @@ def _png_bytes(size: tuple[int, int] = (400, 600)) -> bytes:
 
 
 class WebUIStorageTests(unittest.TestCase):
+    def test_write_metadata_atomically_replaces_a_complete_json_file(self) -> None:
+        from codex_image.webui.storage import TaskStorage
+
+        real_replace = os.replace
+        replace_calls: list[tuple[Path, Path]] = []
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            storage = TaskStorage(output_root=root / "outputs")
+            task = storage.create_task("generate")
+            payload = {"task_id": task.task_id, "status": "completed", "prompt": "完整 JSON"}
+
+            def replace_complete_file(source: str | bytes | os.PathLike[str] | os.PathLike[bytes], destination: str | bytes | os.PathLike[str] | os.PathLike[bytes]) -> None:
+                source_path = Path(source)
+                destination_path = Path(destination)
+                replace_calls.append((source_path, destination_path))
+                self.assertEqual(source_path.parent, destination_path.parent)
+                self.assertEqual(json.loads(source_path.read_text(encoding="utf-8")), payload)
+                real_replace(source, destination)
+
+            with unittest.mock.patch("codex_image.webui.storage.os.replace", side_effect=replace_complete_file):
+                metadata_path = storage.write_metadata(task.task_id, payload)
+
+            self.assertEqual(json.loads(metadata_path.read_text(encoding="utf-8")), payload)
+            self.assertEqual(len(replace_calls), 1)
+            self.assertEqual(list(metadata_path.parent.glob(f".{metadata_path.name}.*.tmp")), [])
+
     def test_readable_object_keys_use_owner_date_task_and_safe_title(self) -> None:
         from codex_image.webui.object_storage import input_object_key, output_object_key
 
