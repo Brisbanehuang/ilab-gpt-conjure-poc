@@ -158,6 +158,8 @@ class WebUIStorageCleanupTests(unittest.TestCase):
                 after_dry = json.loads(storage.metadata_path(task_id).read_text(encoding="utf-8"))
                 actual = cleanup_expired_storage(root / "outputs", dry_run=False, now=datetime(2026, 6, 27, tzinfo=UTC))
                 after_delete = storage.read_metadata(task_id)
+                repeated = cleanup_expired_storage(root / "outputs", dry_run=False, now=datetime(2026, 6, 28, tzinfo=UTC))
+                after_repeated = storage.read_metadata(task_id)
 
         self.assertEqual(dry.deleted_objects, 1)
         self.assertEqual(fake.deleted, ["users/user_123/images/old.png"])
@@ -166,6 +168,10 @@ class WebUIStorageCleanupTests(unittest.TestCase):
         self.assertFalse(local_output.exists())
         self.assertTrue(after_delete["outputs"][0]["deleted"])
         self.assertEqual(after_delete["storage_expired_at"], "2026-06-27T00:00:00Z")
+        self.assertEqual(repeated.deleted_objects, 0)
+        self.assertEqual(repeated.deleted_metadata, 0)
+        self.assertEqual(repeated.deleted_local_files, 0)
+        self.assertEqual(after_repeated["storage_expired_at"], "2026-06-27T00:00:00Z")
 
     def test_stored_bytes_for_owner_counts_only_live_r2_records(self) -> None:
         from codex_image.webui.storage import TaskStorage

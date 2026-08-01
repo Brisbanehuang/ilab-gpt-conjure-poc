@@ -72,7 +72,7 @@ def cleanup_expired_storage(output_root: Path, *, dry_run: bool = False, now: da
         task_expires_at = _parse_datetime(metadata.get("expires_at"))
         if task_expires_at is not None and task_expires_at <= cutoff:
             live_records = _live_storage_records(metadata)
-            if not live_records:
+            if not live_records and not metadata.get("storage_expired_at"):
                 metadata["storage_expired_at"] = cutoff.isoformat().replace("+00:00", "Z")
                 result.deleted_metadata += 1
                 changed = True
