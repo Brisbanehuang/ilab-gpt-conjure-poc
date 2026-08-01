@@ -130,7 +130,11 @@ class WebUIStorageCleanupTests(unittest.TestCase):
             storage = TaskStorage(input_root=root / "inputs", output_root=root / "outputs", source_data_root=root / "outputs" / "source-data")
             task_id = "20260625120000-a63df6c2"
             local_output = storage.write_output(task_id, b"png", "png", index=1)
+            local_thumbnail = storage.output_thumbnail_path(task_id, 1)
+            local_thumbnail.parent.mkdir(parents=True, exist_ok=True)
+            local_thumbnail.write_bytes(b"thumbnail")
             storage._task_source_data_dir(task_id).mkdir(parents=True, exist_ok=True)
+            request_path = storage.write_request(task_id, {"prompt": "猫"})
             storage.write_metadata(
                 task_id,
                 {
@@ -157,21 +161,60 @@ class WebUIStorageCleanupTests(unittest.TestCase):
                 dry = cleanup_expired_storage(root / "outputs", dry_run=True, now=datetime(2026, 6, 27, tzinfo=UTC))
                 after_dry = json.loads(storage.metadata_path(task_id).read_text(encoding="utf-8"))
                 actual = cleanup_expired_storage(root / "outputs", dry_run=False, now=datetime(2026, 6, 27, tzinfo=UTC))
-                after_delete = storage.read_metadata(task_id)
+                history_total_after_delete = storage.task_history_summary()["total"]
                 repeated = cleanup_expired_storage(root / "outputs", dry_run=False, now=datetime(2026, 6, 28, tzinfo=UTC))
-                after_repeated = storage.read_metadata(task_id)
 
         self.assertEqual(dry.deleted_objects, 1)
+        self.assertEqual(dry.deleted_metadata, 1)
         self.assertEqual(fake.deleted, ["users/user_123/images/old.png"])
         self.assertFalse(after_dry["outputs"][0].get("deleted", False))
         self.assertEqual(actual.deleted_objects, 1)
+        self.assertEqual(actual.deleted_metadata, 1)
         self.assertFalse(local_output.exists())
-        self.assertTrue(after_delete["outputs"][0]["deleted"])
-        self.assertEqual(after_delete["storage_expired_at"], "2026-06-27T00:00:00Z")
+        self.assertFalse(local_thumbnail.exists())
+        self.assertFalse(request_path.exists())
+        self.assertFalse(storage.metadata_path(task_id).exists())
+        self.assertEqual(history_total_after_delete, 0)
         self.assertEqual(repeated.deleted_objects, 0)
         self.assertEqual(repeated.deleted_metadata, 0)
         self.assertEqual(repeated.deleted_local_files, 0)
-        self.assertEqual(after_repeated["storage_expired_at"], "2026-06-27T00:00:00Z")
+
+    def test_cleanup_purges_previously_marked_expired_metadata(self) -> None:
+        from codex_image.webui.storage import TaskStorage
+        from codex_image.webui.storage_cleanup import cleanup_expired_storage
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            storage = TaskStorage(input_root=root / "inputs", output_root=root / "outputs", source_data_root=root / "outputs" / "source-data")
+            task_id = "20260625120000-a63df6c2"
+            storage._task_source_data_dir(task_id).mkdir(parents=True, exist_ok=True)
+            storage.write_metadata(
+                task_id,
+                {
+                    "task_id": task_id,
+                    "owner_id": "user_123",
+                    "created_at": "2026-06-25T12:00:00Z",
+                    "expires_at": "2026-06-26T12:00:00Z",
+                    "storage_expired_at": "2026-06-27T00:00:00Z",
+                    "outputs": [
+                        {
+                            "index": 1,
+                            "status": "deleted",
+                            "storage_driver": "r2",
+                            "storage_key": "users/user_123/images/old.png",
+                            "deleted": True,
+                        }
+                    ],
+                },
+            )
+
+            result = cleanup_expired_storage(root / "outputs", now=datetime(2026, 6, 28, tzinfo=UTC))
+
+            self.assertEqual(result.deleted_objects, 0)
+            self.assertEqual(result.deleted_metadata, 1)
+            self.assertEqual(result.errors, 0)
+            self.assertFalse(storage.metadata_path(task_id).exists())
+            self.assertEqual(storage.task_history_summary()["total"], 0)
 
     def test_stored_bytes_for_owner_counts_only_live_r2_records(self) -> None:
         from codex_image.webui.storage import TaskStorage
