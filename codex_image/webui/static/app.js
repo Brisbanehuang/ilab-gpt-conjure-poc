@@ -140,6 +140,7 @@
   function createWebUIElements() {
     return {
       themeSwitcher: document.querySelector("#themeSwitcher"),
+      omniLanguageSwitcher: document.querySelector("#omniLanguageSwitcher"),
       languageSelect: document.querySelector("#languageSelect"),
       sidebar: document.querySelector("#sidebar"),
       sidebarResizeHandle: document.querySelector("#sidebarResizeHandle"),
@@ -12096,6 +12097,21 @@
     const select = languageSelectElement();
     if (select && select.value !== currentLocale) select.value = currentLocale;
   }
+  function omniLanguageSwitcherElement() {
+    try {
+      return getLegacyBridge().els.omniLanguageSwitcher || null;
+    } catch {
+      return null;
+    }
+  }
+  function updateOmniLanguageSwitcher() {
+    const activeLocale = currentLocale.startsWith("zh-") ? "zh-CN" : currentLocale === "en" ? "en" : "";
+    omniLanguageSwitcherElement()?.querySelectorAll("[data-omni-locale]").forEach((button) => {
+      const active = button.dataset.omniLocale === activeLocale;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", String(active));
+    });
+  }
   function applyLocaleToDocument() {
     document.documentElement.lang = currentLocale;
     document.documentElement.dataset.locale = currentLocale;
@@ -12108,6 +12124,7 @@
       });
     });
     updateLanguageSelect();
+    updateOmniLanguageSwitcher();
   }
   function setLocale(locale, options = {}) {
     currentLocale = normalizeLocale(locale);
@@ -12135,10 +12152,19 @@
       setLocale(normalizeLocale(select.value));
     });
   }
+  function bindOmniLanguageSwitcher() {
+    omniLanguageSwitcherElement()?.addEventListener("click", (event) => {
+      const target = event.target;
+      const button = target instanceof Element ? target.closest("[data-omni-locale]") : null;
+      if (!button?.dataset.omniLocale) return;
+      setLocale(normalizeLocale(button.dataset.omniLocale));
+    });
+  }
   function initI18nFeature() {
     if (i18nInitialized) return;
     i18nInitialized = true;
     bindLanguageSelect();
+    bindOmniLanguageSwitcher();
     restoreLocalePreference();
     window.__codexImageI18n = {
       applyLocaleToDocument,

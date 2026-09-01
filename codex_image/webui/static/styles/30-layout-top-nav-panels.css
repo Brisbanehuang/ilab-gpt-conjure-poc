@@ -329,6 +329,55 @@
   color: var(--primary-foreground);
 }
 
+.omni-language-switcher {
+  order: 3;
+  flex: 0 0 auto;
+  height: var(--top-nav-control-height);
+  display: none;
+  align-items: center;
+  gap: 3px;
+  padding: var(--top-nav-control-padding);
+  border: 1px solid color-mix(in srgb, var(--line) 76%, transparent);
+  border-radius: var(--top-nav-control-radius);
+  background: color-mix(in srgb, var(--surface-soft) 72%, transparent);
+  font-size: var(--top-nav-control-font-size);
+  line-height: 1;
+}
+
+.omni-poc-mode .omni-language-switcher {
+  display: inline-flex;
+}
+
+.omni-language-option {
+  width: 36px;
+  height: var(--top-nav-segment-height);
+  min-height: var(--top-nav-segment-height);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--top-nav-control-radius);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: var(--top-nav-control-font-size);
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--motion-base), color var(--motion-base);
+}
+
+.omni-language-option:hover,
+.omni-language-option:focus-visible {
+  color: var(--primary-strong);
+  outline: none;
+}
+
+.omni-language-option.active {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
 .github-link {
   width: var(--top-nav-control-height);
   padding: 0;
@@ -437,6 +486,7 @@
 @media (prefers-reduced-motion: reduce) {
   .queue-button,
   .theme-option,
+  .omni-language-option,
   .auth-source-button,
   .auth-source-settings-button {
     transition: none;

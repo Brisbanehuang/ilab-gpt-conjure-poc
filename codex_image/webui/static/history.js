@@ -11678,6 +11678,21 @@
     const select = languageSelectElement();
     if (select && select.value !== currentLocale) select.value = currentLocale;
   }
+  function omniLanguageSwitcherElement() {
+    try {
+      return getLegacyBridge().els.omniLanguageSwitcher || null;
+    } catch {
+      return null;
+    }
+  }
+  function updateOmniLanguageSwitcher() {
+    const activeLocale = currentLocale.startsWith("zh-") ? "zh-CN" : currentLocale === "en" ? "en" : "";
+    omniLanguageSwitcherElement()?.querySelectorAll("[data-omni-locale]").forEach((button) => {
+      const active = button.dataset.omniLocale === activeLocale;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", String(active));
+    });
+  }
   function applyLocaleToDocument() {
     document.documentElement.lang = currentLocale;
     document.documentElement.dataset.locale = currentLocale;
@@ -11690,6 +11705,7 @@
       });
     });
     updateLanguageSelect();
+    updateOmniLanguageSwitcher();
   }
   function setLocale(locale, options = {}) {
     currentLocale = normalizeLocale(locale);

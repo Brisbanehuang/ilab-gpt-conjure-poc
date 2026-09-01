@@ -5,6 +5,7 @@ export interface WebUIElements {
 export function createWebUIElements(): WebUIElements {
   return {
   themeSwitcher: document.querySelector("#themeSwitcher"),
+  omniLanguageSwitcher: document.querySelector("#omniLanguageSwitcher"),
   languageSelect: document.querySelector("#languageSelect"),
   sidebar: document.querySelector("#sidebar"),
   sidebarResizeHandle: document.querySelector("#sidebarResizeHandle"),

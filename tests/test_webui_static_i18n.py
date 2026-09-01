@@ -7,7 +7,7 @@ from tests.webui_helpers import WebUIStaticTestCase
 
 
 class WebUIStaticI18nTests(WebUIStaticTestCase):
-    def test_language_bootstrap_detects_browser_language_and_settings_select_replaces_top_nav(self) -> None:
+    def test_language_bootstrap_detects_browser_language_and_exposes_omni_quick_switcher(self) -> None:
         html = Path("codex_image/webui/static/index.html").read_text(encoding="utf-8")
         nav_actions = html[html.index('<div class="nav-actions">'):html.index('<div id="taskNotificationCenter"')]
         language_panel = html[html.index('<section id="systemSettingsLanguagePanel"'):html.index('</section>', html.index('<section id="systemSettingsLanguagePanel"'))]
@@ -20,6 +20,10 @@ class WebUIStaticI18nTests(WebUIStaticTestCase):
         self.assertRegex(html, r"document\.documentElement\.dataset\.locale = locale;")
         self.assertNotIn('id="languageSwitcher"', html)
         self.assertNotIn('id="languageSelect"', nav_actions)
+        self.assertIn('id="omniLanguageSwitcher"', nav_actions)
+        self.assertIn('data-omni-locale="zh-CN"', nav_actions)
+        self.assertIn('data-omni-locale="en"', nav_actions)
+        self.assertLess(nav_actions.index('id="omniLanguageSwitcher"'), nav_actions.index('id="themeSwitcher"'))
         self.assertLess(nav_actions.index('id="themeSwitcher"'), nav_actions.index('id="githubLink"'))
         self.assertIn('id="systemSettingsLanguageTab"', html)
         self.assertIn('data-i18n="systemSettings.languageTab"', html)
@@ -240,10 +244,13 @@ class WebUIStaticI18nTests(WebUIStaticTestCase):
         self.assertIn('"language.hi": "हिन्दी"', hi_dictionary_source)
         self.assertIn('document.querySelectorAll<HTMLElement>("[data-i18n]")', source)
         self.assertIn('querySelectorAll<HTMLElement>("[data-i18n-attr]")', source)
+        self.assertIn('querySelectorAll<HTMLButtonElement>("[data-omni-locale]")', source)
+        self.assertIn('setLocale(normalizeLocale(button.dataset.omniLocale));', source)
         self.assertIn("window.__codexImageI18n", source)
         self.assertIn('import { initI18nFeature } from "./i18n";', main_source)
         self.assertIn("initI18nFeature();", main_source)
         self.assertIn('languageSelect: document.querySelector("#languageSelect")', elements_source)
+        self.assertIn('omniLanguageSwitcher: document.querySelector("#omniLanguageSwitcher")', elements_source)
 
     def test_static_markup_uses_translation_keys_for_primary_shell(self) -> None:
         html = Path("codex_image/webui/static/index.html").read_text(encoding="utf-8")
@@ -280,6 +287,9 @@ class WebUIStaticI18nTests(WebUIStaticTestCase):
         self.assertRegex(styles, r"\.language-select-field\s*\{[^}]*max-width:\s*420px")
         self.assertNotRegex(styles, r"\.language-switcher\s*\{")
         self.assertNotRegex(styles, r"\.language-option\s*\{")
+        self.assertRegex(styles, r"\.omni-language-switcher\s*\{[^}]*display:\s*none")
+        self.assertRegex(styles, r"\.omni-poc-mode \.omni-language-switcher\s*\{[^}]*display:\s*inline-flex")
+        self.assertRegex(styles, r"\.omni-language-option\.active\s*\{[^}]*background:\s*var\(--primary\)")
 
     def test_runtime_rendered_surfaces_use_i18n_keys(self) -> None:
         i18n_source = Path("codex_image/webui/frontend/src/i18n.ts").read_text(encoding="utf-8")

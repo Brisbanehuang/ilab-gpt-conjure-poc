@@ -63,7 +63,7 @@
         document.documentElement.dataset.locale = locale;
       })();
     </script>
-    <link rel="stylesheet" href="/static/styles.css?v=runtime-371" />
+    <link rel="stylesheet" href="/static/styles.css?v=runtime-372" />
   </head>
   <body>
     <div class="layout-container">
@@ -212,6 +212,10 @@
               </svg>
               <span id="taskNotificationBadge" class="task-notification-dot hidden" aria-hidden="true"></span>
             </button>
+            <div id="omniLanguageSwitcher" class="omni-language-switcher" role="group" aria-label="界面语言" data-i18n-attr="aria-label:language.label">
+              <button class="omni-language-option" data-omni-locale="zh-CN" type="button" aria-pressed="false" aria-label="简体中文" title="简体中文" data-i18n-attr="aria-label:language.zhCN;title:language.zhCN">中</button>
+              <button class="omni-language-option" data-omni-locale="en" type="button" aria-pressed="false" aria-label="English" title="English" data-i18n-attr="aria-label:language.en;title:language.en">EN</button>
+            </div>
             <div id="themeSwitcher" class="theme-switcher" aria-label="主题模式" data-i18n-attr="aria-label:theme.label">
               <button class="theme-option" data-theme-option="system" type="button" aria-pressed="true" data-i18n="theme.system">跟随</button>
               <button class="theme-option" data-theme-option="light" type="button" aria-pressed="false" data-i18n="theme.light">浅色</button>
@@ -1212,7 +1216,7 @@
     </div>
 
     <div id="taskNotificationToastRegion" class="task-notification-toast-region" aria-live="polite"></div>
-  <script src="/static/app.js?v=runtime-371"></script>
+  <script src="/static/app.js?v=runtime-372"></script>
     <script>
       (() => {
         document.querySelectorAll(".radio-group").forEach((group) => {

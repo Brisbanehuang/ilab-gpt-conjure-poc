@@ -95,6 +95,23 @@ function updateLanguageSelect(): void {
   if (select && select.value !== currentLocale) select.value = currentLocale;
 }
 
+function omniLanguageSwitcherElement(): HTMLElement | null {
+  try {
+    return getLegacyBridge().els.omniLanguageSwitcher as HTMLElement | null | undefined || null;
+  } catch {
+    return null;
+  }
+}
+
+function updateOmniLanguageSwitcher(): void {
+  const activeLocale = currentLocale.startsWith("zh-") ? "zh-CN" : currentLocale === "en" ? "en" : "";
+  omniLanguageSwitcherElement()?.querySelectorAll<HTMLButtonElement>("[data-omni-locale]").forEach((button) => {
+    const active = button.dataset.omniLocale === activeLocale;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+}
+
 export function applyLocaleToDocument(): void {
   document.documentElement.lang = currentLocale;
   document.documentElement.dataset.locale = currentLocale;
@@ -107,6 +124,7 @@ export function applyLocaleToDocument(): void {
     });
   });
   updateLanguageSelect();
+  updateOmniLanguageSwitcher();
 }
 
 export function setLocale(locale: Locale, options: { persist?: boolean } = {}): void {
@@ -139,10 +157,22 @@ function bindLanguageSelect(): void {
   });
 }
 
+function bindOmniLanguageSwitcher(): void {
+  omniLanguageSwitcherElement()?.addEventListener("click", (event) => {
+    const target = event.target;
+    const button = target instanceof Element
+      ? target.closest<HTMLButtonElement>("[data-omni-locale]")
+      : null;
+    if (!button?.dataset.omniLocale) return;
+    setLocale(normalizeLocale(button.dataset.omniLocale));
+  });
+}
+
 export function initI18nFeature(): void {
   if (i18nInitialized) return;
   i18nInitialized = true;
   bindLanguageSelect();
+  bindOmniLanguageSwitcher();
   restoreLocalePreference();
   window.__codexImageI18n = {
     applyLocaleToDocument,
