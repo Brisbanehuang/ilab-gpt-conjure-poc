@@ -236,7 +236,7 @@ class OmniPOCGenerationTests(TempDirMixin, TestCase):
             ],
         ), patch(
             "codex_image.webui.omni_session._key_supported_models",
-            return_value=frozenset({"gpt-image-2", "gpt-5.4-mini"}),
+            return_value=frozenset({"gpt-image-2", "gpt-5.6-luna"}),
         ):
             response = TestClient(app).post(
                 f"/api/tasks/{task_id}/retry-failed",
@@ -355,7 +355,7 @@ class OmniPOCValidationEndpointTests(TempDirMixin, TestCase):
             self.assertEqual(keys.status_code, 200)
             payload = keys.json()
             self.assertEqual(payload["model"], "gpt-image-2")
-            self.assertEqual(payload["title_model"], "gpt-5.4-mini")
+            self.assertEqual(payload["title_model"], "gpt-5.6-luna")
             self.assertEqual(payload["keys"][0]["id"], "456")
             self.assertTrue(payload["keys"][0]["supports_title_model"])
             self.assertNotIn("sk-image-secret", str(payload))
@@ -394,7 +394,7 @@ class OmniPOCValidationEndpointTests(TempDirMixin, TestCase):
 
         async def fake_supported_models(_config, api_key):
             calls.append(api_key)
-            return frozenset({"gpt-image-2", "gpt-5.4-mini"})
+            return frozenset({"gpt-image-2", "gpt-5.6-luna"})
 
         with (
             patch("codex_image.webui.omni_session.list_omni_image_keys", fake_list_keys),
@@ -447,7 +447,7 @@ class OmniPOCValidationEndpointTests(TempDirMixin, TestCase):
         async def fake_supported_models(_config, api_key):
             calls.append(api_key)
             if api_key == "sk-image-secret":
-                return frozenset({"gpt-image-2", "gpt-5.4-mini"})
+                return frozenset({"gpt-image-2", "gpt-5.6-luna"})
             return frozenset({"gpt-5.4-mini"})
 
         with (

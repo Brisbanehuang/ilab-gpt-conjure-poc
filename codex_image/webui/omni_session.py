@@ -12,7 +12,7 @@ from cryptography.fernet import Fernet, InvalidToken
 from codex_image.webui.omni_poc import OmniPOCConfig, mask_api_key
 
 
-DEFAULT_TITLE_MODEL = "gpt-5.4-mini"
+DEFAULT_TITLE_MODEL = "gpt-5.6-luna"
 SESSION_COOKIE_NAME = "omni_lens_session"
 SESSION_TTL_HOURS = 168
 
