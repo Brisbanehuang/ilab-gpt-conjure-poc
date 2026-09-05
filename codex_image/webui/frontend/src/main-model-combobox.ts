@@ -2,9 +2,9 @@ import { getLegacyBridge } from "./state";
 import { updateRequestPreview } from "./output-controls";
 import { translate } from "./i18n";
 
-export const DEFAULT_MAIN_MODEL = "gpt-5.4-mini";
-export const MAIN_MODEL_OPTIONS = ["gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna", "gpt-6-astra", "gpt-5.4-mini"];
-export const RETIRED_MAIN_MODEL_OPTIONS = new Set(["gpt-5.5", "gpt-5.4", "gpt-5.3-codex", "gpt-5.2", "gpt-5.3-codex-spark"]);
+export const DEFAULT_MAIN_MODEL = "gpt-6-astra";
+export const MAIN_MODEL_OPTIONS = ["gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna", "gpt-6-astra"];
+export const RETIRED_MAIN_MODEL_OPTIONS = new Set(["gpt-5.5", "gpt-5.4", "gpt-5.4-mini", "gpt-5.3-codex", "gpt-5.2", "gpt-5.3-codex-spark"]);
 export const MAIN_MODEL_STORAGE_KEY = "codex-image-main-model";
 
 const bridge = getLegacyBridge();

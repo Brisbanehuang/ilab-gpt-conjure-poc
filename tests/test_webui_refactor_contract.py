@@ -269,7 +269,7 @@ class WebUIRefactorContractTests(unittest.TestCase):
         self.assertIs(client.OpenAIImagesImageClient, OpenAIImagesImageClient)
         self.assertIs(client.OpenAIResponsesImageClient, OpenAIResponsesImageClient)
         self.assertIs(client.image_model_supports_input_fidelity, image_model_supports_input_fidelity)
-        self.assertEqual("gpt-5.4-mini", client.DEFAULT_MAIN_MODEL)
+        self.assertEqual("gpt-6-astra", client.DEFAULT_MAIN_MODEL)
         self.assertEqual("gpt-image-2", client.DEFAULT_IMAGE_MODEL)
 
     def test_executor_helper_modules_keep_legacy_import_contract(self) -> None:
