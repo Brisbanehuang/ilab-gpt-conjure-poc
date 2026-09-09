@@ -63,7 +63,7 @@
         document.documentElement.dataset.locale = locale;
       })();
     </script>
-    <link rel="stylesheet" href="/static/styles.css?v=runtime-373" />
+    <link rel="stylesheet" href="/static/styles.css?v=runtime-374" />
   </head>
   <body>
     <div class="layout-container">
@@ -399,15 +399,22 @@
             <section class="panel output-panel">
               <h2 data-i18n="outputSettings.title">输出设置</h2>
               <div id="settingsGrid" class="settings-grid">
-                <label class="field full-width omni-image-model-field" for="omniImageModel">
-                  <span data-i18n="omni.imageModel">图片模型</span>
-                  <select id="omniImageModel" class="control">
-                    <option value="gpt-image-2">GPT Image 2</option>
-                    <option value="gpt-image-2.5-flare">GPT Image 2.5 Flare</option>
-                    <option value="gpt-image-2.5-sunburst">GPT Image 2.5 Sunburst</option>
-                  </select>
+                <div class="field full-width omni-image-model-field">
+                  <span id="omniImageModelLabel" data-i18n="omni.imageModel">图片模型</span>
+                  <div id="omniImageModelCombobox" class="model-combobox">
+                    <select id="omniImageModel" hidden aria-hidden="true" tabindex="-1">
+                      <option value="gpt-image-2">GPT Image 2</option>
+                      <option value="gpt-image-2.5-flare">GPT Image 2.5 Flare</option>
+                      <option value="gpt-image-2.5-sunburst">GPT Image 2.5 Sunburst</option>
+                    </select>
+                    <button id="omniImageModelTrigger" class="control model-combobox-trigger" type="button" role="combobox" aria-haspopup="listbox" aria-expanded="false" aria-controls="omniImageModelOptions" aria-labelledby="omniImageModelLabel">
+                      <span id="omniImageModelValue">GPT Image 2</span>
+                      <span class="model-combobox-caret" aria-hidden="true"></span>
+                    </button>
+                    <div id="omniImageModelOptions" class="model-combobox-options hidden" role="listbox" aria-labelledby="omniImageModelLabel"></div>
+                  </div>
                   <span id="omniModelStatus" class="omni-poc-key-status hidden" aria-live="polite"></span>
-                </label>
+                </div>
                 <div id="modeSettingsSlot" class="mode-settings-slot full-width">
                   <div id="modeSpecificSettings" class="mode-specific-settings mode-transition">
                     <div class="model-tool-row">
@@ -1225,7 +1232,7 @@
     </div>
 
     <div id="taskNotificationToastRegion" class="task-notification-toast-region" aria-live="polite"></div>
-  <script src="/static/app.js?v=runtime-373"></script>
+  <script src="/static/app.js?v=runtime-374"></script>
     <script>
       (() => {
         document.querySelectorAll(".radio-group").forEach((group) => {

@@ -2440,6 +2440,22 @@ svg.button-icon {
   padding-right: 38px;
 }
 
+.model-combobox-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-right: 16px;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.model-combobox-trigger .model-combobox-caret {
+  flex: 0 0 auto;
+  color: var(--muted);
+}
+
 .model-combobox-toggle {
   position: absolute;
   right: 6px;
@@ -2786,12 +2802,6 @@ svg.button-icon {
 .omni-poc-mode .omni-image-model-field {
   display: grid;
   min-width: 0;
-}
-
-.omni-image-model-field select {
-  width: 100%;
-  min-width: 0;
-  font-size: 14px;
 }
 
 .omni-poc-key-select {

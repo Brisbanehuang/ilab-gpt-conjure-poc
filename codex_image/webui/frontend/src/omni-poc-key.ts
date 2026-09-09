@@ -1,6 +1,7 @@
 import { getLegacyBridge } from "./state";
 import { safeJson } from "./api";
 import { formatTranslation, LOCALE_CHANGE_EVENT, translate } from "./i18n";
+import { mountOmniImageModelCombobox } from "./omni-image-model-combobox";
 
 const SELECTED_KEY_STORAGE = "ilab.omniSelectedKeyId";
 const SELECTED_MODEL_STORAGE = "ilab.omniImageModel";
@@ -33,6 +34,7 @@ let sessionConnectionOk = true;
 let selectedImageModel = "gpt-image-2";
 let refreshing = false;
 let modelChosenBeforeSession = false;
+let syncImageModelControl = () => {};
 
 export function currentOmniImageModel(): string {
   return selectedImageModel;
@@ -53,6 +55,7 @@ export function setOmniImageModel(model: string): void {
     }
     select.value = model;
   }
+  syncImageModelControl();
   if (user && IMAGE_MODELS.includes(model)) {
     localStorage.setItem(`${SELECTED_MODEL_STORAGE}.${user.id}`, model);
   }
@@ -250,6 +253,7 @@ function renderKeyControl(): void {
     <a class="omni-poc-key-button omni-poc-login-link" href="${LOGIN_URL}">登录 Omni</a>
   `;
   mountPoint().appendChild(root);
+  syncImageModelControl = mountOmniImageModelCombobox();
   const modelSelect = document.querySelector<HTMLSelectElement>("#omniImageModel");
   modelSelect?.addEventListener("change", () => {
     setOmniImageModel(modelSelect.value);
