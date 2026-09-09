@@ -1,6 +1,6 @@
 import { getLegacyBridge } from "./state";
 import { translate } from "./i18n";
-import { getSelectedOmniKeyId, isOmniPocMode, omniHeaders, requireOmniApiKeyBeforeSubmit } from "./omni-poc-key";
+import { getSelectedOmniKeyId, isOmniPocMode, omniHeaders, requireOmniApiKeyBeforeSubmit, setOmniImageModel } from "./omni-poc-key";
 
 const bridge = getLegacyBridge();
 const state = bridge.state;
@@ -79,7 +79,10 @@ function applyTaskToForm(task: any) {
     els.webSearch.checked = Boolean(params.web_search);
     els.webSearch.dispatchEvent(new Event("input"));
   }
-  if (params.model) els.model.value = params.model;
+  if (params.model) {
+    if (isOmniPocMode()) setOmniImageModel(params.model);
+    else els.model.value = params.model;
+  }
   if (params.size) syncSizeControlsFromSize(params.size);
   if (params.n && els.nInput) {
     els.nInput.value = String(params.n);

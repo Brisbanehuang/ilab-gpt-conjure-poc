@@ -101,7 +101,7 @@ class WebUIStaticI18nTests(WebUIStaticTestCase):
 
         self.assertIn('className = "omni-poc-key-control"', source)
         self.assertIn('document.querySelector(".nav-actions")', source)
-        self.assertIn("自动选择（推荐）", source)
+        self.assertIn('translate("omni.autoKey")', source)
         self.assertIn('return `${key.name || "Omni API Key"}${group}`;', source)
         self.assertNotIn("支持标题", source)
         self.assertNotIn("const mask =", source)

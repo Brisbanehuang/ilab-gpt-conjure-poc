@@ -3,6 +3,7 @@ from __future__ import annotations
 from fastapi import FastAPI, HTTPException, Request, Response
 
 from codex_image.webui.context import WebUIContext
+from codex_image.webui.omni_poc import OMNI_IMAGE_MODELS
 from codex_image.webui.omni_session import (
     DEFAULT_TITLE_MODEL,
     SESSION_COOKIE_NAME,
@@ -90,5 +91,6 @@ def register_omni_auth_routes(app: FastAPI, ctx: WebUIContext) -> None:
         return {
             "keys": await usable_key_dtos(config, token),
             "model": config.image_model,
+            "image_models": list(OMNI_IMAGE_MODELS),
             "title_model": DEFAULT_TITLE_MODEL,
         }

@@ -428,6 +428,19 @@
 
   // codex_image/webui/frontend/src/i18n/en.ts
   var EN_DICTIONARY = {
+    "omni.imageModel": "Image model",
+    "omni.modelUnavailable": "The saved image model is unavailable. Choose a model.",
+    "omni.lookupFailed": "Could not load model availability. Refresh to retry.",
+    "omni.partialLookupFailed": "Some keys could not be checked. Refresh to retry.",
+    "omni.selectedKeyUnsupported": "The selected key is unavailable for {model}. Choose another key.",
+    "omni.noModelKey": "No API key supports {model}.",
+    "omni.noKey": "No compatible API key",
+    "omni.selectedKeyUnavailable": "Selected key unavailable",
+    "omni.loginRequired": "Sign in through OmniAPI to generate images.",
+    "omni.login": "Sign in to Omni",
+    "omni.refresh": "Refresh",
+    "omni.loading": "Checking keys and models",
+    "omni.autoKey": "Automatic (recommended)",
     "app.newTask": "New",
     "app.newTaskAria": "New chat",
     "sidebar.searchPlaceholder": "Search prompts or task ID",
@@ -9327,6 +9340,19 @@
 
   // codex_image/webui/frontend/src/i18n/zh-cn.ts
   var ZH_CN_DICTIONARY = {
+    "omni.imageModel": "\u56FE\u7247\u6A21\u578B",
+    "omni.modelUnavailable": "\u5386\u53F2\u56FE\u7247\u6A21\u578B\u5DF2\u4E0D\u53EF\u7528\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9\u6A21\u578B\u3002",
+    "omni.lookupFailed": "\u6A21\u578B\u5217\u8868\u83B7\u53D6\u5931\u8D25\uFF0C\u8BF7\u5237\u65B0\u540E\u91CD\u8BD5\u3002",
+    "omni.partialLookupFailed": "\u90E8\u5206 Key \u7684\u6A21\u578B\u5217\u8868\u83B7\u53D6\u5931\u8D25\uFF0C\u53EF\u5237\u65B0\u91CD\u8BD5\u3002",
+    "omni.selectedKeyUnsupported": "\u6240\u9009 Key \u65E0\u6CD5\u8C03\u7528 {model}\uFF0C\u8BF7\u9009\u62E9\u5176\u4ED6 Key\u3002",
+    "omni.noModelKey": "\u6CA1\u6709\u53EF\u8C03\u7528 {model} \u7684 API Key\u3002",
+    "omni.noKey": "\u6CA1\u6709\u53EF\u7528\u7684 API Key",
+    "omni.selectedKeyUnavailable": "\u6240\u9009 Key \u5DF2\u4E0D\u53EF\u7528",
+    "omni.loginRequired": "\u8BF7\u5148\u4ECE Omni \u4E3B\u7AD9\u767B\u5F55\u540E\u518D\u4F7F\u7528\u751F\u56FE\u529F\u80FD\u3002",
+    "omni.login": "\u767B\u5F55 Omni",
+    "omni.refresh": "\u5237\u65B0",
+    "omni.loading": "\u6B63\u5728\u8BFB\u53D6 Key \u548C\u6A21\u578B\u5217\u8868",
+    "omni.autoKey": "\u81EA\u52A8\u9009\u62E9\uFF08\u63A8\u8350\uFF09",
     "app.newTask": "\u65B0\u5EFA",
     "app.newTaskAria": "\u65B0\u5EFA\u5BF9\u8BDD",
     "sidebar.searchPlaceholder": "\u641C\u7D22\u63D0\u793A\u8BCD\u6216\u4EFB\u52A1 ID",
@@ -28725,6 +28751,8 @@ ${hint}` : hint;
 
   // codex_image/webui/frontend/src/omni-poc-key.ts
   var SELECTED_KEY_STORAGE = "ilab.omniSelectedKeyId";
+  var SELECTED_MODEL_STORAGE = "ilab.omniImageModel";
+  var IMAGE_MODELS = ["gpt-image-2", "gpt-image-2.5-flare", "gpt-image-2.5-sunburst"];
   var LOGIN_URL = "https://api.brislouise.online/image-generator";
   var enabled = false;
   var authenticated = false;
@@ -28732,6 +28760,48 @@ ${hint}` : hint;
   var keys = [];
   var user = null;
   var sessionConnectionOk = true;
+  var selectedImageModel = "gpt-image-2";
+  var refreshing = false;
+  var modelChosenBeforeSession = false;
+  function currentOmniImageModel() {
+    return selectedImageModel;
+  }
+  function setOmniImageModel(model) {
+    if (!user) modelChosenBeforeSession = true;
+    selectedImageModel = model;
+    const select = document.querySelector("#omniImageModel");
+    if (select) {
+      select.querySelectorAll("[data-unavailable-model]").forEach((option) => option.remove());
+      if (!IMAGE_MODELS.includes(model)) {
+        const option = new Option(model, model);
+        option.dataset.unavailableModel = "true";
+        option.disabled = true;
+        select.appendChild(option);
+      }
+      select.value = model;
+    }
+    if (user && IMAGE_MODELS.includes(model)) {
+      localStorage.setItem(`${SELECTED_MODEL_STORAGE}.${user.id}`, model);
+    }
+    const root = document.querySelector(".omni-poc-key-control");
+    if (root) renderSession(root);
+  }
+  function compatibleKeys() {
+    return keys.filter((key) => !key.model_lookup_failed && key.supported_image_models?.includes(selectedImageModel));
+  }
+  function modelSelectionError() {
+    if (!IMAGE_MODELS.includes(selectedImageModel)) return translate("omni.modelUnavailable");
+    if (!sessionConnectionOk) return translate("omni.lookupFailed");
+    const selected = keys.find((key) => key.id === selectedKeyId);
+    if (selectedKeyId && selected?.model_lookup_failed) return translate("omni.lookupFailed");
+    if (selectedKeyId && !compatibleKeys().some((key) => key.id === selectedKeyId)) {
+      return formatTranslation("omni.selectedKeyUnsupported", { model: selectedImageModel });
+    }
+    if (!compatibleKeys().length) {
+      return keys.some((key) => key.model_lookup_failed) ? translate("omni.lookupFailed") : formatTranslation("omni.noModelKey", { model: selectedImageModel });
+    }
+    return "";
+  }
   function isOmniPocMode() {
     return enabled || document.documentElement.classList.contains("omni-poc-mode");
   }
@@ -28744,15 +28814,15 @@ ${hint}` : hint;
   function requireOmniApiKeyBeforeSubmit() {
     if (!isOmniPocMode()) return;
     if (!authenticated) {
-      throw new Error("\u8BF7\u5148\u4ECE Omni \u4E3B\u7AD9\u767B\u5F55\u540E\u518D\u4F7F\u7528\u751F\u56FE\u529F\u80FD");
+      throw new Error(translate("omni.loginRequired"));
     }
-    if (!keys.length) {
-      throw new Error("\u6CA1\u6709\u68C0\u6D4B\u5230\u53EF\u8C03\u7528 gpt-image-2 \u7684 API Key");
-    }
+    if (refreshing) throw new Error(translate("omni.loading"));
+    const error = modelSelectionError();
+    if (error) throw new Error(error);
   }
   function updateOmniLegacyAuthState() {
     const bridge39 = getLegacyBridge();
-    const ready = Boolean(authenticated && keys.length);
+    const ready = Boolean(authenticated && !refreshing && !modelSelectionError());
     bridge39.state.authAvailable = ready;
     bridge39.state.authStatus = {
       selected_source: "api",
@@ -28767,7 +28837,7 @@ ${hint}` : hint;
       bridge39.els.runButton.disabled = !ready;
     }
     if (bridge39.els.authSourceDetail) {
-      const text = ready ? "Omni API Key" : authenticated ? "\u6CA1\u6709\u53EF\u7528 Omni API Key" : "\u8BF7\u4ECE Omni \u4E3B\u7AD9\u767B\u5F55";
+      const text = ready ? "Omni API Key" : authenticated ? modelSelectionError() : translate("omni.loginRequired");
       bridge39.els.authSourceDetail.textContent = text;
       bridge39.els.authSourceDetail.title = text;
     }
@@ -28781,33 +28851,36 @@ ${hint}` : hint;
   }
   function renderKeyOptions(select) {
     select.innerHTML = "";
-    if (!keys.length) {
+    const candidates = compatibleKeys();
+    if (!candidates.length && !selectedKeyId) {
       const option = document.createElement("option");
       option.value = "";
-      option.textContent = authenticated ? "\u6CA1\u6709\u53EF\u7528\u7684 gpt-image-2 API Key" : "\u8BF7\u5148\u767B\u5F55";
+      option.textContent = authenticated ? translate("omni.noKey") : translate("omni.login");
       select.appendChild(option);
       select.value = "";
-      selectedKeyId = "";
-      window.localStorage.removeItem(SELECTED_KEY_STORAGE);
       return;
     }
     const autoOption = document.createElement("option");
     autoOption.value = "";
-    autoOption.textContent = "\u81EA\u52A8\u9009\u62E9\uFF08\u63A8\u8350\uFF09";
+    autoOption.textContent = translate("omni.autoKey");
+    autoOption.disabled = !candidates.length;
     select.appendChild(autoOption);
-    keys.forEach((key) => {
+    candidates.forEach((key) => {
       const option = document.createElement("option");
       option.value = key.id;
       option.textContent = labelForKey(key);
       select.appendChild(option);
     });
-    if (selectedKeyId && !keys.some((key) => key.id === selectedKeyId)) {
-      selectedKeyId = "";
+    if (selectedKeyId && !candidates.some((key) => key.id === selectedKeyId)) {
+      const selected = keys.find((key) => key.id === selectedKeyId);
+      const option = new Option(selected ? labelForKey(selected) : translate("omni.selectedKeyUnavailable"), selectedKeyId);
+      option.disabled = true;
+      select.appendChild(option);
     }
     select.value = selectedKeyId;
   }
   function renderSession(root) {
-    const status = root.querySelector(".omni-poc-key-status");
+    const status = document.querySelector("#omniModelStatus");
     const account = root.querySelector(".omni-poc-account");
     const select = root.querySelector(".omni-poc-key-select");
     const login = root.querySelector(".omni-poc-login-link");
@@ -28819,48 +28892,58 @@ ${hint}` : hint;
     }
     if (login) {
       login.classList.toggle("hidden", authenticated);
+      login.textContent = translate("omni.login");
     }
     if (select) {
-      select.disabled = !authenticated || !keys.length;
+      select.disabled = !authenticated || refreshing || !compatibleKeys().length;
       select.classList.toggle("hidden", !authenticated);
       renderKeyOptions(select);
     }
     if (refresh) {
-      refresh.disabled = false;
+      refresh.disabled = refreshing;
+      refresh.textContent = translate("omni.refresh");
       refresh.classList.toggle("hidden", !authenticated);
     }
     if (status) {
-      status.textContent = authenticated ? keys.length ? "" : "\u6CA1\u6709\u68C0\u6D4B\u5230\u53EF\u8C03\u7528 gpt-image-2 \u7684 API Key" : "";
-      status.classList.toggle("hidden", authenticated && keys.length > 0);
+      const error = !sessionConnectionOk ? translate("omni.lookupFailed") : authenticated ? modelSelectionError() : "";
+      status.textContent = refreshing ? translate("omni.loading") : error || (keys.some((key) => key.model_lookup_failed) ? translate("omni.partialLookupFailed") : "");
+      status.title = status.textContent;
+      status.classList.toggle("hidden", !status.textContent);
     }
     updateOmniLegacyAuthState();
   }
   async function refreshSessionAndKeys(root) {
-    const status = root.querySelector(".omni-poc-key-status");
-    const refresh = root.querySelector('[data-action="refresh"]');
-    if (status) status.textContent = "\u6B63\u5728\u8BFB\u53D6\u767B\u5F55\u72B6\u6001";
-    if (refresh) refresh.disabled = true;
+    if (refreshing) return;
+    refreshing = true;
+    renderSession(root);
     try {
       const sessionResponse = await fetch("/api/auth/session", { credentials: "include" });
-      const sessionPayload = await sessionResponse.json().catch(() => ({}));
-      sessionConnectionOk = sessionResponse.ok;
+      const sessionPayload = await safeJson(sessionResponse);
+      if (!sessionResponse.ok) throw new Error("session lookup failed");
+      sessionConnectionOk = true;
+      const previousUserId = user?.id;
       authenticated = Boolean(sessionPayload?.authenticated);
       user = authenticated ? sessionPayload.user || null : null;
+      if (user?.id !== previousUserId) {
+        const savedModel = user ? localStorage.getItem(`${SELECTED_MODEL_STORAGE}.${user.id}`) : null;
+        const initialModel = !previousUserId && user && modelChosenBeforeSession ? selectedImageModel : savedModel && IMAGE_MODELS.includes(savedModel) ? savedModel : "gpt-image-2";
+        setOmniImageModel(initialModel);
+        modelChosenBeforeSession = false;
+      }
       keys = [];
       if (authenticated) {
         const keysResponse = await fetch("/api/omni/keys", { credentials: "include" });
-        const keysPayload = await keysResponse.json().catch(() => ({}));
-        sessionConnectionOk = sessionConnectionOk && keysResponse.ok;
-        keys = Array.isArray(keysPayload?.keys) ? keysPayload.keys : [];
+        const keysPayload = await safeJson(keysResponse);
+        if (!keysResponse.ok || !Array.isArray(keysPayload?.keys)) throw new Error("key lookup failed");
+        keys = keysPayload.keys;
       }
     } catch {
       sessionConnectionOk = false;
-      authenticated = false;
-      user = null;
       keys = [];
-      if (status) status.textContent = "\u767B\u5F55\u72B6\u6001\u8BFB\u53D6\u5931\u8D25";
     } finally {
+      refreshing = false;
       renderSession(root);
+      getLegacyBridge().methods.updateRequestPreview?.();
     }
   }
   function renderKeyControl() {
@@ -28873,9 +28956,14 @@ ${hint}` : hint;
     <select id="omni-poc-key-select" class="omni-poc-key-select"></select>
     <button class="omni-poc-key-button" type="button" data-action="refresh">\u5237\u65B0</button>
     <a class="omni-poc-key-button omni-poc-login-link" href="${LOGIN_URL}">\u767B\u5F55 Omni</a>
-    <span class="omni-poc-key-status" aria-live="polite"></span>
   `;
     mountPoint().appendChild(root);
+    const modelSelect = document.querySelector("#omniImageModel");
+    modelSelect?.addEventListener("change", () => {
+      setOmniImageModel(modelSelect.value);
+      getLegacyBridge().methods.updateRequestPreview?.();
+    });
+    document.addEventListener(LOCALE_CHANGE_EVENT, () => renderSession(root));
     root.addEventListener("click", (event) => {
       const target = event.target;
       if (target.dataset.action === "refresh") {
@@ -28889,14 +28977,14 @@ ${hint}` : hint;
       } else {
         window.localStorage.removeItem(SELECTED_KEY_STORAGE);
       }
-      updateOmniLegacyAuthState();
+      renderSession(root);
     });
     void refreshSessionAndKeys(root);
   }
   async function initOmniPocKeyControl() {
     try {
       const response = await fetch("/api/health");
-      const data = await response.json();
+      const data = await safeJson(response);
       if (!data?.omni_poc?.enabled) return;
       enabled = true;
       document.documentElement.classList.add("omni-poc-mode");
@@ -34240,6 +34328,7 @@ ${galleryText}`;
     return `${els25.customWidth.value}x${els25.customHeight.value}`;
   }
   function currentImageToolModel() {
+    if (isOmniPocMode()) return currentOmniImageModel();
     return currentAuthSource2() === "api" ? currentApiImageModel() : els25.model.value;
   }
   function webSearchSupportedForCurrentBackend() {
@@ -37099,7 +37188,10 @@ ${galleryText}`;
       els33.webSearch.checked = Boolean(params.web_search);
       els33.webSearch.dispatchEvent(new Event("input"));
     }
-    if (params.model) els33.model.value = params.model;
+    if (params.model) {
+      if (isOmniPocMode()) setOmniImageModel(params.model);
+      else els33.model.value = params.model;
+    }
     if (params.size) syncSizeControlsFromSize2(params.size);
     if (params.n && els33.nInput) {
       els33.nInput.value = String(params.n);

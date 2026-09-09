@@ -14,7 +14,7 @@ from fastapi.responses import FileResponse, Response, StreamingResponse
 from codex_image.webui.auth_routing import _backend_for_api_mode
 from codex_image.webui.context import WebUIContext
 from codex_image.webui.object_storage import object_storage_from_env, owner_id_for_session
-from codex_image.webui.omni_session import SESSION_COOKIE_NAME, OmniSession, resolve_omni_image_key
+from codex_image.webui.omni_session import SESSION_COOKIE_NAME, OmniModelsUnavailableError, OmniSession, resolve_omni_image_key
 from codex_image.webui.storage import utc_now
 from codex_image.webui.task_metadata import (
     _accept_partial_task_successes,
@@ -479,7 +479,9 @@ async def _prepare_omni_retry(ctx: WebUIContext, request: Request, task_id: str,
     params = dict(metadata.get("params") or {})
     key_id = str(params.get("sub2api_api_key_id") or "").strip()
     try:
-        omni_key = await resolve_omni_image_key(config, session_store, session, key_id)
+        omni_key = await resolve_omni_image_key(config, session_store, session, key_id, model=str(params.get("model") or "gpt-image-2"))
+    except OmniModelsUnavailableError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     secret_store.put_task_key(task_id, str(omni_key.get("key") or ""))

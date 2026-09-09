@@ -1,6 +1,19 @@
 import type { TranslationDictionary } from "./types";
 
 export const ZH_CN_DICTIONARY: TranslationDictionary = {
+    "omni.imageModel": "图片模型",
+    "omni.modelUnavailable": "历史图片模型已不可用，请重新选择模型。",
+    "omni.lookupFailed": "模型列表获取失败，请刷新后重试。",
+    "omni.partialLookupFailed": "部分 Key 的模型列表获取失败，可刷新重试。",
+    "omni.selectedKeyUnsupported": "所选 Key 无法调用 {model}，请选择其他 Key。",
+    "omni.noModelKey": "没有可调用 {model} 的 API Key。",
+    "omni.noKey": "没有可用的 API Key",
+    "omni.selectedKeyUnavailable": "所选 Key 已不可用",
+    "omni.loginRequired": "请先从 Omni 主站登录后再使用生图功能。",
+    "omni.login": "登录 Omni",
+    "omni.refresh": "刷新",
+    "omni.loading": "正在读取 Key 和模型列表",
+    "omni.autoKey": "自动选择（推荐）",
     "app.newTask": "新建",
     "app.newTaskAria": "新建对话",
     "sidebar.searchPlaceholder": "搜索提示词或任务 ID",

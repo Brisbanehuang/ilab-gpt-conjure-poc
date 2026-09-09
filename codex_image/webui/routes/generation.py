@@ -17,8 +17,9 @@ from codex_image.webui.executor import (
     _resolve_reference_assets,
 )
 from codex_image.webui.omni_poc_limits import validate_upload_limits
+from codex_image.webui.omni_poc import require_omni_image_model
 from codex_image.webui.object_storage import owner_id_for_session
-from codex_image.webui.omni_session import SESSION_COOKIE_NAME, OmniSession, resolve_omni_image_key
+from codex_image.webui.omni_session import SESSION_COOKIE_NAME, OmniModelsUnavailableError, OmniSession, resolve_omni_image_key
 from codex_image.webui.prompt_ratio import append_ratio_prompt_instruction
 from codex_image.webui.storage import utc_now
 from codex_image.webui.submit_dedupe import submit_fingerprint
@@ -59,13 +60,16 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
     def scoped_reference_asset_storage(owner_id: str | None):
         return ctx.reference_asset_storage if owner_id is None else ctx.reference_asset_storage.scoped(owner_id)
 
-    async def omni_key_from_session(session: OmniSession | None, sub2api_key_id: str | None) -> dict[str, Any] | None:
+    async def omni_key_from_session(session: OmniSession | None, sub2api_key_id: str | None, model: str) -> dict[str, Any] | None:
         if session is None:
             return None
         config = h.get("omni_poc_config")
         session_store = h.get("omni_session_store")
         try:
-            return await resolve_omni_image_key(config, session_store, session, str(sub2api_key_id or ""))
+            require_omni_image_model(model)
+            return await resolve_omni_image_key(config, session_store, session, str(sub2api_key_id or ""), model=model)
+        except OmniModelsUnavailableError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -129,7 +133,7 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
         reference_images: list[UploadFile] | None = File(None),
     ) -> dict[str, Any]:
         session = omni_session_from_request(request)
-        omni_key = await omni_key_from_session(session, sub2api_key_id)
+        omni_key = await omni_key_from_session(session, sub2api_key_id, model)
         owner_id = owner_id_from_request_session(session)
         gallery_storage = scoped_gallery_storage(owner_id)
         reference_asset_storage = scoped_reference_asset_storage(owner_id)
@@ -333,7 +337,7 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
         mask: UploadFile | None = File(None),
     ) -> dict[str, Any]:
         session = omni_session_from_request(request)
-        omni_key = await omni_key_from_session(session, sub2api_key_id)
+        omni_key = await omni_key_from_session(session, sub2api_key_id, model)
         owner_id = owner_id_from_request_session(session)
         gallery_storage = scoped_gallery_storage(owner_id)
         reference_asset_storage = scoped_reference_asset_storage(owner_id)
@@ -371,7 +375,7 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
         fidelity = _normalize_prompt_fidelity(prompt_fidelity)
         model_prompt = append_ratio_prompt_instruction(h["model_prompt_for_fidelity"](prompt, prompt_for_model, fidelity), ratio)
         prompt_constraints, guard_instructions = h["prompt_guard_context"](prompt, fidelity)
-        effective_input_fidelity = input_fidelity if image_model_supports_input_fidelity(model) else None
+        effective_input_fidelity = input_fidelity if omni_key is None and image_model_supports_input_fidelity(model) else None
         (
             auth_source,
             effective_api_provider_id,

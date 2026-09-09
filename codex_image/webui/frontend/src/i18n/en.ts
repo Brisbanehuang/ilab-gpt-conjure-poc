@@ -1,6 +1,19 @@
 import type { TranslationDictionary } from "./types";
 
 export const EN_DICTIONARY: TranslationDictionary = {
+    "omni.imageModel": "Image model",
+    "omni.modelUnavailable": "The saved image model is unavailable. Choose a model.",
+    "omni.lookupFailed": "Could not load model availability. Refresh to retry.",
+    "omni.partialLookupFailed": "Some keys could not be checked. Refresh to retry.",
+    "omni.selectedKeyUnsupported": "The selected key is unavailable for {model}. Choose another key.",
+    "omni.noModelKey": "No API key supports {model}.",
+    "omni.noKey": "No compatible API key",
+    "omni.selectedKeyUnavailable": "Selected key unavailable",
+    "omni.loginRequired": "Sign in through OmniAPI to generate images.",
+    "omni.login": "Sign in to Omni",
+    "omni.refresh": "Refresh",
+    "omni.loading": "Checking keys and models",
+    "omni.autoKey": "Automatic (recommended)",
     "app.newTask": "New",
     "app.newTaskAria": "New chat",
     "sidebar.searchPlaceholder": "Search prompts or task ID",

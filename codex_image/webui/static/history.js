@@ -1,6 +1,19 @@
 (() => {
   // codex_image/webui/frontend/src/i18n/en.ts
   var EN_DICTIONARY = {
+    "omni.imageModel": "Image model",
+    "omni.modelUnavailable": "The saved image model is unavailable. Choose a model.",
+    "omni.lookupFailed": "Could not load model availability. Refresh to retry.",
+    "omni.partialLookupFailed": "Some keys could not be checked. Refresh to retry.",
+    "omni.selectedKeyUnsupported": "The selected key is unavailable for {model}. Choose another key.",
+    "omni.noModelKey": "No API key supports {model}.",
+    "omni.noKey": "No compatible API key",
+    "omni.selectedKeyUnavailable": "Selected key unavailable",
+    "omni.loginRequired": "Sign in through OmniAPI to generate images.",
+    "omni.login": "Sign in to Omni",
+    "omni.refresh": "Refresh",
+    "omni.loading": "Checking keys and models",
+    "omni.autoKey": "Automatic (recommended)",
     "app.newTask": "New",
     "app.newTaskAria": "New chat",
     "sidebar.searchPlaceholder": "Search prompts or task ID",
@@ -8900,6 +8913,19 @@
 
   // codex_image/webui/frontend/src/i18n/zh-cn.ts
   var ZH_CN_DICTIONARY = {
+    "omni.imageModel": "\u56FE\u7247\u6A21\u578B",
+    "omni.modelUnavailable": "\u5386\u53F2\u56FE\u7247\u6A21\u578B\u5DF2\u4E0D\u53EF\u7528\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9\u6A21\u578B\u3002",
+    "omni.lookupFailed": "\u6A21\u578B\u5217\u8868\u83B7\u53D6\u5931\u8D25\uFF0C\u8BF7\u5237\u65B0\u540E\u91CD\u8BD5\u3002",
+    "omni.partialLookupFailed": "\u90E8\u5206 Key \u7684\u6A21\u578B\u5217\u8868\u83B7\u53D6\u5931\u8D25\uFF0C\u53EF\u5237\u65B0\u91CD\u8BD5\u3002",
+    "omni.selectedKeyUnsupported": "\u6240\u9009 Key \u65E0\u6CD5\u8C03\u7528 {model}\uFF0C\u8BF7\u9009\u62E9\u5176\u4ED6 Key\u3002",
+    "omni.noModelKey": "\u6CA1\u6709\u53EF\u8C03\u7528 {model} \u7684 API Key\u3002",
+    "omni.noKey": "\u6CA1\u6709\u53EF\u7528\u7684 API Key",
+    "omni.selectedKeyUnavailable": "\u6240\u9009 Key \u5DF2\u4E0D\u53EF\u7528",
+    "omni.loginRequired": "\u8BF7\u5148\u4ECE Omni \u4E3B\u7AD9\u767B\u5F55\u540E\u518D\u4F7F\u7528\u751F\u56FE\u529F\u80FD\u3002",
+    "omni.login": "\u767B\u5F55 Omni",
+    "omni.refresh": "\u5237\u65B0",
+    "omni.loading": "\u6B63\u5728\u8BFB\u53D6 Key \u548C\u6A21\u578B\u5217\u8868",
+    "omni.autoKey": "\u81EA\u52A8\u9009\u62E9\uFF08\u63A8\u8350\uFF09",
     "app.newTask": "\u65B0\u5EFA",
     "app.newTaskAria": "\u65B0\u5EFA\u5BF9\u8BDD",
     "sidebar.searchPlaceholder": "\u641C\u7D22\u63D0\u793A\u8BCD\u6216\u4EFB\u52A1 ID",

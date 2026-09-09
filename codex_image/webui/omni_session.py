@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import sqlite3
 import uuid
 from dataclasses import dataclass
@@ -9,12 +10,17 @@ from typing import Any
 import httpx
 from cryptography.fernet import Fernet, InvalidToken
 
-from codex_image.webui.omni_poc import OmniPOCConfig, mask_api_key
+from codex_image.webui.omni_poc import OMNI_IMAGE_MODELS, OmniPOCConfig, mask_api_key, require_omni_image_model
 
 
 DEFAULT_TITLE_MODEL = "gpt-5.6-luna"
 SESSION_COOKIE_NAME = "omni_lens_session"
 SESSION_TTL_HOURS = 168
+logger = logging.getLogger(__name__)
+
+
+class OmniModelsUnavailableError(ValueError):
+    pass
 
 
 @dataclass(frozen=True)
@@ -222,18 +228,25 @@ async def _key_supported_models(config: OmniPOCConfig, api_key: str) -> frozense
                 f"{config.base_url}/models",
                 headers={"Authorization": f"Bearer {api_key}"},
             )
+        response.raise_for_status()
         payload = response.json()
-        models = payload.get("data") if isinstance(payload, dict) else []
+        models = payload.get("data") if isinstance(payload, dict) else None
+        if not isinstance(models, list):
+            raise ValueError("invalid models response")
         return frozenset(
             str(item.get("id"))
             for item in models
             if isinstance(item, dict) and item.get("id")
         )
-    except Exception:
-        return frozenset()
+    except (httpx.HTTPError, ValueError) as exc:
+        # Do not log URLs, headers or response bodies from credentialed requests.
+        status = exc.response.status_code if isinstance(exc, httpx.HTTPStatusError) else None
+        logger.warning("omni_models_lookup_failed error_type=%s status=%s", type(exc).__name__, status)
+        raise OmniModelsUnavailableError("模型列表获取失败，请刷新后重试") from None
 
 
-def key_dto(key: dict[str, Any], *, supports_image_model: bool, supports_title_model: bool) -> dict[str, Any]:
+def key_dto(key: dict[str, Any], *, supports_image_model: bool, supports_title_model: bool,
+            supported_image_models: list[str] | None = None, model_lookup_failed: bool = False) -> dict[str, Any]:
     group = key.get("group") if isinstance(key.get("group"), dict) else {}
     return {
         "id": str(key.get("id") or ""),
@@ -243,6 +256,8 @@ def key_dto(key: dict[str, Any], *, supports_image_model: bool, supports_title_m
         "masked_key": mask_api_key(str(key.get("key") or "")),
         "supports_image_model": supports_image_model,
         "supports_title_model": supports_title_model,
+        "supported_image_models": supported_image_models or [],
+        "model_lookup_failed": model_lookup_failed,
     }
 
 
@@ -253,19 +268,28 @@ async def usable_key_dtos(config: OmniPOCConfig, token: str) -> list[dict[str, A
         api_key = str(key.get("key") or "").strip()
         if not api_key or not is_openai_image_key_candidate(key):
             continue
-        supported_models = await _key_supported_models(config, api_key)
-        if config.image_model not in supported_models:
+        try:
+            supported_models = await _key_supported_models(config, api_key)
+        except OmniModelsUnavailableError:
+            result.append(key_dto(key, supports_image_model=False, supports_title_model=False, model_lookup_failed=True))
+            continue
+        image_models = [model for model in OMNI_IMAGE_MODELS if model in supported_models]
+        if not image_models:
             continue
         supports_title = DEFAULT_TITLE_MODEL in supported_models if is_openai_text_key_candidate(key) else False
-        result.append(key_dto(key, supports_image_model=True, supports_title_model=supports_title))
+        result.append(key_dto(key, supports_image_model=config.image_model in supported_models,
+                              supports_title_model=supports_title, supported_image_models=image_models))
     return result
 
 
-async def resolve_omni_image_key(config: OmniPOCConfig, session_store: OmniSessionStore, session: OmniSession, key_id: str) -> dict[str, Any]:
+async def resolve_omni_image_key(config: OmniPOCConfig, session_store: OmniSessionStore, session: OmniSession, key_id: str,
+                                 *, model: str | None = None) -> dict[str, Any]:
+    image_model = require_omni_image_model(model if model is not None else config.image_model)
     clean_key_id = str(key_id or "").strip()
     auto_select = clean_key_id.lower() == "auto" or not clean_key_id
     token = session_store.decrypt_token(session)
     rows = await list_omni_image_keys(config, token)
+    lookup_failed = False
     for key in rows:
         if not auto_select and str(key.get("id") or "") != clean_key_id:
             continue
@@ -274,13 +298,21 @@ async def resolve_omni_image_key(config: OmniPOCConfig, session_store: OmniSessi
             if auto_select:
                 continue
             break
-        supported_models = await _key_supported_models(config, api_key)
-        if config.image_model not in supported_models:
+        try:
+            supported_models = await _key_supported_models(config, api_key)
+        except OmniModelsUnavailableError:
+            if not auto_select:
+                raise
+            lookup_failed = True
+            continue
+        if image_model not in supported_models:
             if auto_select:
                 continue
             break
         key = dict(key)
         key["supports_title_model"] = DEFAULT_TITLE_MODEL in supported_models if is_openai_text_key_candidate(key) else False
         return key
-    detail = "没有检测到可调用 gpt-image-2 的 API Key" if auto_select else "选择的 Omni API Key 不可用或不属于当前用户"
+    if lookup_failed:
+        raise OmniModelsUnavailableError("模型列表获取失败，请刷新后重试")
+    detail = f"没有检测到可调用 {image_model} 的 API Key" if auto_select else f"选择的 Omni API Key 不可用、不支持 {image_model} 或不属于当前用户"
     raise ValueError(detail)

@@ -15,6 +15,13 @@ from codex_image.client import OpenAIImagesImageClient, OpenAIResponsesImageClie
 TRUE_VALUES = {"1", "true", "yes", "on"}
 DEFAULT_OMNI_BASE_URL = "http://127.0.0.1:8080/v1"
 DEFAULT_OMNI_IMAGE_MODEL = "gpt-image-2"
+OMNI_IMAGE_MODELS = ("gpt-image-2", "gpt-image-2.5-flare", "gpt-image-2.5-sunburst")
+
+
+def require_omni_image_model(model: str) -> str:
+    if model not in OMNI_IMAGE_MODELS:
+        raise ValueError("请选择 Image 2、Image 2.5 Flare 或 Image 2.5 Sunburst")
+    return model
 
 
 @dataclass(frozen=True)

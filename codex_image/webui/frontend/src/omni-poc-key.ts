@@ -1,6 +1,10 @@
 import { getLegacyBridge } from "./state";
+import { safeJson } from "./api";
+import { formatTranslation, LOCALE_CHANGE_EVENT, translate } from "./i18n";
 
 const SELECTED_KEY_STORAGE = "ilab.omniSelectedKeyId";
+const SELECTED_MODEL_STORAGE = "ilab.omniImageModel";
+const IMAGE_MODELS = ["gpt-image-2", "gpt-image-2.5-flare", "gpt-image-2.5-sunburst"];
 const LOGIN_URL = "https://api.brislouise.online/image-generator";
 
 interface OmniUser {
@@ -16,6 +20,8 @@ interface OmniKey {
   group_name?: string;
   masked_key?: string;
   supports_title_model?: boolean;
+  supported_image_models: string[];
+  model_lookup_failed?: boolean;
 }
 
 let enabled = false;
@@ -24,6 +30,55 @@ let selectedKeyId = window.localStorage.getItem(SELECTED_KEY_STORAGE)?.trim() ||
 let keys: OmniKey[] = [];
 let user: OmniUser | null = null;
 let sessionConnectionOk = true;
+let selectedImageModel = "gpt-image-2";
+let refreshing = false;
+let modelChosenBeforeSession = false;
+
+export function currentOmniImageModel(): string {
+  return selectedImageModel;
+}
+
+export function setOmniImageModel(model: string): void {
+  if (!user) modelChosenBeforeSession = true;
+  // Preserve an unavailable historical model instead of silently replacing it.
+  selectedImageModel = model;
+  const select = document.querySelector<HTMLSelectElement>("#omniImageModel");
+  if (select) {
+    select.querySelectorAll('[data-unavailable-model]').forEach((option) => option.remove());
+    if (!IMAGE_MODELS.includes(model)) {
+      const option = new Option(model, model);
+      option.dataset.unavailableModel = "true";
+      option.disabled = true;
+      select.appendChild(option);
+    }
+    select.value = model;
+  }
+  if (user && IMAGE_MODELS.includes(model)) {
+    localStorage.setItem(`${SELECTED_MODEL_STORAGE}.${user.id}`, model);
+  }
+  const root = document.querySelector<HTMLElement>(".omni-poc-key-control");
+  if (root) renderSession(root);
+}
+
+function compatibleKeys(): OmniKey[] {
+  return keys.filter((key) => !key.model_lookup_failed && key.supported_image_models?.includes(selectedImageModel));
+}
+
+function modelSelectionError(): string {
+  if (!IMAGE_MODELS.includes(selectedImageModel)) return translate("omni.modelUnavailable");
+  if (!sessionConnectionOk) return translate("omni.lookupFailed");
+  const selected = keys.find((key) => key.id === selectedKeyId);
+  if (selectedKeyId && selected?.model_lookup_failed) return translate("omni.lookupFailed");
+  if (selectedKeyId && !compatibleKeys().some((key) => key.id === selectedKeyId)) {
+    return formatTranslation("omni.selectedKeyUnsupported", { model: selectedImageModel });
+  }
+  if (!compatibleKeys().length) {
+    return keys.some((key) => key.model_lookup_failed)
+      ? translate("omni.lookupFailed")
+      : formatTranslation("omni.noModelKey", { model: selectedImageModel });
+  }
+  return "";
+}
 
 export function isOmniPocMode(): boolean {
   return enabled || document.documentElement.classList.contains("omni-poc-mode");
@@ -40,16 +95,16 @@ export function omniHeaders(): Record<string, string> {
 export function requireOmniApiKeyBeforeSubmit(): void {
   if (!isOmniPocMode()) return;
   if (!authenticated) {
-    throw new Error("请先从 Omni 主站登录后再使用生图功能");
+    throw new Error(translate("omni.loginRequired"));
   }
-  if (!keys.length) {
-    throw new Error("没有检测到可调用 gpt-image-2 的 API Key");
-  }
+  if (refreshing) throw new Error(translate("omni.loading"));
+  const error = modelSelectionError();
+  if (error) throw new Error(error);
 }
 
 export function updateOmniLegacyAuthState(): void {
   const bridge = getLegacyBridge();
-  const ready = Boolean(authenticated && keys.length);
+  const ready = Boolean(authenticated && !refreshing && !modelSelectionError());
   bridge.state.authAvailable = ready;
   bridge.state.authStatus = {
     selected_source: "api",
@@ -64,7 +119,7 @@ export function updateOmniLegacyAuthState(): void {
     bridge.els.runButton.disabled = !ready;
   }
   if (bridge.els.authSourceDetail) {
-    const text = ready ? "Omni API Key" : authenticated ? "没有可用 Omni API Key" : "请从 Omni 主站登录";
+    const text = ready ? "Omni API Key" : authenticated ? modelSelectionError() : translate("omni.loginRequired");
     bridge.els.authSourceDetail.textContent = text;
     bridge.els.authSourceDetail.title = text;
   }
@@ -81,34 +136,37 @@ function labelForKey(key: OmniKey): string {
 
 function renderKeyOptions(select: HTMLSelectElement): void {
   select.innerHTML = "";
-  if (!keys.length) {
+  const candidates = compatibleKeys();
+  if (!candidates.length && !selectedKeyId) {
     const option = document.createElement("option");
     option.value = "";
-    option.textContent = authenticated ? "没有可用的 gpt-image-2 API Key" : "请先登录";
+    option.textContent = authenticated ? translate("omni.noKey") : translate("omni.login");
     select.appendChild(option);
     select.value = "";
-    selectedKeyId = "";
-    window.localStorage.removeItem(SELECTED_KEY_STORAGE);
     return;
   }
   const autoOption = document.createElement("option");
   autoOption.value = "";
-  autoOption.textContent = "自动选择（推荐）";
+  autoOption.textContent = translate("omni.autoKey");
+  autoOption.disabled = !candidates.length;
   select.appendChild(autoOption);
-  keys.forEach((key) => {
+  candidates.forEach((key) => {
     const option = document.createElement("option");
     option.value = key.id;
     option.textContent = labelForKey(key);
     select.appendChild(option);
   });
-  if (selectedKeyId && !keys.some((key) => key.id === selectedKeyId)) {
-    selectedKeyId = "";
+  if (selectedKeyId && !candidates.some((key) => key.id === selectedKeyId)) {
+    const selected = keys.find((key) => key.id === selectedKeyId);
+    const option = new Option(selected ? labelForKey(selected) : translate("omni.selectedKeyUnavailable"), selectedKeyId);
+    option.disabled = true;
+    select.appendChild(option);
   }
   select.value = selectedKeyId;
 }
 
 function renderSession(root: HTMLElement): void {
-  const status = root.querySelector<HTMLSpanElement>(".omni-poc-key-status");
+  const status = document.querySelector<HTMLSpanElement>("#omniModelStatus");
   const account = root.querySelector<HTMLSpanElement>(".omni-poc-account");
   const select = root.querySelector<HTMLSelectElement>(".omni-poc-key-select");
   const login = root.querySelector<HTMLAnchorElement>(".omni-poc-login-link");
@@ -122,49 +180,61 @@ function renderSession(root: HTMLElement): void {
   }
   if (login) {
     login.classList.toggle("hidden", authenticated);
+    login.textContent = translate("omni.login");
   }
   if (select) {
-    select.disabled = !authenticated || !keys.length;
+    select.disabled = !authenticated || refreshing || !compatibleKeys().length;
     select.classList.toggle("hidden", !authenticated);
     renderKeyOptions(select);
   }
   if (refresh) {
-    refresh.disabled = false;
+    refresh.disabled = refreshing;
+    refresh.textContent = translate("omni.refresh");
     refresh.classList.toggle("hidden", !authenticated);
   }
   if (status) {
-    status.textContent = authenticated ? (keys.length ? "" : "没有检测到可调用 gpt-image-2 的 API Key") : "";
-    status.classList.toggle("hidden", authenticated && keys.length > 0);
+    const error = !sessionConnectionOk ? translate("omni.lookupFailed") : authenticated ? modelSelectionError() : "";
+    status.textContent = refreshing ? translate("omni.loading") : error || (keys.some((key) => key.model_lookup_failed) ? translate("omni.partialLookupFailed") : "");
+    status.title = status.textContent;
+    status.classList.toggle("hidden", !status.textContent);
   }
   updateOmniLegacyAuthState();
 }
 
 async function refreshSessionAndKeys(root: HTMLElement): Promise<void> {
-  const status = root.querySelector<HTMLSpanElement>(".omni-poc-key-status");
-  const refresh = root.querySelector<HTMLButtonElement>('[data-action="refresh"]');
-  if (status) status.textContent = "正在读取登录状态";
-  if (refresh) refresh.disabled = true;
+  if (refreshing) return;
+  refreshing = true;
+  renderSession(root);
   try {
     const sessionResponse = await fetch("/api/auth/session", { credentials: "include" });
-    const sessionPayload = await sessionResponse.json().catch(() => ({}));
-    sessionConnectionOk = sessionResponse.ok;
+    const sessionPayload = await safeJson(sessionResponse);
+    if (!sessionResponse.ok) throw new Error("session lookup failed");
+    sessionConnectionOk = true;
+    const previousUserId = user?.id;
     authenticated = Boolean(sessionPayload?.authenticated);
     user = authenticated ? sessionPayload.user || null : null;
+    if (user?.id !== previousUserId) {
+      const savedModel = user ? localStorage.getItem(`${SELECTED_MODEL_STORAGE}.${user.id}`) : null;
+      const initialModel = !previousUserId && user && modelChosenBeforeSession
+        ? selectedImageModel
+        : savedModel && IMAGE_MODELS.includes(savedModel) ? savedModel : "gpt-image-2";
+      setOmniImageModel(initialModel);
+      modelChosenBeforeSession = false;
+    }
     keys = [];
     if (authenticated) {
       const keysResponse = await fetch("/api/omni/keys", { credentials: "include" });
-      const keysPayload = await keysResponse.json().catch(() => ({}));
-      sessionConnectionOk = sessionConnectionOk && keysResponse.ok;
-      keys = Array.isArray(keysPayload?.keys) ? keysPayload.keys : [];
+      const keysPayload = await safeJson(keysResponse);
+      if (!keysResponse.ok || !Array.isArray(keysPayload?.keys)) throw new Error("key lookup failed");
+      keys = keysPayload.keys;
     }
   } catch {
     sessionConnectionOk = false;
-    authenticated = false;
-    user = null;
     keys = [];
-    if (status) status.textContent = "登录状态读取失败";
   } finally {
+    refreshing = false;
     renderSession(root);
+    getLegacyBridge().methods.updateRequestPreview?.();
   }
 }
 
@@ -178,9 +248,14 @@ function renderKeyControl(): void {
     <select id="omni-poc-key-select" class="omni-poc-key-select"></select>
     <button class="omni-poc-key-button" type="button" data-action="refresh">刷新</button>
     <a class="omni-poc-key-button omni-poc-login-link" href="${LOGIN_URL}">登录 Omni</a>
-    <span class="omni-poc-key-status" aria-live="polite"></span>
   `;
   mountPoint().appendChild(root);
+  const modelSelect = document.querySelector<HTMLSelectElement>("#omniImageModel");
+  modelSelect?.addEventListener("change", () => {
+    setOmniImageModel(modelSelect.value);
+    getLegacyBridge().methods.updateRequestPreview?.();
+  });
+  document.addEventListener(LOCALE_CHANGE_EVENT, () => renderSession(root));
 
   root.addEventListener("click", (event) => {
     const target = event.target as HTMLElement;
@@ -195,7 +270,7 @@ function renderKeyControl(): void {
     } else {
       window.localStorage.removeItem(SELECTED_KEY_STORAGE);
     }
-    updateOmniLegacyAuthState();
+    renderSession(root);
   });
   void refreshSessionAndKeys(root);
 }
@@ -203,7 +278,7 @@ function renderKeyControl(): void {
 export async function initOmniPocKeyControl(): Promise<void> {
   try {
     const response = await fetch("/api/health");
-    const data = await response.json();
+    const data = await safeJson(response);
     if (!data?.omni_poc?.enabled) return;
     enabled = true;
     document.documentElement.classList.add("omni-poc-mode");

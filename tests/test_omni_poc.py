@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import asyncio
 import json
+import base64
 import shutil
 import tempfile
 from pathlib import Path
@@ -10,6 +11,7 @@ from unittest import TestCase
 from unittest.mock import Mock, patch
 
 from cryptography.fernet import Fernet
+import httpx
 from fastapi.testclient import TestClient
 
 from codex_image.webui.app import create_app
@@ -20,6 +22,7 @@ from codex_image.webui.omni_poc import (
     omni_poc_enabled,
 )
 from codex_image.webui.omni_session import OmniSessionStore
+from codex_image.webui.omni_session import OmniModelsUnavailableError, _key_supported_models, usable_key_dtos
 
 
 class TempDirMixin:
@@ -124,6 +127,96 @@ class OmniPOCGenerationTests(TempDirMixin, TestCase):
         self.assertEqual(response.status_code, 401)
         self.assertIn("请先登录 OmniAPI", response.json()["detail"])
 
+    def test_three_models_are_validated_and_stored_across_generate_edit_and_search(self) -> None:
+        app, _ = self.create_poc_app()
+        session = app.state.omni_session_store.create_session({"id": 123}, "sub2api-token")
+        client = TestClient(app)
+        client.cookies.set("omni_lens_session", session.id)
+        rows = [{"id": "456", "key": "sk-test", "status": "active",
+                 "group": {"status": "active", "platform": "openai", "allow_image_generation": True}}]
+        image = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j6xkAAAAASUVORK5CYII=")
+        for model in ("gpt-image-2", "gpt-image-2.5-flare", "gpt-image-2.5-sunburst"):
+            for endpoint, search in (("generate", False), ("edit", False), ("generate", True)):
+                with self.subTest(model=model, endpoint=endpoint, search=search), patch(
+                    "codex_image.webui.omni_session.list_omni_image_keys", return_value=rows
+                ), patch("codex_image.webui.omni_session._key_supported_models", return_value=frozenset({model})) as lookup:
+                    response = client.post(f"/api/{endpoint}", data={
+                        "prompt": f"{endpoint} {model} {search}", "model": model,
+                        "main_model": "gpt-6-astra", "web_search": str(search).lower(),
+                        "input_fidelity": "high", "sub2api_key_id": "456",
+                    }, files={"images": ("input.png", image, "image/png")} if endpoint == "edit" else None)
+                    self.assertEqual(response.status_code, 200, response.text)
+                    self.assertEqual(lookup.await_count, 1)
+                    payload = response.json()
+                    self.assertEqual(payload["task"]["params"]["model"], model)
+                    self.assertNotIn("input_fidelity", payload["task"]["params"])
+                    self.assertNotIn("sk-test", response.text)
+                    if not search:
+                        self.assertEqual(payload["request"]["model"], model)
+
+    def test_submit_rejects_unsupported_or_unavailable_models_before_queuing(self) -> None:
+        app, _ = self.create_poc_app()
+        session = app.state.omni_session_store.create_session({"id": 123}, "sub2api-token")
+        client = TestClient(app)
+        client.cookies.set("omni_lens_session", session.id)
+        with patch("codex_image.webui.routes.generation.resolve_omni_image_key") as resolve:
+            response = client.post("/api/generate", data={"prompt": "test", "model": "custom-variant"})
+            self.assertEqual(response.status_code, 400)
+            resolve.assert_not_called()
+        with patch("codex_image.webui.routes.generation.resolve_omni_image_key", side_effect=OmniModelsUnavailableError("模型列表获取失败")):
+            response = client.post("/api/generate", data={"prompt": "test", "model": "gpt-image-2.5-flare"})
+            self.assertEqual(response.status_code, 503)
+        self.assertEqual(app.state.ctx.queue_storage.read_state()["waiting"], [])
+
+    def test_listing_keeps_partial_lookup_failures_distinct_from_unsupported_keys(self) -> None:
+        app, _ = self.create_poc_app()
+        rows = [{"id": str(i), "key": f"sk-test-{i}", "status": "active",
+                 "group": {"status": "active", "platform": "openai", "allow_image_generation": True}}
+                for i in range(3)]
+        with patch("codex_image.webui.omni_session.list_omni_image_keys", return_value=rows), patch(
+            "codex_image.webui.omni_session._key_supported_models",
+            side_effect=[OmniModelsUnavailableError("lookup failed"), frozenset({"gpt-image-2.5-flare", "gpt-image-2.5-sunburst", "custom-variant"}), frozenset()],
+        ) as lookup:
+            result = asyncio.run(usable_key_dtos(app.state.omni_poc_config, "sub2api-token"))
+        self.assertEqual(lookup.await_count, 3)
+        self.assertEqual(len(result), 2)
+        self.assertTrue(result[0]["model_lookup_failed"])
+        self.assertEqual(result[1]["supported_image_models"], ["gpt-image-2.5-flare", "gpt-image-2.5-sunburst"])
+        self.assertFalse(result[1]["model_lookup_failed"])
+
+    def test_models_endpoint_failures_are_not_an_empty_model_list(self) -> None:
+        app, _ = self.create_poc_app()
+        request = httpx.Request("GET", "http://127.0.0.1:8080/v1/models")
+        for response in (httpx.Response(503, json={"error": "busy"}, request=request),
+                         httpx.Response(200, json={"unexpected": []}, request=request)):
+            with patch("codex_image.webui.omni_session.httpx.AsyncClient") as client:
+                client.return_value.__aenter__.return_value.get.return_value = response
+                with self.assertRaises(OmniModelsUnavailableError):
+                    asyncio.run(_key_supported_models(app.state.omni_poc_config, "sk-test"))
+
+    def test_key_selection_uses_task_model_and_never_substitutes_a_manual_key(self) -> None:
+        from codex_image.webui.omni_session import resolve_omni_image_key
+
+        app, _ = self.create_poc_app()
+        store = app.state.omni_session_store
+        session = store.create_session({"id": 123}, "sub2api-token")
+        rows = [{"id": key_id, "key": key_id, "status": "active",
+                 "group": {"status": "active", "platform": "openai", "allow_image_generation": True}}
+                for key_id in ("old", "new")]
+
+        async def models(_config, key):
+            return frozenset({"gpt-image-2"} if key == "old" else {"gpt-image-2.5-flare", "gpt-image-2.5-sunburst"})
+
+        with patch("codex_image.webui.omni_session.list_omni_image_keys", return_value=rows), patch(
+            "codex_image.webui.omni_session._key_supported_models", side_effect=models
+        ):
+            for model in ("gpt-image-2.5-flare", "gpt-image-2.5-sunburst"):
+                selected = asyncio.run(resolve_omni_image_key(app.state.omni_poc_config, store, session, "", model=model))
+                self.assertEqual(selected["id"], "new")
+                for key_id in ("old", "another-users-key"):
+                    with self.assertRaises(ValueError):
+                        asyncio.run(resolve_omni_image_key(app.state.omni_poc_config, store, session, key_id, model=model))
+
     def test_generate_stores_task_scoped_selected_key_without_metadata_leak(self) -> None:
         app, _ = self.create_poc_app()
         session_store = app.state.ctx.route_helpers["omni_session_store"]
@@ -205,7 +298,7 @@ class OmniPOCGenerationTests(TempDirMixin, TestCase):
                     "web_search": True,
                     "sub2api_user_id": 123,
                     "sub2api_api_key_id": "456",
-                    "model": "gpt-image-2",
+                    "model": "gpt-image-2.5-sunburst",
                     "n": 1,
                 },
                 "outputs": [{"index": 1, "status": "failed", "error": "temporary responses parse error"}],
@@ -236,7 +329,7 @@ class OmniPOCGenerationTests(TempDirMixin, TestCase):
             ],
         ), patch(
             "codex_image.webui.omni_session._key_supported_models",
-            return_value=frozenset({"gpt-image-2", "gpt-5.6-luna"}),
+            return_value=frozenset({"gpt-image-2.5-sunburst", "gpt-5.6-luna"}),
         ):
             response = TestClient(app).post(
                 f"/api/tasks/{task_id}/retry-failed",
@@ -248,6 +341,7 @@ class OmniPOCGenerationTests(TempDirMixin, TestCase):
         self.assertEqual(metadata["status"], "queued")
         self.assertEqual(metadata["params"]["api_provider_id"], "omni-poc")
         self.assertEqual(metadata["params"]["api_mode"], "responses")
+        self.assertEqual(metadata["params"]["model"], "gpt-image-2.5-sunburst")
         self.assertTrue(metadata["params"]["web_search"])
         self.assertEqual(metadata["requested_backend"], "openai_responses")
         self.assertEqual(app.state.ctx.route_helpers["omni_task_secret_store"].get_task_key(task_id), "sk-retry-secret")

@@ -534,7 +534,7 @@ svg.button-icon {
   align-items: center;
   flex-wrap: nowrap;
   gap: 3px;
-  max-width: min(440px, 42vw);
+  flex: 0 0 auto;
   height: var(--top-nav-control-height);
   min-height: var(--top-nav-control-height);
   padding: var(--top-nav-control-padding);
@@ -555,8 +555,23 @@ svg.button-icon {
   display: none;
 }
 
+.omni-image-model-field {
+  display: none;
+}
+
+.omni-poc-mode .omni-image-model-field {
+  display: grid;
+  min-width: 0;
+}
+
+.omni-image-model-field select {
+  width: 100%;
+  min-width: 0;
+  font-size: 14px;
+}
+
 .omni-poc-key-select {
-  width: min(220px, 20vw);
+  width: 180px;
   height: var(--top-nav-segment-height);
   min-height: var(--top-nav-segment-height);
   padding: 0 26px 0 10px;
@@ -609,9 +624,8 @@ svg.button-icon {
 }
 
 .omni-poc-key-status {
-  max-width: 240px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
   color: var(--muted);
 }
