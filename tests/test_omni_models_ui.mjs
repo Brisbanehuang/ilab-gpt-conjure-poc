@@ -22,8 +22,9 @@ await new Promise((done) => server.listen(0, "127.0.0.1", done));
 const base = `http://127.0.0.1:${server.address().port}`;
 const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE });
 try {
-  for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844 }]) {
-    const page = await browser.newPage({ viewport, locale: "zh-CN" });
+  for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844 }, { width: 844, height: 390 }]) {
+    const mobile = viewport.width <= 1024;
+    const page = await browser.newPage({ viewport, locale: "zh-CN", isMobile: mobile, hasTouch: mobile });
     const errors = [];
     const submissions = [];
     let keyLookups = 0;
@@ -65,6 +66,31 @@ try {
     });
     await page.goto(base);
     await page.waitForFunction(() => document.querySelector("#omni-poc-key-select option[value=old]"));
+    if (mobile) {
+      const dashboard = page.locator(".dashboard");
+      const box = await dashboard.boundingBox();
+      assert.ok(box && box.y + box.height <= viewport.height + 1, "mobile workspace must fit below the headers");
+      const cdp = await page.context().newCDPSession(page);
+      const swipe = async (distance) => cdp.send("Input.synthesizeScrollGesture", {
+        x: Math.round(viewport.width / 2), y: Math.round(box.y + box.height * 0.8),
+        yDistance: distance, gestureSourceType: "touch", speed: 1600,
+      });
+      await swipe(-300);
+      await page.waitForFunction(() => document.querySelector(".dashboard").scrollTop > 100);
+      const reach = await dashboard.evaluate((el) => el.scrollHeight);
+      await swipe(-reach);
+      await page.waitForFunction(() => {
+        const el = document.querySelector(".dashboard");
+        return el.scrollHeight - el.clientHeight - el.scrollTop < 2;
+      });
+      const preview = await page.locator(".preview-panel").boundingBox();
+      assert.ok(preview && preview.y + preview.height <= viewport.height, "touch scrolling must reach the bottom preview");
+      await page.screenshot({ path: join(output, `${viewport.width}-mobile-scroll-bottom.png`) });
+      await swipe(reach);
+      await page.waitForFunction(() => document.querySelector(".dashboard").scrollTop < 2);
+      await cdp.detach();
+      console.log(`PASS ${viewport.width}px: touch scrolling reaches workspace bottom and returns to top`);
+    }
     const model = page.locator("#omniImageModel");
     const trigger = page.locator("#omniImageModelTrigger");
     const menu = page.locator("#omniImageModelOptions");

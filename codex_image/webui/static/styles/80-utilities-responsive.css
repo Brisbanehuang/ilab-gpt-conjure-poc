@@ -721,6 +721,10 @@ button:disabled {
 @media (max-width: 1024px) {
   .layout-container {
     flex-direction: column;
+    height: 100dvh;
+  }
+  .main-wrapper {
+    min-height: 0;
   }
   .sidebar {
     width: 100%;
@@ -742,7 +746,9 @@ button:disabled {
   }
   .dashboard {
     grid-template-columns: 1fr;
+    grid-auto-rows: max-content;
     align-content: start;
+    min-height: 0;
   }
   .preview-col {
     height: auto;

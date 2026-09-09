@@ -135,8 +135,8 @@ class WebUIStaticLayoutTests(WebUIStaticTestCase):
         script = self._frontend_script_source()
         styles = Path("codex_image/webui/static/styles.css").read_text(encoding="utf-8")
 
-        self.assertIn('/static/app.js?v=runtime-374', html)
-        self.assertIn('/static/styles.css?v=runtime-374', html)
+        self.assertIn('/static/app.js?v=runtime-375', html)
+        self.assertIn('/static/styles.css?v=runtime-375', html)
         self.assertIn('id="recentAssetDock"', html)
         self.assertRegex(html, r'class="image-input-footer"[\s\S]*id="recentAssetDock"[\s\S]*id="recentAssetList"')
         self.assertRegex(html, r'id="recentAssetDock"[\s\S]*id="quickGalleryDock"[\s\S]*id="galleryManagePanel"')
@@ -2806,6 +2806,15 @@ class WebUIStaticLayoutTests(WebUIStaticTestCase):
         self.assertRegex(styles, r"\.preview-card img\s*\{[^}]*max-width:\s*100%")
         self.assertRegex(styles, r"\.preview-card img\s*\{[^}]*max-height:\s*100%")
         self.assertNotIn(".preview-col > .panel:last-child", styles)
+    def test_mobile_workspace_keeps_a_bounded_scroll_area(self) -> None:
+        styles = Path("codex_image/webui/static/styles/80-utilities-responsive.css").read_text(encoding="utf-8")
+        mobile = styles.split("@media (max-width: 1024px) {", 1)[1]
+
+        self.assertRegex(mobile, r"\.layout-container\s*\{[^}]*height:\s*100dvh")
+        self.assertRegex(mobile, r"\.main-wrapper\s*\{[^}]*min-height:\s*0")
+        self.assertRegex(mobile, r"\.dashboard\s*\{[^}]*min-height:\s*0")
+        self.assertRegex(mobile, r"\.dashboard\s*\{[^}]*grid-auto-rows:\s*max-content")
+
     def test_main_workspace_uses_theme_background_texture_only(self) -> None:
         styles = Path("codex_image/webui/static/styles.css").read_text(encoding="utf-8")
         dashboard_block = self._extract_css_block(styles, ".dashboard")
@@ -2875,8 +2884,8 @@ class WebUIStaticLayoutTests(WebUIStaticTestCase):
         script = self._frontend_script_source()
         styles = Path("codex_image/webui/static/styles.css").read_text(encoding="utf-8")
 
-        self.assertIn('/static/app.js?v=runtime-374', html)
-        self.assertIn('/static/styles.css?v=runtime-374', html)
+        self.assertIn('/static/app.js?v=runtime-375', html)
+        self.assertIn('/static/styles.css?v=runtime-375', html)
         self.assertIn('id="pasteClipboardButton"', html)
         self.assertIn('id="statusText"', html)
         self.assertRegex(
@@ -3320,8 +3329,8 @@ class WebUIStaticLayoutTests(WebUIStaticTestCase):
         script = self._frontend_script_source()
         styles = Path("codex_image/webui/static/styles.css").read_text(encoding="utf-8")
 
-        self.assertIn("/static/app.js?v=runtime-374", html)
-        self.assertIn("/static/styles.css?v=runtime-374", html)
+        self.assertIn("/static/app.js?v=runtime-375", html)
+        self.assertIn("/static/styles.css?v=runtime-375", html)
         self.assertIn('const THEME_STORAGE_KEY = "codex-image-theme-preference";', script)
         self.assertIn('themePreference: "system"', script)
         self.assertIn('call(methods, "restoreThemePreference")', script)
