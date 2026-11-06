@@ -13,7 +13,11 @@ DEFAULT_IMAGE_MODEL = "gpt-image-2"
 
 
 def image_model_supports_input_fidelity(model: str | None) -> bool:
-    return (model or "").lower() != "gpt-image-2"
+    normalized = (model or "").lower()
+    if normalized == "gpt-image-2":
+        return False
+    # Upstream rejects input_fidelity for every GPT Image 2.6 variant (incl. dated snapshots).
+    return not normalized.startswith("gpt-image-2.6")
 
 
 @dataclass

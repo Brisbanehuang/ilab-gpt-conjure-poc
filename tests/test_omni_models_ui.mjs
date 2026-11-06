@@ -101,7 +101,7 @@ try {
       assert.equal(await model.inputValue(), value);
     };
     const key = page.locator("#omni-poc-key-select");
-    assert.deepEqual(await model.locator("option").evaluateAll((items) => items.map((item) => item.value)), ["gpt-image-2", "gpt-image-2.5-flare", "gpt-image-2.5-sunburst"]);
+    assert.deepEqual(await model.locator("option").evaluateAll((items) => items.map((item) => item.value)), ["gpt-image-2", "gpt-image-2.5-flare", "gpt-image-2.5-sunburst", "gpt-image-2.6-flare", "gpt-image-2.6-sunburst"]);
     assert.equal(await model.isVisible(), false, "native model select must not be displayed");
     await trigger.focus();
     await trigger.press("ArrowDown");

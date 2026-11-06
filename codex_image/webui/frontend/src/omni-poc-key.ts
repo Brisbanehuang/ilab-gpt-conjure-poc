@@ -5,7 +5,13 @@ import { mountOmniImageModelCombobox } from "./omni-image-model-combobox";
 
 const SELECTED_KEY_STORAGE = "ilab.omniSelectedKeyId";
 const SELECTED_MODEL_STORAGE = "ilab.omniImageModel";
-const IMAGE_MODELS = ["gpt-image-2", "gpt-image-2.5-flare", "gpt-image-2.5-sunburst"];
+const IMAGE_MODELS = [
+  "gpt-image-2",
+  "gpt-image-2.5-flare",
+  "gpt-image-2.5-sunburst",
+  "gpt-image-2.6-flare",
+  "gpt-image-2.6-sunburst",
+];
 const LOGIN_URL = "https://api.brislouise.online/image-generator";
 
 interface OmniUser {

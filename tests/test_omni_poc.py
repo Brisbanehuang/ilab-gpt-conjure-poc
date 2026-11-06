@@ -20,6 +20,7 @@ from codex_image.webui.omni_poc import (
     OmniTaskSecretStore,
     mask_api_key,
     omni_poc_enabled,
+    require_omni_image_model,
 )
 from codex_image.webui.omni_session import OmniSessionStore
 from codex_image.webui.omni_session import OmniModelsUnavailableError, _key_supported_models, usable_key_dtos
@@ -127,7 +128,14 @@ class OmniPOCGenerationTests(TempDirMixin, TestCase):
         self.assertEqual(response.status_code, 401)
         self.assertIn("请先登录 OmniAPI", response.json()["detail"])
 
-    def test_three_models_are_validated_and_stored_across_generate_edit_and_search(self) -> None:
+    def test_image_2_6_models_pass_validation(self) -> None:
+        for model in ("gpt-image-2.6-flare", "gpt-image-2.6-sunburst"):
+            with self.subTest(model=model):
+                self.assertEqual(require_omni_image_model(model), model)
+        with self.assertRaises(ValueError):
+            require_omni_image_model("gpt-image-2.6-unknown")
+
+    def test_all_models_are_validated_and_stored_across_generate_edit_and_search(self) -> None:
         app, _ = self.create_poc_app()
         session = app.state.omni_session_store.create_session({"id": 123}, "sub2api-token")
         client = TestClient(app)
@@ -135,7 +143,10 @@ class OmniPOCGenerationTests(TempDirMixin, TestCase):
         rows = [{"id": "456", "key": "sk-test", "status": "active",
                  "group": {"status": "active", "platform": "openai", "allow_image_generation": True}}]
         image = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j6xkAAAAASUVORK5CYII=")
-        for model in ("gpt-image-2", "gpt-image-2.5-flare", "gpt-image-2.5-sunburst"):
+        for model in (
+            "gpt-image-2", "gpt-image-2.5-flare", "gpt-image-2.5-sunburst",
+            "gpt-image-2.6-flare", "gpt-image-2.6-sunburst",
+        ):
             for endpoint, search in (("generate", False), ("edit", False), ("generate", True)):
                 with self.subTest(model=model, endpoint=endpoint, search=search), patch(
                     "codex_image.webui.omni_session.list_omni_image_keys", return_value=rows
@@ -183,6 +194,20 @@ class OmniPOCGenerationTests(TempDirMixin, TestCase):
         self.assertTrue(result[0]["model_lookup_failed"])
         self.assertEqual(result[1]["supported_image_models"], ["gpt-image-2.5-flare", "gpt-image-2.5-sunburst"])
         self.assertFalse(result[1]["model_lookup_failed"])
+
+    def test_listing_intersects_image_2_6_models(self) -> None:
+        app, _ = self.create_poc_app()
+        rows = [{"id": "1", "key": "sk-test-1", "status": "active",
+                 "group": {"status": "active", "platform": "openai", "allow_image_generation": True}}]
+        with patch("codex_image.webui.omni_session.list_omni_image_keys", return_value=rows), patch(
+            "codex_image.webui.omni_session._key_supported_models",
+            return_value=frozenset({"gpt-image-2.6-sunburst", "gpt-image-2.6-flare", "gpt-image-2.5-flare", "custom-variant"}),
+        ):
+            result = asyncio.run(usable_key_dtos(app.state.omni_poc_config, "sub2api-token"))
+        self.assertEqual(
+            result[0]["supported_image_models"],
+            ["gpt-image-2.5-flare", "gpt-image-2.6-flare", "gpt-image-2.6-sunburst"],
+        )
 
     def test_models_endpoint_failures_are_not_an_empty_model_list(self) -> None:
         app, _ = self.create_poc_app()

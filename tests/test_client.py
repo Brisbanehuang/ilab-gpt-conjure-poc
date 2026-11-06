@@ -1287,6 +1287,45 @@ class ClientTests(unittest.TestCase):
         self.assertEqual(payload["tools"][0]["model"], "gpt-image-1.5")
         self.assertEqual(payload["tools"][0]["input_fidelity"], "high")
 
+    def test_image_model_input_fidelity_support_by_model(self) -> None:
+        from codex_image.client_types import image_model_supports_input_fidelity
+
+        for model in ("gpt-image-2", "GPT-Image-2", "gpt-image-2.6-flare", "gpt-image-2.6-sunburst",
+                      "GPT-IMAGE-2.6-FLARE", "gpt-image-2.6-flare-2026-11-01"):
+            with self.subTest(model=model):
+                self.assertFalse(image_model_supports_input_fidelity(model))
+        for model in ("gpt-image-2.5-flare", "gpt-image-2.5-sunburst", "gpt-image-1.5"):
+            with self.subTest(model=model):
+                self.assertTrue(image_model_supports_input_fidelity(model))
+
+    def test_openai_images_edit_omits_input_fidelity_for_image_2_6_models(self) -> None:
+        from codex_image.client import OpenAIImagesImageClient
+
+        client = OpenAIImagesImageClient(
+            api_key="test-api-key",
+            base_url="https://api.example.com/v1",
+            transport=FakeTransport([]),
+        )
+        for model in ("gpt-image-2.6-flare", "gpt-image-2.6-sunburst"):
+            with self.subTest(model=model):
+                payload = client.build_payload(
+                    prompt="change only background",
+                    action="edit",
+                    model=model,
+                    input_images=["data:image/png;base64,input1"],
+                    input_fidelity="high",
+                )
+                self.assertEqual(payload["endpoint"], "/images/edits")
+                self.assertEqual(payload["model"], model)
+                self.assertNotIn("input_fidelity", payload)
+        payload = client.build_payload(
+            prompt="change only background",
+            action="edit",
+            model="gpt-image-2.5-flare",
+            input_images=["data:image/png;base64,input1"],
+            input_fidelity="high",
+        )
+        self.assertEqual(payload["input_fidelity"], "high")
 
 if __name__ == "__main__":
     unittest.main()

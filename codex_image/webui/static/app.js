@@ -28846,7 +28846,13 @@ ${hint}` : hint;
   // codex_image/webui/frontend/src/omni-poc-key.ts
   var SELECTED_KEY_STORAGE = "ilab.omniSelectedKeyId";
   var SELECTED_MODEL_STORAGE = "ilab.omniImageModel";
-  var IMAGE_MODELS = ["gpt-image-2", "gpt-image-2.5-flare", "gpt-image-2.5-sunburst"];
+  var IMAGE_MODELS = [
+    "gpt-image-2",
+    "gpt-image-2.5-flare",
+    "gpt-image-2.5-sunburst",
+    "gpt-image-2.6-flare",
+    "gpt-image-2.6-sunburst"
+  ];
   var LOGIN_URL = "https://api.brislouise.online/image-generator";
   var enabled = false;
   var authenticated = false;
