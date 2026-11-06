@@ -20,3 +20,14 @@ export function errorMessage(error: unknown, fallback: string): string {
 export function prefersReducedMotion(): boolean {
   return Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches);
 }
+
+// Download-name extension for a task output: the record's own format, else the task's requested
+// output_format, else png.
+export function outputDownloadExtension(task: any, url: unknown): string {
+  const record = Array.isArray(task?.outputs)
+    ? task.outputs.find((item: any) => item?.url && String(item.url) === String(url || ""))
+    : null;
+  const format = String(record?.format || task?.params?.output_format || "png").toLowerCase();
+  if (format === "jpeg" || format === "jpg") return "jpg";
+  return ["png", "webp", "gif"].includes(format) ? format : "png";
+}

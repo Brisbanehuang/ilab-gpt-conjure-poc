@@ -75,6 +75,42 @@ class WebUIExecutorInputTests(unittest.TestCase):
         self.assertEqual(caught.exception.status_code, 400)
         self.assertEqual(caught.exception.detail, "Unsupported image type: could not decode image")
 
+    def test_file_to_data_url_converts_animated_gif_reference_to_first_frame_png(self) -> None:
+        from codex_image.webui.executor_inputs import _file_to_data_url
+
+        buffer = BytesIO()
+        frames = [Image.new("RGB", (8, 8), (240, 20, 20)), Image.new("RGB", (8, 8), (20, 20, 240))]
+        frames[0].save(buffer, format="GIF", save_all=True, append_images=frames[1:], duration=100, loop=0)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "previous-output.gif"
+            path.write_bytes(buffer.getvalue())
+
+            data_url = _file_to_data_url(path, mime_type="image/gif")
+
+        header, payload = _decode_data_url(data_url)
+        self.assertEqual(header, "data:image/png;base64")
+        with Image.open(BytesIO(payload)) as converted:
+            self.assertEqual(converted.format, "PNG")
+            self.assertEqual(getattr(converted, "n_frames", 1), 1)
+            red, _, blue = converted.convert("RGB").getpixel((4, 4))
+        self.assertGreater(red, 200, "first frame must be kept")
+        self.assertLess(blue, 60)
+
+    def test_static_gif_reference_is_sent_unchanged(self) -> None:
+        from codex_image.webui.executor_inputs import _file_to_data_url
+
+        buffer = BytesIO()
+        Image.new("RGB", (8, 8), (20, 200, 20)).save(buffer, format="GIF")
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "still.gif"
+            path.write_bytes(buffer.getvalue())
+
+            data_url = _file_to_data_url(path, mime_type="image/gif")
+
+        header, payload = _decode_data_url(data_url)
+        self.assertEqual(header, "data:image/gif;base64")
+        self.assertEqual(payload, buffer.getvalue())
+
 
 if __name__ == "__main__":
     unittest.main()

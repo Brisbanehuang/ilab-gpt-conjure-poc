@@ -53,6 +53,18 @@ from .task_metadata import (
 )
 
 
+def _image_output_kwargs(params: dict[str, Any]) -> dict[str, Any]:
+    """Optional GIF / complexity request fields; omitted entirely when absent so older clients keep working."""
+    kwargs: dict[str, Any] = {}
+    if str(params.get("output_format") or "").lower() == "gif":
+        for key in ("frame_count", "frame_duration_ms"):
+            if params.get(key) is not None:
+                kwargs[key] = params[key]
+    if params.get("complexity"):
+        kwargs["complexity"] = params["complexity"]
+    return kwargs
+
+
 def _format_elapsed_seconds(seconds: float) -> str:
     return f"{max(0.0, seconds):.2f}".rstrip("0").rstrip(".")
 
@@ -240,6 +252,7 @@ async def _execute_stored_task(
                             input_fidelity=params.get("input_fidelity"),
                             moderation=params.get("moderation"),
                             output_compression=params.get("output_compression"),
+                            **_image_output_kwargs(params),
                             debug_sse_path=debug_sse_path,
                         )
                     else:
@@ -259,6 +272,7 @@ async def _execute_stored_task(
                             output_format=params.get("output_format", "png"),
                             moderation=params.get("moderation"),
                             output_compression=params.get("output_compression"),
+                            **_image_output_kwargs(params),
                             debug_sse_path=debug_sse_path,
                         )
                     if not isinstance(result, ImageResult):
@@ -372,6 +386,7 @@ async def _execute_stored_task(
                             input_fidelity=params.get("input_fidelity"),
                             moderation=params.get("moderation"),
                             output_compression=params.get("output_compression"),
+                            **_image_output_kwargs(params),
                             debug_sse_path=debug_sse_path,
                         )
                     else:
@@ -391,6 +406,7 @@ async def _execute_stored_task(
                             output_format=params.get("output_format", "png"),
                             moderation=params.get("moderation"),
                             output_compression=params.get("output_compression"),
+                            **_image_output_kwargs(params),
                             debug_sse_path=debug_sse_path,
                         )
                     break

@@ -252,6 +252,64 @@ class WebUIStorageTests(unittest.TestCase):
         self.assertEqual(metadata["outputs"][0]["storage_key"], fake.puts[0][0])
         self.assertEqual(metadata["outputs"][0]["url"], f"/api/tasks/{task_id}/outputs/1")
 
+    def test_gif_outputs_keep_gif_extension_content_type_and_skip_compression(self) -> None:
+        from codex_image.webui.executor_transport import _normalize_compression
+        from codex_image.webui.object_storage import content_type_for_format, output_object_key
+        from codex_image.webui.storage import TaskStorage
+        from codex_image.webui.storage_utils import _safe_extension
+
+        self.assertEqual(_safe_extension("gif"), "gif")
+        self.assertEqual(_safe_extension("GIF"), "gif")
+        self.assertEqual(_safe_extension("bmp"), "png")
+        self.assertIsNone(_normalize_compression("gif", "80"))
+        self.assertIsNone(_normalize_compression("png", "80"))
+        self.assertEqual(_normalize_compression("webp", "80"), 80)
+        self.assertEqual(content_type_for_format("gif"), "image/gif")
+        self.assertTrue(output_object_key(owner_id="user_1", task_id="20260626144923-a63df6c2", title="cat", index=1, ext="gif").endswith("/outputs/01-cat.gif"))
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            storage = TaskStorage(input_root=root / "inputs", output_root=root / "outputs", source_data_root=root / "outputs" / "source-data")
+            task = storage.create_task("generate")
+            output_path = storage.write_output(task.task_id, b"GIF89a-bytes", "gif", index=2)
+            self.assertEqual(output_path.name, f"{task.task_id}-image-2.gif")
+            self.assertEqual(output_path.read_bytes(), b"GIF89a-bytes")
+
+    def test_complete_task_stores_omni_gif_output_as_image_gif(self) -> None:
+        from codex_image.client import ImageResult
+        from codex_image.webui.object_storage import StoredObject
+        from codex_image.webui.storage import TaskStorage
+        from codex_image.webui.task_metadata import _complete_task, _write_queued_metadata
+
+        class FakeObjectStorage:
+            def __init__(self) -> None:
+                self.puts: list[tuple[str, bytes, str]] = []
+
+            async def put(self, key: str, data: bytes, content_type: str) -> StoredObject:
+                self.puts.append((key, data, content_type))
+                return StoredObject(driver="r2", key=key, size=len(data), content_type=content_type)
+
+        fake = FakeObjectStorage()
+        task_id = "20260626144923-a63df6c3"
+        params = {"omni_poc": True, "sub2api_user_id": 123, "output_format": "gif", "frame_count": 9, "frame_duration_ms": 200, "n": 1}
+        with tempfile.TemporaryDirectory() as tmp:
+            storage = TaskStorage(input_root=Path(tmp) / "inputs", output_root=Path(tmp) / "outputs", source_data_root=Path(tmp) / "source-data")
+            storage._task_source_data_dir(task_id).mkdir(parents=True, exist_ok=True)
+            _write_queued_metadata(
+                storage, task_id, created_at="2026-06-26T14:49:23+00:00", mode="generate", prompt="cat", prompt_for_model="cat",
+                params=params, input_files=[], mask_file=None, gallery_refs=[], title="cat",
+            )
+            with unittest.mock.patch("codex_image.webui.task_outputs.object_storage_from_env", return_value=fake):
+                metadata = _complete_task(
+                    storage, task_id, "2026-06-26T14:49:23+00:00", "generate", "cat", "cat",
+                    ImageResult(b"GIF89a-bytes", "revised", "gif", "960x960", "auto", "medium", {}),
+                    [], [], None, {}, params,
+                )
+
+        self.assertEqual(fake.puts[0][2], "image/gif")
+        self.assertTrue(fake.puts[0][0].endswith("/outputs/01-cat.gif"))
+        self.assertEqual(metadata["outputs"][0]["format"], "gif")
+        self.assertEqual(metadata["outputs"][0]["content_type"], "image/gif")
+
     def test_complete_task_stores_omni_reference_assets_in_task_r2_inputs(self) -> None:
         from codex_image.client import ImageResult
         from codex_image.webui.object_storage import StoredObject

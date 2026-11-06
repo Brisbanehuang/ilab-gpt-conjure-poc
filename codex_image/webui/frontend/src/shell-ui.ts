@@ -36,6 +36,9 @@ function finishBatchMarqueeSelection() { legacyMethod("finishBatchMarqueeSelecti
 function setPromptText(value) { legacyMethod("setPromptText", value); }
 function setMode(mode) { legacyMethod("setMode", mode); }
 function updateSizeFromPreset() { legacyMethod("updateSizeFromPreset"); }
+function discardGifOutputMode() { legacyMethod("discardGifOutputMode"); }
+function resetGifFrameControls() { legacyMethod("resetGifFrameControls"); }
+function syncGifOutputMode() { legacyMethod("syncGifOutputMode"); }
 function updatePromptCount() { legacyMethod("updatePromptCount"); }
 function updateQuantity() { legacyMethod("updateQuantity"); }
 function updateCompression() { legacyMethod("updateCompression"); }
@@ -309,6 +312,8 @@ function resetForm() {
   state.batchSelectionAnchorTaskId = null;
   finishBatchMarqueeSelection();
   setPromptText("");
+  discardGifOutputMode();
+  resetGifFrameControls();
   if (els.customSizeToggle) els.customSizeToggle.checked = false;
   if (els.nInput) els.nInput.value = "1";
   if (els.resolution) els.resolution.value = "2k";
@@ -326,6 +331,7 @@ function resetForm() {
   });
   setMode("generate");
   updateSizeFromPreset();
+  syncGifOutputMode();
   updatePromptCount();
   updateQuantity();
   updateCompression();

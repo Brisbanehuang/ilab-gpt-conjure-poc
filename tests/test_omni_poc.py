@@ -270,6 +270,125 @@ class OmniPOCGenerationTests(TempDirMixin, TestCase):
         self.assertEqual(app.state.ctx.route_helpers["omni_task_secret_store"].get_task_key(task_id), "sk-task-secret")
         self.assertNotIn("sk-task-secret", str(metadata))
 
+    def _gif_client(self):
+        app, _ = self.create_poc_app()
+        app.state.ctx.route_helpers["omni_submit_limiter"] = None
+        session = app.state.ctx.route_helpers["omni_session_store"].create_session({"id": 123, "username": "gif"}, "sub2api-token")
+        client = TestClient(app)
+        client.cookies.set("omni_lens_session", session.id)
+        resolver = patch(
+            "codex_image.webui.routes.generation.resolve_omni_image_key",
+            return_value={"id": "456", "key": "sk-task-secret", "name": "image key", "group": {"name": "default"}},
+        )
+        resolver.start()
+        self.addCleanup(resolver.stop)
+        return app, client
+
+    def test_gif_submit_validation_rejects_invalid_requests_before_queuing(self) -> None:
+        app, client = self._gif_client()
+        base = {"prompt": "gif", "model": "gpt-image-2.6-flare", "size": "960x960", "quality": "medium", "output_format": "gif", "sub2api_key_id": "456"}
+        image = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j6xkAAAAASUVORK5CYII=")
+        cases = [
+            ({"model": "gpt-image-2.5-flare"}, "GPT Image 2.6"),
+            ({"model": "gpt-image-2"}, "GPT Image 2.6"),
+            ({"frame_count": "1"}, "GIF 帧数"),
+            ({"frame_count": "17"}, "GIF 帧数"),
+            ({"frame_count": "nine"}, "GIF 帧数"),
+            ({"frame_count": "9.5"}, "GIF 帧数"),
+            ({"frame_duration_ms": "10"}, "GIF 帧时长"),
+            ({"frame_duration_ms": "2001"}, "GIF 帧时长"),
+            ({"frame_duration_ms": "150.5"}, "GIF 帧时长"),
+            ({"size": "auto"}, "不支持 auto"),
+            ({"size": "1000x1000"}, "16 的倍数"),
+            ({"quality": "high"}, "low 或 medium"),
+            ({"quality": "auto"}, "low 或 medium"),
+            ({"complexity": "extreme"}, "complexity"),
+        ]
+        for overrides, message in cases:
+            for endpoint in ("generate", "edit"):
+                with self.subTest(endpoint=endpoint, overrides=overrides):
+                    response = client.post(
+                        f"/api/{endpoint}",
+                        data={**base, **overrides},
+                        files={"images": ("input.png", image, "image/png")} if endpoint == "edit" else None,
+                    )
+                    self.assertEqual(response.status_code, 400, response.text)
+                    self.assertIn(message, response.json()["detail"])
+        response = client.post(
+            "/api/edit",
+            data=base,
+            files={"images": ("input.png", image, "image/png"), "mask": ("mask.png", image, "image/png")},
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("蒙版", response.json()["detail"])
+        response = client.post("/api/generate", data={**base, "output_format": "png", "complexity": "extreme"})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(app.state.ctx.queue_storage.read_state()["waiting"], [])
+
+    def test_gif_submit_persists_frame_params_without_compression(self) -> None:
+        app, client = self._gif_client()
+        response = client.post("/api/generate", data={
+            "prompt": "gif defaults", "model": "gpt-image-2.6-flare", "size": "960x960", "quality": "medium",
+            "output_format": "gif", "output_compression": "80", "sub2api_key_id": "456",
+        })
+        self.assertEqual(response.status_code, 200, response.text)
+        task_id = response.json()["task"]["task_id"]
+        params = app.state.ctx.storage.read_metadata(task_id)["params"]
+        request = json.loads(app.state.ctx.storage.request_path(task_id).read_text(encoding="utf-8"))
+        self.assertEqual(params["output_format"], "gif")
+        self.assertEqual(params["frame_count"], 9)
+        self.assertEqual(params["frame_duration_ms"], 200)
+        self.assertNotIn("output_compression", params)
+        self.assertNotIn("complexity", params)
+        self.assertEqual(request["endpoint"], "/images/generations")
+        self.assertEqual(request["frame_count"], 9)
+        self.assertEqual(request["frame_duration_ms"], 200)
+        self.assertNotIn("output_compression", request)
+
+        image = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j6xkAAAAASUVORK5CYII=")
+        response = client.post("/api/edit", data={
+            "prompt": "gif edit", "model": "gpt-image-2.6-sunburst", "size": "1024x576", "quality": "low",
+            "output_format": "gif", "frame_count": "12", "frame_duration_ms": "150", "complexity": "high", "sub2api_key_id": "456",
+        }, files={"images": ("input.png", image, "image/png")})
+        self.assertEqual(response.status_code, 200, response.text)
+        task_id = response.json()["task"]["task_id"]
+        params = app.state.ctx.storage.read_metadata(task_id)["params"]
+        request = json.loads(app.state.ctx.storage.request_path(task_id).read_text(encoding="utf-8"))
+        self.assertEqual((params["frame_count"], params["frame_duration_ms"], params["complexity"]), (12, 150, "high"))
+        self.assertEqual(request["endpoint"], "/images/edits")
+        self.assertEqual((request["frame_count"], request["frame_duration_ms"], request["complexity"]), (12, 150, "high"))
+        self.assertNotIn("mask", request)
+
+    def test_static_submit_ignores_frame_params_and_passes_complexity(self) -> None:
+        app, client = self._gif_client()
+        response = client.post("/api/generate", data={
+            "prompt": "static", "model": "gpt-image-2.5-flare", "size": "1024x1024", "quality": "high",
+            "output_format": "webp", "output_compression": "70", "frame_count": "40", "frame_duration_ms": "5",
+            "complexity": "Medium", "sub2api_key_id": "456",
+        })
+        self.assertEqual(response.status_code, 200, response.text)
+        task_id = response.json()["task"]["task_id"]
+        params = app.state.ctx.storage.read_metadata(task_id)["params"]
+        request = json.loads(app.state.ctx.storage.request_path(task_id).read_text(encoding="utf-8"))
+        self.assertNotIn("frame_count", params)
+        self.assertNotIn("frame_duration_ms", params)
+        self.assertEqual(params["output_compression"], 70)
+        self.assertEqual(params["complexity"], "medium")
+        self.assertNotIn("frame_count", request)
+        self.assertEqual(request["complexity"], "medium")
+        self.assertEqual(request["output_compression"], 70)
+
+    def test_omni_gif_web_search_task_stores_frame_params_for_second_stage(self) -> None:
+        app, client = self._gif_client()
+        response = client.post("/api/generate", data={
+            "prompt": "search gif", "model": "gpt-image-2.6-flare", "size": "960x960", "quality": "low",
+            "output_format": "gif", "frame_count": "6", "web_search": "true", "sub2api_key_id": "456",
+        })
+        self.assertEqual(response.status_code, 200, response.text)
+        params = app.state.ctx.storage.read_metadata(response.json()["task"]["task_id"])["params"]
+        self.assertEqual(params["api_mode"], "responses")
+        self.assertEqual((params["frame_count"], params["frame_duration_ms"]), (6, 200))
+
     def test_generate_with_web_search_uses_omni_responses_backend(self) -> None:
         app, _ = self.create_poc_app()
         session_store = app.state.ctx.route_helpers["omni_session_store"]

@@ -1,5 +1,6 @@
 import { getLegacyBridge } from "./state";
 import { formatTranslation, LOCALE_CHANGE_EVENT, translate } from "./i18n";
+import { outputDownloadExtension } from "./webui-utils";
 
 const bridge = getLegacyBridge();
 const state = bridge.state;
@@ -709,8 +710,9 @@ async function deleteUnselectedOutputs(taskId: any) {
 }
 
 function outputDownloadFilename(task: any, url: any, index: any) {
-  return outputFilenameFromUrl(url) || `${safeDownloadStem(task?.task_id || "image")}-image-${taskOutputIndex(task, url, index)}.png`;
+  return outputFilenameFromUrl(url) || `${safeDownloadStem(task?.task_id || "image")}-image-${taskOutputIndex(task, url, index)}.${outputDownloadExtension(task, url)}`;
 }
+
 
 function outputFilenameFromUrl(url: any) {
   try {

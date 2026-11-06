@@ -535,6 +535,29 @@ button:disabled {
     grid-row: 5 / 6;
   }
 
+  .settings-grid.gif-mode #gifSettingsField {
+    grid-column: 1 / 2;
+    grid-row: 2 / 3;
+    gap: 4px;
+  }
+
+  .settings-grid.gif-mode .orientation-field {
+    grid-column: 1 / 2;
+  }
+
+  .settings-grid.gif-mode #pixelPreview {
+    grid-column: 2 / 3;
+    grid-row: 3 / 4;
+  }
+
+  .gif-settings-row {
+    gap: 6px;
+  }
+
+  .gif-setting {
+    gap: 4px;
+  }
+
   .custom-size-main {
     gap: 6px;
   }

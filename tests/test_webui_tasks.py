@@ -280,6 +280,36 @@ class WebUITaskTests(unittest.TestCase):
                 self.assertEqual(archive.read(f"{task_id}-image-1.png"), b"first-image")
                 self.assertEqual(archive.read(f"{task_id}-image-2.webp"), b"second-image")
 
+    def test_task_outputs_zip_keeps_gif_extension(self) -> None:
+        from codex_image.webui.app import create_app
+
+        task_id = "20260505010203-abcdef02"
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            names = [output_name(task_id, 1, "gif"), output_name(task_id, 2, "gif")]
+            for index, name in enumerate(names, start=1):
+                (root / name).parent.mkdir(parents=True, exist_ok=True)
+                (root / name).write_bytes(f"GIF89a-{index}".encode("ascii"))
+            metadata_path(root, task_id).parent.mkdir(parents=True, exist_ok=True)
+            metadata_path(root, task_id).write_text(
+                json.dumps({
+                    "task_id": task_id,
+                    "status": "completed",
+                    "params": {"output_format": "gif"},
+                    "output_files": names,
+                    "output_urls": [output_url(task_id, 1, "gif"), output_url(task_id, 2, "gif")],
+                }),
+                encoding="utf-8",
+            )
+
+            client = TestClient(create_app(output_root=root, auth_checker=lambda: True, auto_start_queue=False))
+            response = client.get(f"/api/tasks/{task_id}/outputs.zip")
+
+            self.assertEqual(response.status_code, 200)
+            with zipfile.ZipFile(BytesIO(response.content)) as archive:
+                self.assertEqual(sorted(archive.namelist()), [f"{task_id}-image-1.gif", f"{task_id}-image-2.gif"])
+                self.assertEqual(archive.read(f"{task_id}-image-2.gif"), b"GIF89a-2")
+
     def test_task_output_route_streams_r2_object_through_backend(self) -> None:
         from codex_image.webui.app import create_app
 

@@ -67,10 +67,14 @@ class CodexImageClient:
         output_format: str = "png",
         moderation: str | None = None,
         output_compression: int | None = None,
+        frame_count: int | None = None,
+        frame_duration_ms: int | None = None,
+        complexity: str | None = None,
         partial_images: int | None = None,
         web_search: bool = False,
         debug_sse_path: str | PathLike[str] | None = None,
     ) -> ImageResult:
+        del frame_count, frame_duration_ms, complexity
         payload = self.build_payload(
             prompt=prompt,
             instructions=instructions,
@@ -108,12 +112,16 @@ class CodexImageClient:
         input_fidelity: str | None = None,
         moderation: str | None = None,
         output_compression: int | None = None,
+        frame_count: int | None = None,
+        frame_duration_ms: int | None = None,
+        complexity: str | None = None,
         partial_images: int | None = None,
         web_search: bool = False,
         debug_sse_path: str | PathLike[str] | None = None,
     ) -> ImageResult:
         if not images:
             raise RuntimeError("edit_image requires at least one input image")
+        del frame_count, frame_duration_ms, complexity
 
         payload = self.build_payload(
             prompt=prompt,
@@ -155,9 +163,13 @@ class CodexImageClient:
         input_fidelity: str | None = None,
         moderation: str | None = None,
         output_compression: int | None = None,
+        frame_count: int | None = None,
+        frame_duration_ms: int | None = None,
+        complexity: str | None = None,
         partial_images: int | None = None,
         web_search: bool = False,
     ) -> dict[str, Any]:
+        del frame_count, frame_duration_ms, complexity
         tool: dict[str, Any] = {
             "type": "image_generation",
             "action": action,

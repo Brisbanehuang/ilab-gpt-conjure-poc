@@ -58,6 +58,9 @@ class OpenAIImagesImageClient:
         output_format: str = "png",
         moderation: str | None = None,
         output_compression: int | None = None,
+        frame_count: int | None = None,
+        frame_duration_ms: int | None = None,
+        complexity: str | None = None,
         partial_images: int | None = None,
         debug_sse_path: str | PathLike[str] | None = None,
     ) -> ImageResult:
@@ -72,6 +75,9 @@ class OpenAIImagesImageClient:
             output_format=output_format,
             moderation=moderation,
             output_compression=output_compression,
+            frame_count=frame_count,
+            frame_duration_ms=frame_duration_ms,
+            complexity=complexity,
             partial_images=partial_images,
             debug_sse_path=debug_sse_path,
             n=1,
@@ -90,6 +96,9 @@ class OpenAIImagesImageClient:
         output_format: str = "png",
         moderation: str | None = None,
         output_compression: int | None = None,
+        frame_count: int | None = None,
+        frame_duration_ms: int | None = None,
+        complexity: str | None = None,
         partial_images: int | None = None,
         debug_sse_path: str | PathLike[str] | None = None,
         n: int = 1,
@@ -108,6 +117,9 @@ class OpenAIImagesImageClient:
             output_format=output_format,
             moderation=moderation,
             output_compression=output_compression,
+            frame_count=frame_count,
+            frame_duration_ms=frame_duration_ms,
+            complexity=complexity,
             n=n,
         )
         return self._request_and_parse_many(payload)
@@ -127,6 +139,9 @@ class OpenAIImagesImageClient:
         input_fidelity: str | None = None,
         moderation: str | None = None,
         output_compression: int | None = None,
+        frame_count: int | None = None,
+        frame_duration_ms: int | None = None,
+        complexity: str | None = None,
         partial_images: int | None = None,
         debug_sse_path: str | PathLike[str] | None = None,
     ) -> ImageResult:
@@ -143,6 +158,9 @@ class OpenAIImagesImageClient:
             input_fidelity=input_fidelity,
             moderation=moderation,
             output_compression=output_compression,
+            frame_count=frame_count,
+            frame_duration_ms=frame_duration_ms,
+            complexity=complexity,
             partial_images=partial_images,
             debug_sse_path=debug_sse_path,
             n=1,
@@ -163,6 +181,9 @@ class OpenAIImagesImageClient:
         input_fidelity: str | None = None,
         moderation: str | None = None,
         output_compression: int | None = None,
+        frame_count: int | None = None,
+        frame_duration_ms: int | None = None,
+        complexity: str | None = None,
         partial_images: int | None = None,
         debug_sse_path: str | PathLike[str] | None = None,
         n: int = 1,
@@ -185,6 +206,9 @@ class OpenAIImagesImageClient:
             input_fidelity=input_fidelity,
             moderation=moderation,
             output_compression=output_compression,
+            frame_count=frame_count,
+            frame_duration_ms=frame_duration_ms,
+            complexity=complexity,
             n=n,
         )
         return self._request_and_parse_many(payload)
@@ -205,6 +229,9 @@ class OpenAIImagesImageClient:
         input_fidelity: str | None = None,
         moderation: str | None = None,
         output_compression: int | None = None,
+        frame_count: int | None = None,
+        frame_duration_ms: int | None = None,
+        complexity: str | None = None,
         n: int = 1,
     ) -> dict[str, Any]:
         del main_model
@@ -229,11 +256,19 @@ class OpenAIImagesImageClient:
             payload["input_fidelity"] = input_fidelity
         if moderation:
             payload["moderation"] = moderation
-        if output_compression is not None:
+        is_gif = str(output_format or "").strip().lower() == "gif"
+        if output_compression is not None and not is_gif:
             payload["output_compression"] = output_compression
+        if is_gif:
+            if frame_count is not None:
+                payload["frame_count"] = int(frame_count)
+            if frame_duration_ms is not None:
+                payload["frame_duration_ms"] = int(frame_duration_ms)
+        if complexity:
+            payload["complexity"] = complexity
         if images:
             payload["images"] = [{"image_url": image_url} for image_url in images]
-        if mask_image:
+        if mask_image and not is_gif:
             payload["mask"] = {"image_url": mask_image}
         return payload
 
@@ -309,6 +344,9 @@ class OpenAIImagesImageClient:
             "output_compression",
             "moderation",
             "input_fidelity",
+            "frame_count",
+            "frame_duration_ms",
+            "complexity",
         ):
             add_field(key, payload.get(key))
 

@@ -38,8 +38,15 @@ export function updateQuantity(): void {
   }
 }
 
+// Formats without a compression setting: PNG is lossless, GIF has no output_compression upstream.
+const UNCOMPRESSED_FORMATS = ["png", "gif"];
+
+export function compressionSupported(format: any = els.outputFormat?.value): boolean {
+  return !UNCOMPRESSED_FORMATS.includes(String(format || ""));
+}
+
 export function updateCompression(): void {
-  const compressionEnabled = els.outputFormat.value !== "png";
+  const compressionEnabled = compressionSupported();
   els.compression.disabled = !compressionEnabled;
   if (!compressionEnabled) {
     closeCompressionPopover();
@@ -49,7 +56,7 @@ export function updateCompression(): void {
 }
 
 export function openCompressionPopover(): void {
-  if (!els.compressionPopover || els.outputFormat.value === "png") return;
+  if (!els.compressionPopover || !compressionSupported()) return;
   els.compressionPopover.classList.remove("hidden");
   els.compressionPopover.setAttribute("aria-hidden", "false");
 }

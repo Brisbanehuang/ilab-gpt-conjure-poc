@@ -180,3 +180,79 @@ class WebUIStaticBuildTests(WebUIStaticTestCase):
         inline_scripts = re.findall(r"<script>(.*?)</script>", index_html, flags=re.DOTALL)
         for index, script in enumerate(inline_scripts, start=1):
             self._assert_valid_javascript(node, script, f"index.html inline script {index}")
+
+    def test_gif_frame_size_helpers_follow_upstream_sheet_rules(self) -> None:
+        node = shutil.which("node")
+        esbuild = Path("node_modules/.bin/esbuild")
+        if node is None or not esbuild.exists():
+            self.skipTest("node and npm install are required for frontend logic checks")
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            bundle = Path(tmp) / "gif-frame-size.cjs"
+            build = subprocess.run(
+                [
+                    str(esbuild),
+                    "codex_image/webui/frontend/src/gif-frame-size.ts",
+                    "--bundle",
+                    "--format=cjs",
+                    "--platform=node",
+                    f"--outfile={bundle}",
+                    "--log-level=warning",
+                ],
+                check=False,
+                text=True,
+                capture_output=True,
+            )
+            self.assertEqual(build.returncode, 0, build.stderr)
+            harness = f"""
+            const assert = require("node:assert/strict");
+            const gif = require({json.dumps(str(bundle))});
+            // Upstream-verified combinations (single-frame size, frame count).
+            for (const [w, h, frames] of [[960, 960, 9], [1024, 576, 9], [960, 544, 8], [544, 960, 8], [512, 512, 16]]) {{
+              assert.equal(gif.gifSheetFits(w, h, frames), true, `${{w}}x${{h}} @ ${{frames}} should pass`);
+            }}
+            for (const [w, h, frames] of [[976, 976, 9], [960, 960, 16]]) {{
+              assert.equal(gif.gifSheetFits(w, h, frames), false, `${{w}}x${{h}} @ ${{frames}} should fail`);
+            }}
+            for (let frames = 2; frames <= 16; frames += 1) {{
+              assert.equal(gif.gifSheetFits(1024, 1024, frames), false, `1024x1024 @ ${{frames}} should fail`);
+            }}
+            assert.deepEqual(gif.gifSheetGrids(1), []);
+            assert.deepEqual(gif.gifSheetGrids(17), []);
+            assert.deepEqual(gif.gifSheetGrids(5), [[4, 2], [2, 4]]);
+            assert.deepEqual(gif.gifSheetGrids(9), [[3, 3]]);
+            assert.deepEqual(gif.gifSheetGrids(11), [[4, 3], [3, 4], [4, 4]]);
+            assert.deepEqual(gif.gifSheetGrids(14), [[4, 4]]);
+            assert.deepEqual(gif.gifFrameSizeFor(1, 1, 9), [960, 960]);
+            assert.deepEqual(gif.gifFrameSizeFor(1, 1, 16), [720, 720]);
+            assert.deepEqual(gif.gifFrameSizeFor(16, 9, 9), [1024, 576]);
+            assert.deepEqual(gif.gifFrameSizeFor(0, 0, 9), [960, 960], "invalid ratio falls back to 1:1");
+            assert.deepEqual(gif.parseGifRatio("auto"), [1, 1]);
+            assert.deepEqual(gif.parseGifRatio("16:9"), [16, 9]);
+            const ratios = [[1, 1], [16, 9], [9, 16], [4, 3], [3, 4], [3, 2], [2, 3]];
+            for (const [rw, rh] of ratios) {{
+              for (let frames = 2; frames <= 16; frames += 1) {{
+                const [w, h] = gif.gifFrameSizeFor(rw, rh, frames);
+                const label = `${{rw}}:${{rh}} @ ${{frames}} -> ${{w}}x${{h}}`;
+                assert.ok(gif.gifSheetFits(w, h, frames), `${{label}} must satisfy the sheet rule`);
+                assert.equal(w % 16, 0, label);
+                assert.equal(h % 16, 0, label);
+                assert.ok(Math.max(w, h) <= 1024, `${{label}} must stay within 1024`);
+                assert.ok(Math.abs(Math.log((w / h) / (rw / rh))) < 0.06, `${{label}} must stay close to the ratio`);
+              }}
+            }}
+            assert.equal(gif.gifModelSupported("gpt-image-2.6-flare"), true);
+            assert.equal(gif.gifModelSupported("gpt-image-2.6-sunburst"), true);
+            assert.equal(gif.gifModelSupported("gpt-image-2.5-flare"), false);
+            assert.equal(gif.normalizeGifFrameCount(""), 9);
+            assert.equal(gif.normalizeGifFrameCount("40"), 16);
+            assert.equal(gif.normalizeGifFrameCount("1"), 2);
+            assert.equal(gif.normalizeGifFrameDuration(""), 200);
+            assert.equal(gif.normalizeGifFrameDuration("333"), 330);
+            assert.equal(gif.normalizeGifFrameDuration("5"), 20);
+            assert.equal(gif.normalizeGifFrameDuration("9999"), 2000);
+            """
+            result = subprocess.run([node, "-e", harness], check=False, text=True, capture_output=True)
+
+        self.assertEqual(result.returncode, 0, result.stderr)

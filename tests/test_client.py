@@ -1327,5 +1327,177 @@ class ClientTests(unittest.TestCase):
         )
         self.assertEqual(payload["input_fidelity"], "high")
 
+    def _gif_response(self, *, size: str = "960x960") -> FakeResponse:
+        from io import BytesIO
+
+        from PIL import Image
+
+        frames = [Image.new("RGB", (32, 32), color) for color in ((255, 0, 0), (0, 255, 0))]
+        buffer = BytesIO()
+        frames[0].save(buffer, format="GIF", save_all=True, append_images=frames[1:], duration=200, loop=0)
+        body = {
+            "data": [{"b64_json": base64.b64encode(buffer.getvalue()).decode("ascii")}],
+            "output_format": "gif",
+            "size": size,
+            "usage": {"total_tokens": 3},
+        }
+        return FakeResponse(status=200, body=json.dumps(body).encode("utf-8"), headers={"Content-Type": "application/json"})
+
+    def test_openai_images_gif_generation_sends_frame_fields_without_compression(self) -> None:
+        from codex_image.client import OpenAIImagesImageClient
+
+        transport = FakeTransport([self._gif_response()])
+        client = OpenAIImagesImageClient(api_key="test-api-key", base_url="https://api.example.com/v1", transport=transport)
+        result = client.generate_image(
+            prompt="dancing cat",
+            model="gpt-image-2.6-flare",
+            size="960x960",
+            quality="medium",
+            output_format="gif",
+            output_compression=80,
+            frame_count=9,
+            frame_duration_ms=200,
+            complexity="low",
+        )
+
+        payload = json.loads(transport.requests[0]["body"].decode("utf-8"))
+        self.assertEqual(transport.requests[0]["url"], "https://api.example.com/v1/images/generations")
+        self.assertEqual(payload["output_format"], "gif")
+        self.assertEqual(payload["frame_count"], 9)
+        self.assertEqual(payload["frame_duration_ms"], 200)
+        self.assertEqual(payload["complexity"], "low")
+        self.assertNotIn("output_compression", payload)
+        self.assertEqual(result.output_format, "gif")
+        self.assertTrue(result.image_bytes.startswith(b"GIF8"))
+
+    def test_openai_images_build_payload_drops_frame_fields_for_static_formats(self) -> None:
+        from codex_image.client import OpenAIImagesImageClient
+
+        client = OpenAIImagesImageClient(api_key="test-api-key", base_url="https://api.example.com/v1", transport=FakeTransport([]))
+        payload = client.build_payload(
+            prompt="static",
+            model="gpt-image-2.6-flare",
+            output_format="webp",
+            output_compression=70,
+            frame_count=9,
+            frame_duration_ms=200,
+            complexity="high",
+        )
+        self.assertNotIn("frame_count", payload)
+        self.assertNotIn("frame_duration_ms", payload)
+        self.assertEqual(payload["output_compression"], 70)
+        self.assertEqual(payload["complexity"], "high")
+        payload = client.build_payload(prompt="static", output_format="png")
+        self.assertNotIn("complexity", payload)
+
+    def test_openai_images_gif_edit_multipart_includes_frame_fields_and_omits_mask(self) -> None:
+        from codex_image.client import OpenAIImagesImageClient
+
+        transport = FakeTransport([self._gif_response(size="1024x576")])
+        client = OpenAIImagesImageClient(api_key="test-api-key", base_url="https://api.example.com/v1", transport=transport)
+        result = client.edit_image(
+            prompt="animate",
+            images=["data:image/png;base64,aW1hZ2U="],
+            mask_image="data:image/png;base64,bWFzaw==",
+            model="gpt-image-2.6-sunburst",
+            size="1024x576",
+            quality="low",
+            output_format="gif",
+            output_compression=80,
+            frame_count=12,
+            frame_duration_ms=150,
+            complexity="medium",
+        )
+
+        request = transport.requests[0]
+        body = request["body"].decode("utf-8", errors="replace")
+        self.assertEqual(request["url"], "https://api.example.com/v1/images/edits")
+        self.assertIn("multipart/form-data", request["headers"]["Content-Type"])
+        self.assertIn('name="output_format"\r\n\r\ngif\r\n', body)
+        self.assertIn('name="frame_count"\r\n\r\n12\r\n', body)
+        self.assertIn('name="frame_duration_ms"\r\n\r\n150\r\n', body)
+        self.assertIn('name="complexity"\r\n\r\nmedium\r\n', body)
+        self.assertNotIn('name="output_compression"', body)
+        self.assertNotIn('name="mask"', body)
+        self.assertEqual(result.output_format, "gif")
+
+    def test_openai_responses_web_search_forwards_gif_fields_to_images_request(self) -> None:
+        search_event = {
+            "type": "response.completed",
+            "response": {"output": [{"type": "message", "content": [{"type": "output_text", "text": "Searched prompt"}]}]},
+        }
+        transport = FakeTransport(
+            [
+                FakeResponse(status=200, body=f"data: {json.dumps(search_event)}\n\n".encode("utf-8"), headers={"Content-Type": "text/event-stream"}),
+                self._gif_response(),
+                FakeResponse(status=200, body=f"data: {json.dumps(search_event)}\n\n".encode("utf-8"), headers={"Content-Type": "text/event-stream"}),
+                self._gif_response(),
+            ]
+        )
+
+        from codex_image.client import OpenAIResponsesImageClient
+
+        client = OpenAIResponsesImageClient(api_key="test-api-key", base_url="https://api.example.com/v1", transport=transport)
+        client.generate_image(
+            prompt="search then animate",
+            model="gpt-image-2.6-flare",
+            size="960x960",
+            quality="medium",
+            output_format="gif",
+            frame_count=10,
+            frame_duration_ms=120,
+            complexity="high",
+            web_search=True,
+        )
+        client.edit_image(
+            prompt="search then animate edit",
+            images=["data:image/png;base64,aW1hZ2U="],
+            model="gpt-image-2.6-flare",
+            size="960x960",
+            quality="medium",
+            output_format="gif",
+            frame_count=4,
+            frame_duration_ms=60,
+            complexity="low",
+            web_search=True,
+        )
+
+        generate_payload = json.loads(transport.requests[1]["body"].decode("utf-8"))
+        self.assertEqual(transport.requests[1]["url"], "https://api.example.com/v1/images/generations")
+        self.assertEqual(generate_payload["output_format"], "gif")
+        self.assertEqual(generate_payload["frame_count"], 10)
+        self.assertEqual(generate_payload["frame_duration_ms"], 120)
+        self.assertEqual(generate_payload["complexity"], "high")
+        edit_body = transport.requests[3]["body"].decode("utf-8", errors="replace")
+        self.assertEqual(transport.requests[3]["url"], "https://api.example.com/v1/images/edits")
+        self.assertIn('name="frame_count"\r\n\r\n4\r\n', edit_body)
+        self.assertIn('name="frame_duration_ms"\r\n\r\n60\r\n', edit_body)
+        self.assertIn('name="complexity"\r\n\r\nlow\r\n', edit_body)
+
+    def test_other_clients_accept_gif_keyword_arguments(self) -> None:
+        from codex_image.client import CodexImageClient, OpenAIResponsesImageClient
+        from codex_image.codex_images_client import CodexImagesImageClient
+
+        responses_payload = OpenAIResponsesImageClient(api_key="k", transport=FakeTransport([])).build_payload(
+            prompt="gif", model="gpt-image-2.6-flare", output_format="gif", output_compression=80,
+            frame_count=9, frame_duration_ms=200, complexity="low",
+        )
+        tool = responses_payload["tools"][0]
+        self.assertEqual(tool["frame_count"], 9)
+        self.assertEqual(tool["frame_duration_ms"], 200)
+        self.assertEqual(tool["complexity"], "low")
+        self.assertNotIn("output_compression", tool)
+        codex_client = object.__new__(CodexImageClient)
+        codex_payload = CodexImageClient.build_payload(
+            codex_client, prompt="gif", output_format="gif", frame_count=9, frame_duration_ms=200, complexity="low",
+        )
+        self.assertEqual(codex_payload["tools"][0]["output_format"], "gif")
+        codex_images = object.__new__(CodexImagesImageClient)
+        codex_images.image_model = "gpt-image-2.6-flare"
+        codex_images_payload = CodexImagesImageClient.build_payload(
+            codex_images, prompt="gif", output_format="gif", frame_count=9, frame_duration_ms=200, complexity="low",
+        )
+        self.assertEqual(codex_images_payload["frame_count"], 9)
+
 if __name__ == "__main__":
     unittest.main()

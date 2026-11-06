@@ -1500,6 +1500,9 @@ class WebUIStaticTaskTests(WebUIStaticTestCase):
                 function persistApiSettings() {}
                 function populateApiSettingsForm() {}
                 function syncSizeControlsFromSize() {}
+                function discardGifOutputMode() {}
+                function syncGifOutputMode() {}
+                function setGifFrameControls() {}
                 function updatePromptCount() {}
                 function updateCompression() {}
                 function updateCustomSize() {}
@@ -1562,6 +1565,9 @@ class WebUIStaticTaskTests(WebUIStaticTestCase):
                 function setPromptWithGalleryRefs() {}
                 function persistMainModel() {}
                 function syncSizeControlsFromSize() {}
+                function discardGifOutputMode() {}
+                function syncGifOutputMode() {}
+                function setGifFrameControls() {}
                 function updatePromptCount() {}
                 function updateCompression() {}
                 function updateCustomSize() {}

@@ -1,5 +1,6 @@
 import { getLegacyBridge } from "./state";
 import { LOCALE_CHANGE_EVENT, translate } from "./i18n";
+import { outputDownloadExtension } from "./webui-utils";
 
 const bridge = getLegacyBridge();
 const state = bridge.state;
@@ -193,7 +194,7 @@ async function downloadTaskOutputs(taskId: string, task: any) {
   if (!records.length) throw new Error(translate("taskContext.noDownloadableOutputs"));
   if (records.length === 1) {
     const record = records[0]!;
-    triggerDownload(String(record.url), outputDownloadFilename(taskId, record, 1));
+    triggerDownload(String(record.url), outputDownloadFilename(taskId, record, 1, detailedTask));
   } else {
     triggerDownload(`/api/tasks/${encodeURIComponent(taskId)}/outputs.zip`, `${taskId}-images.zip`);
   }
@@ -224,12 +225,12 @@ function downloadableOutputRecords(task: any) {
   return records.sort((a, b) => a.index - b.index);
 }
 
-function outputDownloadFilename(taskId: string, record: { index: number; url: string; file?: string }, fallbackIndex: number) {
+function outputDownloadFilename(taskId: string, record: { index: number; url: string; file?: string }, fallbackIndex: number, task?: any) {
   const source = String(record.file || record.url || "");
   const pathname = source.split(/[?#]/)[0] || "";
   const filename = pathname.split("/").filter(Boolean).pop() || "";
   if (filename && /\.[a-z0-9]+$/i.test(filename)) return filename;
-  return `${taskId}-image-${record.index || fallbackIndex}.png`;
+  return `${taskId}-image-${record.index || fallbackIndex}.${outputDownloadExtension(task, record.url)}`;
 }
 
 function triggerDownload(url: string, filename?: string) {

@@ -557,6 +557,25 @@
   font-weight: 760;
 }
 
+.task-thumb-format-badge {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  z-index: 4;
+  height: 13px;
+  padding: 0 3px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--text) 72%, transparent);
+  color: var(--surface);
+  font-size: 8px;
+  line-height: 1;
+  font-weight: 760;
+  letter-spacing: 0.02em;
+  pointer-events: none;
+}
+
 .task-card:hover .task-thumb-reference,
 .task-card:focus-visible .task-thumb-reference,
 .archive-card:hover .task-thumb-reference {

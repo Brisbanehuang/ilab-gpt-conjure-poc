@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any
 
@@ -27,6 +28,83 @@ from codex_image.webui.task_metadata import _dedupe_preserve_order, _params, _wi
 from codex_image.webui.title_generation import generate_task_title
 
 DEFAULT_PROMPT_FIDELITY = "strict"
+GIF_OUTPUT_FORMAT = "gif"
+GIF_MODEL_PREFIX = "gpt-image-2.6-"
+GIF_DEFAULT_FRAME_COUNT = 9
+GIF_MIN_FRAME_COUNT = 2
+GIF_MAX_FRAME_COUNT = 16
+GIF_DEFAULT_FRAME_DURATION_MS = 200
+GIF_MIN_FRAME_DURATION_MS = 20
+GIF_MAX_FRAME_DURATION_MS = 2000
+GIF_OMNI_QUALITIES = {"low", "medium"}
+COMPLEXITY_VALUES = {"low", "medium", "high"}
+_GIF_SIZE_RE = re.compile(r"^\s*(\d{1,5})\s*[xX]\s*(\d{1,5})\s*$")
+
+
+def _parse_form_int(value: str | None, *, default: int, minimum: int, maximum: int, label: str) -> int:
+    raw = str(value).strip() if value is not None else ""
+    if not raw:
+        return default
+    if not re.fullmatch(r"[+-]?\d+", raw):
+        raise HTTPException(status_code=400, detail=f"{label}必须是 {minimum}–{maximum} 之间的整数")
+    parsed = int(raw)
+    if parsed < minimum or parsed > maximum:
+        raise HTTPException(status_code=400, detail=f"{label}必须是 {minimum}–{maximum} 之间的整数")
+    return parsed
+
+
+def _output_extra_params(
+    *,
+    output_format: str,
+    model: str,
+    size: str,
+    quality: str,
+    frame_count: str | None,
+    frame_duration_ms: str | None,
+    complexity: str | None,
+    has_mask: bool,
+    omni: bool,
+) -> dict[str, Any]:
+    """Validate GIF frame fields and complexity; return the extra params to persist and send.
+
+    The upstream frame-sheet grid rule is intentionally not checked here: it may change upstream,
+    so an out-of-range single-frame size is left for the upstream error to report.
+    """
+    extra: dict[str, Any] = {}
+    clean_complexity = str(complexity or "").strip().lower()
+    if clean_complexity:
+        if clean_complexity not in COMPLEXITY_VALUES:
+            raise HTTPException(status_code=400, detail="complexity 只能是 low、medium 或 high")
+        extra["complexity"] = clean_complexity
+    if str(output_format or "").strip().lower() != GIF_OUTPUT_FORMAT:
+        return extra
+    if not str(model or "").strip().startswith(GIF_MODEL_PREFIX):
+        raise HTTPException(status_code=400, detail="GIF 动图输出仅支持 GPT Image 2.6 Flare / Sunburst 模型")
+    if has_mask:
+        raise HTTPException(status_code=400, detail="GIF 动图输出不支持蒙版（mask）")
+    match = _GIF_SIZE_RE.match(str(size or ""))
+    if match is None:
+        raise HTTPException(status_code=400, detail="GIF 动图输出必须指定明确的单帧尺寸（宽x高），不支持 auto")
+    width, height = int(match.group(1)), int(match.group(2))
+    if width <= 0 or height <= 0 or width % 16 or height % 16:
+        raise HTTPException(status_code=400, detail="GIF 动图单帧宽高必须是 16 的倍数")
+    if omni and str(quality or "").strip().lower() not in GIF_OMNI_QUALITIES:
+        raise HTTPException(status_code=400, detail="GIF 动图输出的画质只能选择 low 或 medium")
+    extra["frame_count"] = _parse_form_int(
+        frame_count,
+        default=GIF_DEFAULT_FRAME_COUNT,
+        minimum=GIF_MIN_FRAME_COUNT,
+        maximum=GIF_MAX_FRAME_COUNT,
+        label="GIF 帧数",
+    )
+    extra["frame_duration_ms"] = _parse_form_int(
+        frame_duration_ms,
+        default=GIF_DEFAULT_FRAME_DURATION_MS,
+        minimum=GIF_MIN_FRAME_DURATION_MS,
+        maximum=GIF_MAX_FRAME_DURATION_MS,
+        label="GIF 帧时长（毫秒）",
+    )
+    return extra
 
 
 def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
@@ -120,6 +198,9 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
         output_format: str = Form("png"),
         moderation: str | None = Form(None),
         output_compression: str | None = Form(None),
+        frame_count: str | None = Form(None),
+        frame_duration_ms: str | None = Form(None),
+        complexity: str | None = Form(None),
         n: int = Form(1, ge=1, le=4),
         web_search: bool = Form(False),
         codex_mode: str | None = Form(None),
@@ -145,6 +226,17 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
                 raise HTTPException(status_code=400, detail=str(exc)) from exc
         if omni_key is None and not ctx.auth_checker():
             raise HTTPException(status_code=401, detail="Codex auth is not available")
+        extra_params = _output_extra_params(
+            output_format=output_format,
+            model=model,
+            size=size,
+            quality=quality,
+            frame_count=frame_count,
+            frame_duration_ms=frame_duration_ms,
+            complexity=complexity,
+            has_mask=False,
+            omni=omni_key is not None,
+        )
 
         gallery_refs, gallery_data_urls = _resolve_gallery_refs(gallery_storage, gallery_image_ids or [])
         uploaded_assets = await h["save_reference_assets"](reference_images or [], storage_override=reference_asset_storage)
@@ -199,6 +291,7 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
             output_format=output_format,
             moderation=moderation,
             output_compression=compression,
+            **extra_params,
         )
         if request_instructions:
             request_kwargs["instructions"] = request_instructions
@@ -219,6 +312,9 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
         if auth_source == "api" and effective_api_mode == "images":
             stored_request_payload["webui_api_images_concurrency"] = effective_api_images_concurrency
         params = _params(main_model, model, size, quality, background, output_format, moderation, compression, n)
+        if "frame_count" in extra_params:
+            params.pop("output_compression", None)
+        params.update(extra_params)
         if resolution:
             params["resolution"] = resolution
         if ratio:
@@ -323,6 +419,9 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
         input_fidelity: str | None = Form(None),
         moderation: str | None = Form(None),
         output_compression: str | None = Form(None),
+        frame_count: str | None = Form(None),
+        frame_duration_ms: str | None = Form(None),
+        complexity: str | None = Form(None),
         n: int = Form(1, ge=1, le=4),
         web_search: bool = Form(False),
         codex_mode: str | None = Form(None),
@@ -352,6 +451,17 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
                 raise HTTPException(status_code=400, detail=str(exc)) from exc
         if omni_key is None and not ctx.auth_checker():
             raise HTTPException(status_code=401, detail="Codex auth is not available")
+        extra_params = _output_extra_params(
+            output_format=output_format,
+            model=model,
+            size=size,
+            quality=quality,
+            frame_count=frame_count,
+            frame_duration_ms=frame_duration_ms,
+            complexity=complexity,
+            has_mask=mask is not None,
+            omni=omni_key is not None,
+        )
 
         if not images and not _dedupe_preserve_order(gallery_image_ids or []) and not _dedupe_preserve_order(reference_asset_ids or []):
             raise HTTPException(status_code=400, detail="At least one image is required")
@@ -417,6 +527,7 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
             input_fidelity=effective_input_fidelity,
             moderation=moderation,
             output_compression=compression,
+            **extra_params,
         )
         if request_instructions:
             request_kwargs["instructions"] = request_instructions
@@ -441,6 +552,9 @@ def register_generation_routes(app: FastAPI, ctx: WebUIContext) -> None:
             stored_request_payload["webui_api_images_concurrency"] = effective_api_images_concurrency
         ctx.storage.write_request(task.task_id, stored_request_payload)
         params = _params(main_model, model, size, quality, background, output_format, moderation, compression, n)
+        if "frame_count" in extra_params:
+            params.pop("output_compression", None)
+        params.update(extra_params)
         if resolution:
             params["resolution"] = resolution
         if ratio:

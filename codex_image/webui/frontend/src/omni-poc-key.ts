@@ -62,6 +62,8 @@ export function setOmniImageModel(model: string): void {
     select.value = model;
   }
   syncImageModelControl();
+  // GIF output is only offered for GPT Image 2.6; switching away falls back to PNG.
+  getLegacyBridge().methods.syncGifOutputMode?.();
   if (user && IMAGE_MODELS.includes(model)) {
     localStorage.setItem(`${SELECTED_MODEL_STORAGE}.${user.id}`, model);
   }

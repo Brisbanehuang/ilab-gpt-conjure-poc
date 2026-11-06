@@ -70,6 +70,9 @@ export interface TaskParams {
   background?: string | null;
   output_format?: string;
   output_compression?: number | null;
+  frame_count?: number;
+  frame_duration_ms?: number;
+  complexity?: "low" | "medium" | "high";
   n?: number;
   web_search?: boolean;
   prompt_fidelity?: "strict" | "original" | "off";

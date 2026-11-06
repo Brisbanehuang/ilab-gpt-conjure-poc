@@ -8,8 +8,12 @@ import {
   RATIO_COUNTERPARTS,
   RATIO_ORIENTATION,
   customDimensionValue,
+  currentGifFrameCount,
+  currentGifFrameDuration,
+  currentGifFrameSize,
   customSizeValidationMessage,
   findPresetForSize,
+  isGifOutputSelected,
   orientationForDimensions,
   sizeForPreset,
 } from "./size-presets";
@@ -314,6 +318,19 @@ export function setSizeControlValue(select: any, value: any): boolean {
 
 export function updatePixelPreview(size: any): void {
   if (!els.pixelPreview) return;
+  if (isGifOutputSelected()) {
+    const [width, height] = currentGifFrameSize().split("x");
+    const frames = currentGifFrameCount();
+    const duration = currentGifFrameDuration();
+    els.pixelPreview.textContent = formatTranslation("output.gifFramePreview", {
+      width: width || "",
+      height: height || "",
+      frames,
+      duration,
+      total: (frames * duration / 1000).toFixed(2).replace(/\.?0+$/, ""),
+    });
+    return;
+  }
   if (size === "auto") {
     els.pixelPreview.textContent = formatTranslation("output.pixelPreviewAuto");
     return;

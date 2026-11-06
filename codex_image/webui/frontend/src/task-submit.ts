@@ -60,9 +60,24 @@ function stopRunFeedback(...args: any[]) { return legacyMethod("stopRunFeedback"
 function markPendingTaskFailed(...args: any[]) { return legacyMethod("markPendingTaskFailed", ...args); }
 function refreshRecentAssets(...args: any[]) { return legacyMethod("refreshRecentAssets", ...args); }
 function renderPreview(...args: any[]) { return legacyMethod("renderPreview", ...args); }
+function discardGifOutputMode(...args: any[]) { return legacyMethod("discardGifOutputMode", ...args); }
+function syncGifOutputMode(...args: any[]) { return legacyMethod("syncGifOutputMode", ...args); }
+function setGifFrameControls(...args: any[]) { return legacyMethod("setGifFrameControls", ...args); }
+function syncRatioControls(ratio: any) {
+  if (!els.ratio || !els.orientation) return;
+  if (els.customSizeToggle) els.customSizeToggle.checked = false;
+  const ratioOption = Array.from(els.ratio.options || []).some((option: any) => option.value === ratio);
+  els.ratio.value = ratioOption ? ratio : "1:1";
+  els.ratio.dispatchEvent(new Event("change"));
+  syncRadioButtons(els.resolution, els.ratio, els.orientation);
+}
 
 function applyTaskToForm(task: any) {
   const params = task.params || {};
+  const gifTask = params.output_format === "gif";
+  discardGifOutputMode();
+  if (params.output_format) els.outputFormat.value = params.output_format;
+  else if (els.outputFormat.value === "gif") els.outputFormat.value = "png";
   setMode(task.mode || "generate");
   setPromptWithGalleryRefs(task.prompt || "", task.gallery_refs || []);
   const mainModel = params.main_model || task.request?.model;
@@ -83,7 +98,13 @@ function applyTaskToForm(task: any) {
     if (isOmniPocMode()) setOmniImageModel(params.model);
     else els.model.value = params.model;
   }
-  if (params.size) syncSizeControlsFromSize(params.size);
+  if (gifTask) {
+    // GIF tasks store the computed single-frame size; restore the ratio it was derived from.
+    syncRatioControls(params.ratio);
+    setGifFrameControls(params.frame_count, params.frame_duration_ms);
+  } else if (params.size) {
+    syncSizeControlsFromSize(params.size);
+  }
   if (params.n && els.nInput) {
     els.nInput.value = String(params.n);
   }
@@ -96,6 +117,7 @@ function applyTaskToForm(task: any) {
   [els.quality, els.outputFormat, els.moderation].forEach((element: any) => {
     element.dispatchEvent(new Event("change"));
   });
+  syncGifOutputMode();
   updatePromptCount();
   updateQuantity();
   syncRadioButtons(els.nInput);
@@ -126,6 +148,8 @@ function buildPreviewRequest() {
     output_format: params.output_format,
     moderation: params.moderation,
     output_compression: params.output_compression,
+    frame_count: params.frame_count,
+    frame_duration_ms: params.frame_duration_ms,
     prompt_fidelity: currentPromptFidelity(),
     web_search: Boolean(params.web_search),
     n: params.n,
@@ -168,6 +192,10 @@ function buildPreviewRequest() {
       if (params.output_compression !== null && params.output_compression !== undefined) {
         imageTool.output_compression = params.output_compression;
       }
+      if (params.frame_count !== undefined) {
+        imageTool.frame_count = params.frame_count;
+        imageTool.frame_duration_ms = params.frame_duration_ms;
+      }
     } else {
       payload.endpoint = action === "edit" ? "/images/edits" : "/images/generations";
     }
@@ -196,6 +224,10 @@ function buildPreviewRequest() {
       }
       if (params.output_compression !== null && params.output_compression !== undefined) {
         imageTool.output_compression = params.output_compression;
+      }
+      if (params.frame_count !== undefined) {
+        imageTool.frame_count = params.frame_count;
+        imageTool.frame_duration_ms = params.frame_duration_ms;
       }
     } else {
       payload.endpoint = action === "edit" ? "/images/edits" : "/images/generations";
@@ -264,7 +296,8 @@ async function runTask() {
     setStatus(translate("status.editNeedsImage"), "error");
     return;
   }
-  const customSizeError = els.size?.value === "custom" ? customSizeValidationMessage() : "";
+  const gifOutput = els.outputFormat.value === "gif";
+  const customSizeError = !gifOutput && els.size?.value === "custom" ? customSizeValidationMessage() : "";
   if (customSizeError) {
     updateCustomSize();
     updatePixelPreview("custom");
@@ -302,8 +335,12 @@ async function runTask() {
   } else if (currentAuthSource() === "codex") {
     form.append("codex_mode", currentCodexMode());
   }
-  if (els.outputFormat.value !== "png") {
+  if (params.output_compression !== null && params.output_compression !== undefined) {
     form.append("output_compression", String(params.output_compression));
+  }
+  if (gifOutput) {
+    form.append("frame_count", String(params.frame_count));
+    form.append("frame_duration_ms", String(params.frame_duration_ms));
   }
   galleries.forEach((source: any) => form.append("gallery_image_ids", source.id));
   assets.forEach((source: any) => form.append("reference_asset_ids", source.id));

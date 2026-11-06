@@ -55,6 +55,9 @@ class OpenAIResponsesImageClient:
         output_format: str = "png",
         moderation: str | None = None,
         output_compression: int | None = None,
+        frame_count: int | None = None,
+        frame_duration_ms: int | None = None,
+        complexity: str | None = None,
         partial_images: int | None = None,
         web_search: bool = False,
         debug_sse_path: str | PathLike[str] | None = None,
@@ -82,6 +85,9 @@ class OpenAIResponsesImageClient:
                 output_format=output_format,
                 moderation=moderation,
                 output_compression=output_compression,
+                frame_count=frame_count,
+                frame_duration_ms=frame_duration_ms,
+                complexity=complexity,
                 partial_images=partial_images,
                 debug_sse_path=debug_sse_path,
             )
@@ -100,6 +106,9 @@ class OpenAIResponsesImageClient:
             output_format=output_format,
             moderation=moderation,
             output_compression=output_compression,
+            frame_count=frame_count,
+            frame_duration_ms=frame_duration_ms,
+            complexity=complexity,
             partial_images=partial_images,
             web_search=web_search,
         )
@@ -121,6 +130,9 @@ class OpenAIResponsesImageClient:
         input_fidelity: str | None = None,
         moderation: str | None = None,
         output_compression: int | None = None,
+        frame_count: int | None = None,
+        frame_duration_ms: int | None = None,
+        complexity: str | None = None,
         partial_images: int | None = None,
         web_search: bool = False,
         debug_sse_path: str | PathLike[str] | None = None,
@@ -153,6 +165,9 @@ class OpenAIResponsesImageClient:
                 input_fidelity=input_fidelity,
                 moderation=moderation,
                 output_compression=output_compression,
+                frame_count=frame_count,
+                frame_duration_ms=frame_duration_ms,
+                complexity=complexity,
                 partial_images=partial_images,
                 debug_sse_path=debug_sse_path,
             )
@@ -173,6 +188,9 @@ class OpenAIResponsesImageClient:
             input_fidelity=input_fidelity,
             moderation=moderation,
             output_compression=output_compression,
+            frame_count=frame_count,
+            frame_duration_ms=frame_duration_ms,
+            complexity=complexity,
             partial_images=partial_images,
             web_search=web_search,
         )
@@ -195,6 +213,9 @@ class OpenAIResponsesImageClient:
         input_fidelity: str | None = None,
         moderation: str | None = None,
         output_compression: int | None = None,
+        frame_count: int | None = None,
+        frame_duration_ms: int | None = None,
+        complexity: str | None = None,
         partial_images: int | None = None,
         web_search: bool = False,
     ) -> dict[str, Any]:
@@ -215,11 +236,19 @@ class OpenAIResponsesImageClient:
             tool["input_fidelity"] = input_fidelity
         if moderation:
             tool["moderation"] = moderation
-        if output_compression is not None:
+        is_gif = str(output_format or "").strip().lower() == "gif"
+        if output_compression is not None and not is_gif:
             tool["output_compression"] = output_compression
-        if partial_images is not None:
+        if is_gif:
+            if frame_count is not None:
+                tool["frame_count"] = int(frame_count)
+            if frame_duration_ms is not None:
+                tool["frame_duration_ms"] = int(frame_duration_ms)
+        if complexity:
+            tool["complexity"] = complexity
+        if partial_images is not None and not is_gif:
             tool["partial_images"] = partial_images
-        if mask_image:
+        if mask_image and not is_gif:
             tool["input_image_mask"] = {"image_url": mask_image}
 
         content: list[dict[str, str]] = [{"type": "input_text", "text": prompt}]

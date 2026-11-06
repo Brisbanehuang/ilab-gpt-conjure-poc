@@ -687,6 +687,57 @@ input:checked + .slider.round:before {
   grid-column: 1 / -1;
 }
 
+/* GIF output: frames are sized from the ratio, so resolution tiers and custom pixels are hidden. */
+.gif-settings-field {
+  display: none;
+}
+
+.settings-grid.gif-mode .gif-settings-field {
+  display: flex;
+}
+
+.settings-grid.gif-mode .orientation-field {
+  grid-column: 1 / -1;
+}
+
+.settings-grid.gif-mode .custom-size-control,
+.settings-grid.gif-mode .resolution-field,
+.settings-grid.gif-mode .custom-size {
+  display: none;
+}
+
+.gif-settings-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+
+.gif-setting {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.gif-setting-label {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.gif-setting-input {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+}
+
+.radio-btn.is-disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .settings-grid,
   .slider.round,
@@ -736,6 +787,13 @@ input:checked + .slider.round:before {
 
 .output-format-field {
   position: relative;
+}
+
+/* Phones: four format choices (png/jpeg/webp/gif) need the full row to stay legible. */
+@media (max-width: 640px) {
+  .output-format-field {
+    grid-column: 1 / -1;
+  }
 }
 
 .compression-popover {

@@ -135,8 +135,8 @@ class WebUIStaticLayoutTests(WebUIStaticTestCase):
         script = self._frontend_script_source()
         styles = Path("codex_image/webui/static/styles.css").read_text(encoding="utf-8")
 
-        self.assertIn('/static/app.js?v=runtime-376', html)
-        self.assertIn('/static/styles.css?v=runtime-376', html)
+        self.assertIn('/static/app.js?v=runtime-377', html)
+        self.assertIn('/static/styles.css?v=runtime-377', html)
         self.assertIn('id="recentAssetDock"', html)
         self.assertRegex(html, r'class="image-input-footer"[\s\S]*id="recentAssetDock"[\s\S]*id="recentAssetList"')
         self.assertRegex(html, r'id="recentAssetDock"[\s\S]*id="quickGalleryDock"[\s\S]*id="galleryManagePanel"')
@@ -2039,6 +2039,30 @@ class WebUIStaticLayoutTests(WebUIStaticTestCase):
         self.assertIn('form.append("n"', script)
         self.assertNotIn("nDecrease", html)
         self.assertNotIn("nIncrease", html)
+    def test_gif_output_controls_are_declared_and_wired(self) -> None:
+        html = Path("codex_image/webui/static/index.html").read_text(encoding="utf-8")
+        styles = Path("codex_image/webui/static/styles.css").read_text(encoding="utf-8")
+        elements = Path("codex_image/webui/frontend/src/elements.ts").read_text(encoding="utf-8")
+        submit = Path("codex_image/webui/frontend/src/task-submit.ts").read_text(encoding="utf-8")
+        output_group = html[html.index('id="outputFormatGroup"'):html.index('id="compressionPopover"')]
+
+        self.assertIn('<button class="radio-btn" data-val="gif" aria-disabled="true">gif</button>', output_group)
+        self.assertIn('<option value="gif">gif</option>', output_group)
+        self.assertRegex(html, r'id="gifFrameCount"[^>]*min="2" max="16" step="1" value="9"')
+        self.assertRegex(html, r'id="gifFrameDuration"[^>]*min="20" max="2000" step="10" value="200"')
+        self.assertLess(html.index('class="field-group full-width custom-size-control"'), html.index('id="gifSettingsField"'))
+        for element_id in ("gifSettingsField", "gifFrameCount", "gifFrameDuration"):
+            self.assertIn(f'{element_id}: document.querySelector("#{element_id}")', elements)
+        self.assertRegex(styles, r"\.settings-grid\.gif-mode \.custom-size-control,\s*\.settings-grid\.gif-mode \.resolution-field,\s*\.settings-grid\.gif-mode \.custom-size \{\s*display: none;")
+        self.assertIn(".task-thumb-format-badge", styles)
+        self.assertIn('form.append("frame_count", String(params.frame_count))', submit)
+        self.assertIn('form.append("frame_duration_ms", String(params.frame_duration_ms))', submit)
+        self.assertNotIn('form.append("complexity"', submit)
+        for locale in ("zh-cn", "en", "zh-tw", "zh-hk", "ja", "ko", "es", "pt", "fr", "de", "ru", "it", "hi"):
+            dictionary = Path(f"codex_image/webui/frontend/src/i18n/{locale}.ts").read_text(encoding="utf-8")
+            for key in ("output.gifSettings", "output.gifFrameCount", "output.gifFrameDuration", "output.gifFramePreview", "output.gifUnsupportedModel", "output.gifQualityLimited"):
+                self.assertIn(f'"{key}"', dictionary, f"{locale} misses {key}")
+
     def test_output_sliders_match_theme(self) -> None:
         html = Path("codex_image/webui/static/index.html").read_text(encoding="utf-8")
         script = self._frontend_script_source()
@@ -2884,8 +2908,8 @@ class WebUIStaticLayoutTests(WebUIStaticTestCase):
         script = self._frontend_script_source()
         styles = Path("codex_image/webui/static/styles.css").read_text(encoding="utf-8")
 
-        self.assertIn('/static/app.js?v=runtime-376', html)
-        self.assertIn('/static/styles.css?v=runtime-376', html)
+        self.assertIn('/static/app.js?v=runtime-377', html)
+        self.assertIn('/static/styles.css?v=runtime-377', html)
         self.assertIn('id="pasteClipboardButton"', html)
         self.assertIn('id="statusText"', html)
         self.assertRegex(
@@ -3329,8 +3353,8 @@ class WebUIStaticLayoutTests(WebUIStaticTestCase):
         script = self._frontend_script_source()
         styles = Path("codex_image/webui/static/styles.css").read_text(encoding="utf-8")
 
-        self.assertIn("/static/app.js?v=runtime-376", html)
-        self.assertIn("/static/styles.css?v=runtime-376", html)
+        self.assertIn("/static/app.js?v=runtime-377", html)
+        self.assertIn("/static/styles.css?v=runtime-377", html)
         self.assertIn('const THEME_STORAGE_KEY = "codex-image-theme-preference";', script)
         self.assertIn('themePreference: "system"', script)
         self.assertIn('call(methods, "restoreThemePreference")', script)

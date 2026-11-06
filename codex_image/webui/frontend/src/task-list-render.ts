@@ -931,12 +931,18 @@ function taskThumbShowsLoading(task: any) {
   return Boolean(task?.local_pending || ["submitting", "queued", "running"].includes(status));
 }
 
+function taskOutputIsGif(task: any): boolean {
+  if (String(task?.params?.output_format || "").toLowerCase() === "gif") return true;
+  return Array.isArray(task?.outputs) && task.outputs.some((item: any) => String(item?.format || "").toLowerCase() === "gif");
+}
+
 function taskThumbHtml(task: any, className: any = "task-thumb") {
   const outputUrl = taskOutputUrls(task)[0];
   const outputThumbnailUrl = taskThumbnailUrls(task)[0];
   const inputPreviewUrl = taskInputPreviewUrls(task)[0];
   const imageUrl = outputThumbnailUrl || outputUrl || task.preview_url || inputPreviewUrl;
   const safeClassName = escapeHtml(className);
+  const formatBadge = taskOutputIsGif(task) ? '<span class="task-thumb-format-badge" aria-hidden="true">GIF</span>' : "";
   if (imageUrl && inputPreviewUrl) {
     const loadingSpinner = taskThumbShowsLoading(task) ? '<span class="task-thumb-stack-spinner" aria-hidden="true"></span>' : "";
     const imageToImageLabel = escapeHtml(translate("taskCard.imageToImageThumb"));
@@ -945,6 +951,7 @@ function taskThumbHtml(task: any, className: any = "task-thumb") {
         <img class="task-thumb-reference" src="${escapeHtml(inputPreviewUrl)}" alt="" loading="lazy" decoding="async" onerror="this.hidden=true">
         <img class="task-thumb-output" src="${escapeHtml(imageUrl)}" alt="" loading="lazy" decoding="async" onerror="this.hidden=true">
         ${loadingSpinner}
+        ${formatBadge}
       </div>
     `;
   }
@@ -955,6 +962,7 @@ function taskThumbHtml(task: any, className: any = "task-thumb") {
       <div class="${safeClassName} task-thumb-single" aria-label="${textToImageLabel}">
         <img class="task-thumb-single-image" src="${escapeHtml(imageUrl)}" alt="" loading="lazy" decoding="async" onerror="this.hidden=true">
         <span class="task-thumb-mode-badge" aria-hidden="true">${textBadge}</span>
+        ${formatBadge}
       </div>
     `;
   }

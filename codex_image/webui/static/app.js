@@ -19,49 +19,49 @@
       "#promptTemplateDrawer.open, #galleryDrawer.open, .modal-overlay:not(.hidden), .prompt-popover:not(.hidden), .confirm-popover:not(.hidden), .compression-popover:not(.hidden), .task-notification-center:not(.hidden)"
     ));
   }
-  function handleRunTaskShortcut(event, els43, methods) {
+  function handleRunTaskShortcut(event, els44, methods) {
     if (!isRunTaskShortcut(event)) return;
-    if (hasOpenShortcutBlockingLayer() || els43.runButton.disabled) return;
+    if (hasOpenShortcutBlockingLayer() || els44.runButton.disabled) return;
     event.preventDefault();
     void call(methods, "runTask");
   }
-  function bindWebUIEvents(state32, els43, methods) {
+  function bindWebUIEvents(state32, els44, methods) {
     call(methods, "bindShellUiEvents");
     call(methods, "bindFormControlEvents");
-    els43.clearPromptButton.addEventListener("click", () => {
+    els44.clearPromptButton.addEventListener("click", () => {
       call(methods, "setPromptText", "");
       call(methods, "syncGalleryInputsFromPrompt");
       call(methods, "updatePromptCount");
       call(methods, "updateRequestPreview");
     });
-    els43.quickGalleryRail?.addEventListener("mouseover", (event) => call(methods, "handleQuickGalleryCategoryEvent", event));
-    els43.quickGalleryRail?.addEventListener("focusin", (event) => call(methods, "handleQuickGalleryCategoryEvent", event));
-    els43.quickGalleryRail?.addEventListener("click", (event) => call(methods, "handleQuickGalleryCategoryEvent", event));
-    els43.quickGalleryList?.addEventListener("scroll", () => call(methods, "scheduleQuickGalleryFocusUpdate"));
-    els43.quickGalleryList?.addEventListener("wheel", (event) => call(methods, "handleQuickGalleryBoundaryWheel", event), { passive: false });
-    els43.addGalleryCategoryButton?.addEventListener("click", () => call(methods, "createGalleryCategory"));
-    els43.addToGalleryClose?.addEventListener("click", () => call(methods, "closeAddToGallery"));
-    els43.addToGalleryModal?.addEventListener("click", (event) => {
-      if (event.target === els43.addToGalleryModal) call(methods, "closeAddToGallery");
+    els44.quickGalleryRail?.addEventListener("mouseover", (event) => call(methods, "handleQuickGalleryCategoryEvent", event));
+    els44.quickGalleryRail?.addEventListener("focusin", (event) => call(methods, "handleQuickGalleryCategoryEvent", event));
+    els44.quickGalleryRail?.addEventListener("click", (event) => call(methods, "handleQuickGalleryCategoryEvent", event));
+    els44.quickGalleryList?.addEventListener("scroll", () => call(methods, "scheduleQuickGalleryFocusUpdate"));
+    els44.quickGalleryList?.addEventListener("wheel", (event) => call(methods, "handleQuickGalleryBoundaryWheel", event), { passive: false });
+    els44.addGalleryCategoryButton?.addEventListener("click", () => call(methods, "createGalleryCategory"));
+    els44.addToGalleryClose?.addEventListener("click", () => call(methods, "closeAddToGallery"));
+    els44.addToGalleryModal?.addEventListener("click", (event) => {
+      if (event.target === els44.addToGalleryModal) call(methods, "closeAddToGallery");
     });
-    els43.saveToGalleryButton?.addEventListener("click", () => call(methods, "saveUploadToGallery"));
-    els43.systemSettingsModalClose?.addEventListener("click", () => call(methods, "closeSystemSettingsModal"));
-    els43.systemSettingsModal?.addEventListener("click", (event) => {
-      if (event.target === els43.systemSettingsModal) call(methods, "closeSystemSettingsModal");
+    els44.saveToGalleryButton?.addEventListener("click", () => call(methods, "saveUploadToGallery"));
+    els44.systemSettingsModalClose?.addEventListener("click", () => call(methods, "closeSystemSettingsModal"));
+    els44.systemSettingsModal?.addEventListener("click", (event) => {
+      if (event.target === els44.systemSettingsModal) call(methods, "closeSystemSettingsModal");
     });
-    els43.saveSettingsButton?.addEventListener("click", () => call(methods, "saveSettings"));
-    els43.authSourceGroup?.addEventListener("click", (event) => call(methods, "handleAuthSourceClick", event));
-    els43.apiSourceSettingsButton?.addEventListener("click", () => call(methods, "openApiSettingsModal"));
-    els43.apiDirectSettingsButton?.addEventListener("click", () => call(methods, "openApiSettingsModal"));
-    els43.saveApiSettingsButton?.addEventListener("click", () => call(methods, "saveApiSettings"));
-    els43.saveCodexSettingsButton?.addEventListener("click", () => call(methods, "saveApiSettings"));
-    els43.apiProviderQuick?.addEventListener("change", () => {
-      call(methods, "selectApiProvider", els43.apiProviderQuick?.value || call(methods, "currentApiProviderId"));
+    els44.saveSettingsButton?.addEventListener("click", () => call(methods, "saveSettings"));
+    els44.authSourceGroup?.addEventListener("click", (event) => call(methods, "handleAuthSourceClick", event));
+    els44.apiSourceSettingsButton?.addEventListener("click", () => call(methods, "openApiSettingsModal"));
+    els44.apiDirectSettingsButton?.addEventListener("click", () => call(methods, "openApiSettingsModal"));
+    els44.saveApiSettingsButton?.addEventListener("click", () => call(methods, "saveApiSettings"));
+    els44.saveCodexSettingsButton?.addEventListener("click", () => call(methods, "saveApiSettings"));
+    els44.apiProviderQuick?.addEventListener("change", () => {
+      call(methods, "selectApiProvider", els44.apiProviderQuick?.value || call(methods, "currentApiProviderId"));
     });
-    els43.apiProvider?.addEventListener("change", () => {
-      call(methods, "selectApiProvider", els43.apiProvider?.value || call(methods, "currentApiProviderId"));
+    els44.apiProvider?.addEventListener("change", () => {
+      call(methods, "selectApiProvider", els44.apiProvider?.value || call(methods, "currentApiProviderId"));
     });
-    els43.apiProviderList?.addEventListener("click", (event) => {
+    els44.apiProviderList?.addEventListener("click", (event) => {
       const sortButton = event.target?.closest?.("[data-api-provider-sort]");
       if (sortButton) {
         call(methods, "moveApiProvider", sortButton.dataset.apiProviderId, sortButton.dataset.apiProviderSort);
@@ -71,14 +71,14 @@
       if (!button) return;
       call(methods, "selectApiProvider", button.dataset.apiProviderId);
     });
-    els43.editApiProviderButton?.addEventListener("click", () => call(methods, "editApiProvider"));
-    els43.copyApiProviderButton?.addEventListener("click", () => call(methods, "copyApiProvider"));
-    els43.addApiProviderButton?.addEventListener("click", () => call(methods, "addApiProvider"));
-    els43.sortApiProvidersButton?.addEventListener("click", () => call(methods, "toggleApiProviderSortMode"));
-    els43.deleteApiProviderButton?.addEventListener("click", () => call(methods, "confirmDeleteApiProvider", els43.deleteApiProviderButton));
-    els43.cancelApiProviderEditButton?.addEventListener("click", () => call(methods, "cancelApiProviderEdit"));
-    els43.saveApiProviderEditButton?.addEventListener("click", () => call(methods, "saveApiProviderEdit"));
-    [els43.codexMode].filter(Boolean).forEach((element2) => {
+    els44.editApiProviderButton?.addEventListener("click", () => call(methods, "editApiProvider"));
+    els44.copyApiProviderButton?.addEventListener("click", () => call(methods, "copyApiProvider"));
+    els44.addApiProviderButton?.addEventListener("click", () => call(methods, "addApiProvider"));
+    els44.sortApiProvidersButton?.addEventListener("click", () => call(methods, "toggleApiProviderSortMode"));
+    els44.deleteApiProviderButton?.addEventListener("click", () => call(methods, "confirmDeleteApiProvider", els44.deleteApiProviderButton));
+    els44.cancelApiProviderEditButton?.addEventListener("click", () => call(methods, "cancelApiProviderEdit"));
+    els44.saveApiProviderEditButton?.addEventListener("click", () => call(methods, "saveApiProviderEdit"));
+    [els44.codexMode].filter(Boolean).forEach((element2) => {
       element2?.addEventListener("input", () => {
         call(methods, "readApiSettingsForm");
         call(methods, "persistApiSettings");
@@ -88,9 +88,9 @@
       });
     });
     call(methods, "bindOverlayPopoverEvents");
-    els43.runButton.addEventListener("click", () => call(methods, "runTask"));
-    document.addEventListener("keydown", (event) => handleRunTaskShortcut(event, els43, methods));
-    els43.refreshButton.addEventListener("click", () => {
+    els44.runButton.addEventListener("click", () => call(methods, "runTask"));
+    document.addEventListener("keydown", (event) => handleRunTaskShortcut(event, els44, methods));
+    els44.refreshButton.addEventListener("click", () => {
       void handleRefreshButtonClick(methods);
     });
     call(methods, "bindTaskListControlEvents");
@@ -100,8 +100,8 @@
   function call2(methods, name, ...args) {
     return methods[name]?.(...args);
   }
-  function bootWebUI(state32, els43, methods) {
-    bindWebUIEvents(state32, els43, methods);
+  function bootWebUI(state32, els44, methods) {
+    bindWebUIEvents(state32, els44, methods);
     call2(methods, "restoreThemePreference");
     call2(methods, "restoreSidebarWidth");
     call2(methods, "restoreMainModel");
@@ -354,6 +354,9 @@
       size: document.querySelector("#size"),
       sizeModeGroup: document.querySelector("#sizeModeGroup"),
       customSizeToggle: document.querySelector("#customSizeToggle"),
+      gifSettingsField: document.querySelector("#gifSettingsField"),
+      gifFrameCount: document.querySelector("#gifFrameCount"),
+      gifFrameDuration: document.querySelector("#gifFrameDuration"),
       nInput: document.querySelector("#nInput"),
       nValue: document.querySelector("#nValue"),
       resolution: document.querySelector("#resolution"),
@@ -396,9 +399,9 @@
   }
 
   // codex_image/webui/frontend/src/legacy-bridge.ts
-  function installLegacyBridge(bridge39) {
-    window.__codexImageWebUI = bridge39;
-    return bridge39;
+  function installLegacyBridge(bridge40) {
+    window.__codexImageWebUI = bridge40;
+    return bridge40;
   }
   function bindBridgeMethod(name, options = {}) {
     const proxy2 = (...args) => {
@@ -416,11 +419,11 @@
 
   // codex_image/webui/frontend/src/state.ts
   function getLegacyBridge() {
-    const bridge39 = window.__codexImageWebUI;
-    if (!bridge39) {
+    const bridge40 = window.__codexImageWebUI;
+    if (!bridge40) {
       throw new Error("WebUI legacy bridge is not initialized");
     }
-    return bridge39;
+    return bridge40;
   }
   function getState() {
     return getLegacyBridge().state;
@@ -924,6 +927,12 @@
     "output.pixelPreviewAuto": "Output pixels: auto (OpenAI chooses automatically)",
     "output.format": "Format",
     "output.compression": "Compression",
+    "output.gifSettings": "GIF animation",
+    "output.gifFrameCount": "Frames",
+    "output.gifFrameDuration": "Frame ms",
+    "output.gifFramePreview": "Frame {width}\xD7{height} \xB7 {frames} frames \xD7 {duration}ms \u2248 {total}s",
+    "output.gifUnsupportedModel": "GIF output requires GPT Image 2.6 Flare or Sunburst. Switch the image model first.",
+    "output.gifQualityLimited": "GIF output supports low or medium quality only",
     "output.moderation": "Moderation",
     "preview.title": "Preview",
     "preview.selectedZero": "0 selected",
@@ -1818,6 +1827,12 @@
     "output.pixelPreviewAuto": "Ausgabepixel: automatisch (OpenAI w\xE4hlt automatisch)",
     "output.format": "Formatieren",
     "output.compression": "Komprimierung",
+    "output.gifSettings": "GIF-Animation",
+    "output.gifFrameCount": "Frames",
+    "output.gifFrameDuration": "ms pro Frame",
+    "output.gifFramePreview": "Frame {width}\xD7{height} \xB7 {frames} Frames \xD7 {duration}ms \u2248 {total} s",
+    "output.gifUnsupportedModel": "GIF-Ausgabe erfordert GPT Image 2.6 Flare oder Sunburst. Bitte zuerst das Bildmodell wechseln.",
+    "output.gifQualityLimited": "GIF-Ausgabe unterst\xFCtzt nur niedrige oder mittlere Qualit\xE4t",
     "output.moderation": "Moderation",
     "preview.title": "Vorschau",
     "preview.selectedZero": "0 ausgew\xE4hlt",
@@ -2707,6 +2722,12 @@
     "output.pixelPreviewAuto": "P\xEDxeles de salida: autom\xE1tico (OpenAI elige autom\xE1ticamente)",
     "output.format": "Formato",
     "output.compression": "Compresi\xF3n",
+    "output.gifSettings": "Animaci\xF3n GIF",
+    "output.gifFrameCount": "Fotogramas",
+    "output.gifFrameDuration": "ms por fotograma",
+    "output.gifFramePreview": "Fotograma {width}\xD7{height} \xB7 {frames} fotogramas \xD7 {duration}ms \u2248 {total} s",
+    "output.gifUnsupportedModel": "La salida GIF requiere GPT Image 2.6 Flare o Sunburst. Cambia primero el modelo de imagen.",
+    "output.gifQualityLimited": "La salida GIF solo admite calidad baja o media",
     "output.moderation": "Moderaci\xF3n",
     "preview.title": "Vista previa",
     "preview.selectedZero": "0 seleccionado",
@@ -3596,6 +3617,12 @@
     "output.pixelPreviewAuto": "Pixels de sortie:\xA0auto (OpenAI choisit automatiquement)",
     "output.format": "Formater",
     "output.compression": "Compression",
+    "output.gifSettings": "Animation GIF",
+    "output.gifFrameCount": "Images",
+    "output.gifFrameDuration": "ms par image",
+    "output.gifFramePreview": "Image {width}\xD7{height} \xB7 {frames} images \xD7 {duration}ms \u2248 {total} s",
+    "output.gifUnsupportedModel": "La sortie GIF n\xE9cessite GPT Image 2.6 Flare ou Sunburst. Changez d\u2019abord de mod\xE8le d\u2019image.",
+    "output.gifQualityLimited": "La sortie GIF accepte uniquement une qualit\xE9 basse ou moyenne",
     "output.moderation": "Mod\xE9ration",
     "preview.title": "Aper\xE7u",
     "preview.selectedZero": "0 s\xE9lectionn\xE9",
@@ -4485,6 +4512,12 @@
     "output.pixelPreviewAuto": "\u51FA\u529B\u30D4\u30AF\u30BB\u30EB: \u81EA\u52D5 (OpenAI \u304C\u81EA\u52D5\u7684\u306B\u9078\u629E\u3057\u307E\u3059)",
     "output.format": "\u5F62\u5F0F",
     "output.compression": "\u5727\u7E2E",
+    "output.gifSettings": "GIF \u30A2\u30CB\u30E1",
+    "output.gifFrameCount": "\u30D5\u30EC\u30FC\u30E0\u6570",
+    "output.gifFrameDuration": "\u30D5\u30EC\u30FC\u30E0 ms",
+    "output.gifFramePreview": "1 \u30D5\u30EC\u30FC\u30E0 {width}\xD7{height} \xB7 {frames} \u30D5\u30EC\u30FC\u30E0 \xD7 {duration}ms \u2248 {total} \u79D2",
+    "output.gifUnsupportedModel": "GIF \u51FA\u529B\u306F GPT Image 2.6 Flare / Sunburst \u306E\u307F\u5BFE\u5FDC\u3067\u3059\u3002\u5148\u306B\u753B\u50CF\u30E2\u30C7\u30EB\u3092\u5207\u308A\u66FF\u3048\u3066\u304F\u3060\u3055\u3044\u3002",
+    "output.gifQualityLimited": "GIF \u51FA\u529B\u306F\u4F4E\u30FB\u4E2D\u54C1\u8CEA\u306E\u307F\u5BFE\u5FDC\u3067\u3059",
     "output.moderation": "\u7BC0\u5EA6",
     "preview.title": "\u30D7\u30EC\u30D3\u30E5\u30FC",
     "preview.selectedZero": "0 \u500B\u304C\u9078\u629E\u3055\u308C\u307E\u3057\u305F",
@@ -5374,6 +5407,12 @@
     "output.pixelPreviewAuto": "\uCD9C\uB825 \uD53D\uC140: \uC790\uB3D9(OpenAI\uAC00 \uC790\uB3D9\uC73C\uB85C \uC120\uD0DD)",
     "output.format": "\uD615\uC2DD",
     "output.compression": "\uC555\uCD95",
+    "output.gifSettings": "GIF \uC560\uB2C8\uBA54\uC774\uC158",
+    "output.gifFrameCount": "\uD504\uB808\uC784 \uC218",
+    "output.gifFrameDuration": "\uD504\uB808\uC784 ms",
+    "output.gifFramePreview": "\uD504\uB808\uC784 {width}\xD7{height} \xB7 {frames}\uD504\uB808\uC784 \xD7 {duration}ms \u2248 {total}\uCD08",
+    "output.gifUnsupportedModel": "GIF \uCD9C\uB825\uC740 GPT Image 2.6 Flare / Sunburst\uC5D0\uC11C\uB9CC \uC9C0\uC6D0\uB429\uB2C8\uB2E4. \uBA3C\uC800 \uC774\uBBF8\uC9C0 \uBAA8\uB378\uC744 \uBCC0\uACBD\uD558\uC138\uC694.",
+    "output.gifQualityLimited": "GIF \uCD9C\uB825\uC740 \uB0AE\uC74C\xB7\uC911\uAC04 \uD488\uC9C8\uB9CC \uC9C0\uC6D0\uD569\uB2C8\uB2E4",
     "output.moderation": "\uC911\uC7AC",
     "preview.title": "\uBBF8\uB9AC\uBCF4\uAE30",
     "preview.selectedZero": "0 \uC120\uD0DD\uB428",
@@ -6263,6 +6302,12 @@
     "output.pixelPreviewAuto": "Pixels de sa\xEDda: autom\xE1tico (OpenAI escolhe automaticamente)",
     "output.format": "Formato",
     "output.compression": "Compress\xE3o",
+    "output.gifSettings": "Anima\xE7\xE3o GIF",
+    "output.gifFrameCount": "Quadros",
+    "output.gifFrameDuration": "ms por quadro",
+    "output.gifFramePreview": "Quadro {width}\xD7{height} \xB7 {frames} quadros \xD7 {duration}ms \u2248 {total} s",
+    "output.gifUnsupportedModel": "A sa\xEDda GIF requer GPT Image 2.6 Flare ou Sunburst. Troque o modelo de imagem primeiro.",
+    "output.gifQualityLimited": "A sa\xEDda GIF aceita apenas qualidade baixa ou m\xE9dia",
     "output.moderation": "Modera\xE7\xE3o",
     "preview.title": "Visualiza\xE7\xE3o",
     "preview.selectedZero": "0 selecionado",
@@ -7152,6 +7197,12 @@
     "output.pixelPreviewAuto": "\u0412\u044B\u0445\u043E\u0434\u043D\u044B\u0435 \u043F\u0438\u043A\u0441\u0435\u043B\u0438: auto (OpenAI \u0432\u044B\u0431\u0438\u0440\u0430\u0435\u0442\u0441\u044F \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438)",
     "output.format": "\u0424\u043E\u0440\u043C\u0430\u0442",
     "output.compression": "\u0421\u0436\u0430\u0442\u0438\u0435",
+    "output.gifSettings": "GIF-\u0430\u043D\u0438\u043C\u0430\u0446\u0438\u044F",
+    "output.gifFrameCount": "\u041A\u0430\u0434\u0440\u044B",
+    "output.gifFrameDuration": "\u043C\u0441 \u043D\u0430 \u043A\u0430\u0434\u0440",
+    "output.gifFramePreview": "\u041A\u0430\u0434\u0440 {width}\xD7{height} \xB7 {frames} \u043A\u0430\u0434\u0440\u043E\u0432 \xD7 {duration}\u043C\u0441 \u2248 {total} \u0441",
+    "output.gifUnsupportedModel": "\u0412\u044B\u0432\u043E\u0434 GIF \u0434\u043E\u0441\u0442\u0443\u043F\u0435\u043D \u0442\u043E\u043B\u044C\u043A\u043E \u0434\u043B\u044F GPT Image 2.6 Flare \u0438\u043B\u0438 Sunburst. \u0421\u043D\u0430\u0447\u0430\u043B\u0430 \u0441\u043C\u0435\u043D\u0438\u0442\u0435 \u043C\u043E\u0434\u0435\u043B\u044C \u0438\u0437\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u044F.",
+    "output.gifQualityLimited": "\u0414\u043B\u044F GIF \u0434\u043E\u0441\u0442\u0443\u043F\u043D\u043E \u0442\u043E\u043B\u044C\u043A\u043E \u043D\u0438\u0437\u043A\u043E\u0435 \u0438\u043B\u0438 \u0441\u0440\u0435\u0434\u043D\u0435\u0435 \u043A\u0430\u0447\u0435\u0441\u0442\u0432\u043E",
     "output.moderation": "\u041C\u043E\u0434\u0435\u0440\u0430\u0446\u0438\u044F",
     "preview.title": "\u041F\u0440\u0435\u0434\u0432\u0430\u0440\u0438\u0442\u0435\u043B\u044C\u043D\u044B\u0439 \u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440",
     "preview.selectedZero": "0 \u0432\u044B\u0431\u0440\u0430\u043D\u043E",
@@ -8041,6 +8092,12 @@
     "output.pixelPreviewAuto": "Pixel di output: auto (OpenAI sceglie automaticamente)",
     "output.format": "Formato",
     "output.compression": "Compressione",
+    "output.gifSettings": "Animazione GIF",
+    "output.gifFrameCount": "Fotogrammi",
+    "output.gifFrameDuration": "ms per fotogramma",
+    "output.gifFramePreview": "Fotogramma {width}\xD7{height} \xB7 {frames} fotogrammi \xD7 {duration}ms \u2248 {total} s",
+    "output.gifUnsupportedModel": "L\u2019output GIF richiede GPT Image 2.6 Flare o Sunburst. Cambia prima il modello di immagine.",
+    "output.gifQualityLimited": "L\u2019output GIF supporta solo qualit\xE0 bassa o media",
     "output.moderation": "Moderazione",
     "preview.title": "Anteprima",
     "preview.selectedZero": "0 selezionato",
@@ -8930,6 +8987,12 @@
     "output.pixelPreviewAuto": "\u0906\u0909\u091F\u092A\u0941\u091F \u092A\u093F\u0915\u094D\u0938\u0947\u0932: auto (OpenAI \u0938\u094D\u0935\u091A\u093E\u0932\u093F\u0924 \u0930\u0942\u092A \u0938\u0947 \u091A\u0941\u0928\u0924\u093E \u0939\u0948)",
     "output.format": "\u092A\u094D\u0930\u093E\u0930\u0942\u092A",
     "output.compression": "\u0938\u0902\u092A\u0940\u0921\u093C\u0928",
+    "output.gifSettings": "GIF \u090F\u0928\u093F\u092E\u0947\u0936\u0928",
+    "output.gifFrameCount": "\u092B\u093C\u094D\u0930\u0947\u092E",
+    "output.gifFrameDuration": "\u092B\u093C\u094D\u0930\u0947\u092E ms",
+    "output.gifFramePreview": "\u092B\u093C\u094D\u0930\u0947\u092E {width}\xD7{height} \xB7 {frames} \u092B\u093C\u094D\u0930\u0947\u092E \xD7 {duration}ms \u2248 {total} \u0938\u0947.",
+    "output.gifUnsupportedModel": "GIF \u0906\u0909\u091F\u092A\u0941\u091F \u0915\u0947 \u0932\u093F\u090F GPT Image 2.6 Flare \u092F\u093E Sunburst \u091C\u093C\u0930\u0942\u0930\u0940 \u0939\u0948\u0964 \u092A\u0939\u0932\u0947 \u0907\u092E\u0947\u091C \u092E\u0949\u0921\u0932 \u092C\u0926\u0932\u0947\u0902\u0964",
+    "output.gifQualityLimited": "GIF \u0906\u0909\u091F\u092A\u0941\u091F \u092E\u0947\u0902 \u0915\u0947\u0935\u0932 \u0928\u093F\u092E\u094D\u0928 \u092F\u093E \u092E\u0927\u094D\u092F\u092E \u0917\u0941\u0923\u0935\u0924\u094D\u0924\u093E \u0909\u092A\u0932\u092C\u094D\u0927 \u0939\u0948",
     "output.moderation": "\u092E\u0949\u0921\u0930\u0947\u0936\u0928",
     "preview.title": "\u092A\u0942\u0930\u094D\u0935\u093E\u0935\u0932\u094B\u0915\u0928",
     "preview.selectedZero": "0 \u091A\u092F\u0928\u093F\u0924",
@@ -9838,6 +9901,12 @@
     "output.pixelPreviewAuto": "\u8F93\u51FA\u50CF\u7D20: auto\uFF08OpenAI \u81EA\u52A8\u9009\u62E9\uFF09",
     "output.format": "\u8F93\u51FA\u683C\u5F0F",
     "output.compression": "\u538B\u7F29\u7387",
+    "output.gifSettings": "GIF \u52A8\u56FE",
+    "output.gifFrameCount": "\u5E27\u6570",
+    "output.gifFrameDuration": "\u5E27\u65F6\u957F ms",
+    "output.gifFramePreview": "\u5355\u5E27 {width}\xD7{height} \xB7 {frames} \u5E27 \xD7 {duration}ms \u2248 {total} \u79D2",
+    "output.gifUnsupportedModel": "GIF \u52A8\u56FE\u4EC5\u652F\u6301 GPT Image 2.6 Flare / Sunburst\uFF0C\u8BF7\u5148\u5207\u6362\u56FE\u7247\u6A21\u578B",
+    "output.gifQualityLimited": "GIF \u52A8\u56FE\u4EC5\u652F\u6301\u4F4E\u3001\u4E2D\u753B\u8D28",
     "output.moderation": "\u5BA1\u6838",
     "preview.title": "\u9884\u89C8\u7ED3\u679C",
     "preview.selectedZero": "\u5DF2\u9009 0",
@@ -10732,6 +10801,12 @@
     "output.pixelPreviewAuto": "\u8F38\u51FA\u50CF\u7D20: auto\uFF08OpenAI \u81EA\u52D5\u9078\u64C7\uFF09",
     "output.format": "\u8F38\u51FA\u683C\u5F0F",
     "output.compression": "\u58D3\u7E2E\u7387",
+    "output.gifSettings": "GIF \u52D5\u5716",
+    "output.gifFrameCount": "\u5E40\u6578",
+    "output.gifFrameDuration": "\u6BCF\u5E40\u6642\u9577 ms",
+    "output.gifFramePreview": "\u55AE\u5E40 {width}\xD7{height} \xB7 {frames} \u5E40 \xD7 {duration}ms \u2248 {total} \u79D2",
+    "output.gifUnsupportedModel": "GIF \u52D5\u5716\u53EA\u652F\u63F4 GPT Image 2.6 Flare / Sunburst\uFF0C\u8ACB\u5148\u5207\u63DB\u5716\u7247\u6A21\u578B",
+    "output.gifQualityLimited": "GIF \u52D5\u5716\u53EA\u652F\u63F4\u4F4E\u3001\u4E2D\u756B\u8CEA",
     "output.moderation": "\u5BE9\u6838",
     "preview.title": "\u9810\u89BD",
     "preview.selectedZero": "\u5DF2\u9078 0",
@@ -11621,6 +11696,12 @@
     "output.pixelPreviewAuto": "\u8F38\u51FA\u50CF\u7D20: auto\uFF08OpenAI \u81EA\u52D5\u9078\u64C7\uFF09",
     "output.format": "\u8F38\u51FA\u683C\u5F0F",
     "output.compression": "\u58D3\u7E2E\u7387",
+    "output.gifSettings": "GIF \u52D5\u5716",
+    "output.gifFrameCount": "\u5F71\u683C\u6578",
+    "output.gifFrameDuration": "\u6BCF\u683C\u6642\u9577 ms",
+    "output.gifFramePreview": "\u55AE\u683C {width}\xD7{height} \xB7 {frames} \u683C \xD7 {duration}ms \u2248 {total} \u79D2",
+    "output.gifUnsupportedModel": "GIF \u52D5\u5716\u50C5\u652F\u63F4 GPT Image 2.6 Flare / Sunburst\uFF0C\u8ACB\u5148\u5207\u63DB\u5716\u7247\u6A21\u578B",
+    "output.gifQualityLimited": "GIF \u52D5\u5716\u50C5\u652F\u63F4\u4F4E\u3001\u4E2D\u756B\u8CEA",
     "output.moderation": "\u5BE9\u6838",
     "preview.title": "\u9810\u89BD",
     "preview.selectedZero": "\u5DF2\u9078 0",
@@ -12212,6 +12293,12 @@
   function prefersReducedMotion() {
     return Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches);
   }
+  function outputDownloadExtension(task, url) {
+    const record = Array.isArray(task?.outputs) ? task.outputs.find((item) => item?.url && String(item.url) === String(url || "")) : null;
+    const format = String(record?.format || task?.params?.output_format || "png").toLowerCase();
+    if (format === "jpeg" || format === "jpg") return "jpg";
+    return ["png", "webp", "gif"].includes(format) ? format : "png";
+  }
 
   // codex_image/webui/frontend/src/runtime-feedback.ts
   function legacyMethod(name, ...args) {
@@ -12310,8 +12397,8 @@
   function setTextIfChanged(element2, text) {
     if (element2.textContent !== text) element2.textContent = text;
   }
-  function activeElapsedTaskCards(els43, taskId) {
-    const roots = [els43.taskActiveList, els43.taskList].filter((root) => root instanceof HTMLElement);
+  function activeElapsedTaskCards(els44, taskId) {
+    const roots = [els44.taskActiveList, els44.taskList].filter((root) => root instanceof HTMLElement);
     const cards = roots.flatMap(
       (root) => Array.from(root.querySelectorAll(`.task-card[data-task-id="${cssEscape(taskId)}"]`))
     );
@@ -12337,19 +12424,19 @@
     if (retryElement) setTextIfChanged(retryElement, taskRetryStateText(task));
   }
   function updateTaskElapsedDisplays() {
-    const { state: state32, els: els43 } = getLegacyBridge();
+    const { state: state32, els: els44 } = getLegacyBridge();
     const activeTasks = state32.tasks.filter((task) => taskNeedsElapsedTick(task));
     if (!activeTasks.length) return;
     activeTasks.forEach((task) => {
       const taskId = String(task.task_id || "");
       if (!taskId) return;
-      activeElapsedTaskCards(els43, taskId).forEach((card) => updateTaskElapsedCard(card, task));
+      activeElapsedTaskCards(els44, taskId).forEach((card) => updateTaskElapsedCard(card, task));
     });
   }
   function updatePreviewElapsedDisplay() {
-    const { els: els43 } = getLegacyBridge();
-    if (!els43.previewGrid) return;
-    els43.previewGrid.querySelectorAll("[data-preview-elapsed]").forEach((element2) => {
+    const { els: els44 } = getLegacyBridge();
+    if (!els44.previewGrid) return;
+    els44.previewGrid.querySelectorAll("[data-preview-elapsed]").forEach((element2) => {
       updateElapsedTimerElement(element2, elapsedMillisecondsSince(element2.dataset.previewStart));
     });
   }
@@ -12385,9 +12472,9 @@
     }
   }
   function updatePromptCount() {
-    const { els: els43 } = getLegacyBridge();
-    if (!els43.charCount) return;
-    els43.charCount.textContent = `${getPromptText().length} / 4000`;
+    const { els: els44 } = getLegacyBridge();
+    if (!els44.charCount) return;
+    els44.charCount.textContent = `${getPromptText().length} / 4000`;
   }
   function addPendingTask(task) {
     const state32 = getLegacyBridge().state;
@@ -12423,20 +12510,20 @@
     renderPreview(task);
   }
   function startRunFeedback(task, actionLabel = null) {
-    const { state: state32, els: els43 } = getLegacyBridge();
+    const { state: state32, els: els44 } = getLegacyBridge();
     stopRunFeedback();
     state32.runFeedbackAction = actionLabel;
     state32.runStartedAt = timestampMs(task.started_at || task.created_at) || Date.now();
     state32.runTimerId = window.setInterval(updateRunFeedback, 100);
-    els43.runButton?.classList.add("running");
+    els44.runButton?.classList.add("running");
     updateRunFeedback();
   }
   function updateRunFeedback() {
-    const { state: state32, els: els43 } = getLegacyBridge();
+    const { state: state32, els: els44 } = getLegacyBridge();
     if (!state32.runStartedAt) return;
     const elapsed = formatDurationTenths(elapsedMillisecondsSince(state32.runStartedAt));
     const action = state32.runFeedbackAction || (state32.mode === "edit" ? translate("runFeedback.editing") : translate("runFeedback.generating"));
-    if (els43.runButton) els43.runButton.textContent = `${action} ${elapsed}`;
+    if (els44.runButton) els44.runButton.textContent = `${action} ${elapsed}`;
     setStatus(formatTranslation("runFeedback.status", { action, elapsed }), "running");
     updateElapsedDisplays();
     if (state32.selectedTaskId === state32.pendingTaskId) {
@@ -12444,14 +12531,14 @@
     }
   }
   function stopRunFeedback() {
-    const { state: state32, els: els43 } = getLegacyBridge();
+    const { state: state32, els: els44 } = getLegacyBridge();
     if (state32.runTimerId) {
       window.clearInterval(state32.runTimerId);
     }
     state32.runTimerId = null;
     state32.runStartedAt = null;
     state32.runFeedbackAction = null;
-    els43.runButton?.classList.remove("running");
+    els44.runButton?.classList.remove("running");
     syncRunButtonLabel();
   }
 
@@ -12974,8 +13061,8 @@
     });
   }
   function focusImagePasteTarget() {
-    const els43 = getEls();
-    els43.imageUploadSource?.focus({ preventScroll: true });
+    const els44 = getEls();
+    els44.imageUploadSource?.focus({ preventScroll: true });
   }
   function handleImagePaste(event) {
     const files = imageFilesFromClipboardItems(event.clipboardData?.items);
@@ -13050,13 +13137,13 @@
     return files;
   }
   async function pasteClipboardImages() {
-    const els43 = getEls();
+    const els44 = getEls();
     if (!navigator.clipboard?.read) {
       focusImagePasteTarget();
       setStatus2(clipboardReadFallbackMessage(translate("inputSource.clipboardUnsupported")), "error");
       return;
     }
-    els43.pasteClipboardButton.disabled = true;
+    els44.pasteClipboardButton.disabled = true;
     try {
       const files = await readClipboardImageFiles();
       const added = addImageFiles(files, {
@@ -13069,7 +13156,7 @@
       const reason = ["NotAllowedError", "SecurityError"].includes(String(error?.name || "")) ? translate("inputSource.clipboardDenied") : translate("inputSource.clipboardReadFailed");
       setStatus2(clipboardReadFallbackMessage(reason), "error");
     } finally {
-      els43.pasteClipboardButton.disabled = false;
+      els44.pasteClipboardButton.disabled = false;
     }
   }
   function missingGalleryInputs() {
@@ -13108,16 +13195,16 @@
   }
   function renderReferenceCollector() {
     const state32 = getState();
-    const els43 = getEls();
-    if (!els43.referenceCollector) return;
+    const els44 = getEls();
+    if (!els44.referenceCollector) return;
     const items = state32.collectedReferences;
     if (!items.length) {
-      els43.referenceCollector.classList.add("hidden");
-      els43.referenceCollector.innerHTML = "";
+      els44.referenceCollector.classList.add("hidden");
+      els44.referenceCollector.innerHTML = "";
       return;
     }
-    els43.referenceCollector.classList.remove("hidden");
-    els43.referenceCollector.innerHTML = `
+    els44.referenceCollector.classList.remove("hidden");
+    els44.referenceCollector.innerHTML = `
     <div class="reference-collector-header">
       <span>${escapeHtml2(formatTranslation("referenceCollector.title", { count: items.length }))}</span>
       <div class="reference-collector-actions">
@@ -13134,9 +13221,9 @@
       `).join("")}
     </div>
   `;
-    els43.referenceCollector.querySelector("[data-reference-collector-add-all]")?.addEventListener("click", addCollectedReferencesToInput);
-    els43.referenceCollector.querySelector("[data-reference-collector-clear]")?.addEventListener("click", () => clearCollectedReferences());
-    els43.referenceCollector.querySelectorAll("[data-reference-collector-remove]").forEach((button) => {
+    els44.referenceCollector.querySelector("[data-reference-collector-add-all]")?.addEventListener("click", addCollectedReferencesToInput);
+    els44.referenceCollector.querySelector("[data-reference-collector-clear]")?.addEventListener("click", () => clearCollectedReferences());
+    els44.referenceCollector.querySelectorAll("[data-reference-collector-remove]").forEach((button) => {
       button.addEventListener("click", () => removeCollectedReference(button.dataset.referenceCollectorRemove));
     });
   }
@@ -13187,10 +13274,10 @@
   }
   async function addCollectedReferencesToInput() {
     const state32 = getState();
-    const els43 = getEls();
+    const els44 = getEls();
     const items = state32.collectedReferences.slice();
     if (!items.length) return;
-    const addButton = els43.referenceCollector?.querySelector("[data-reference-collector-add-all]");
+    const addButton = els44.referenceCollector?.querySelector("[data-reference-collector-add-all]");
     if (addButton) addButton.disabled = true;
     try {
       const files = [];
@@ -13229,13 +13316,13 @@
     }
   }
   function bindInputSourceEvents() {
-    const els43 = getEls();
-    els43.pasteClipboardButton?.addEventListener("click", pasteClipboardImages);
+    const els44 = getEls();
+    els44.pasteClipboardButton?.addEventListener("click", pasteClipboardImages);
     document.addEventListener("paste", handleImagePaste);
-    els43.imageUploaderGrid?.addEventListener("dragenter", handleImageDragEnter);
-    els43.imageUploaderGrid?.addEventListener("dragover", handleImageDragOver);
-    els43.imageUploaderGrid?.addEventListener("dragleave", handleImageDragLeave);
-    els43.imageUploaderGrid?.addEventListener("drop", handleImageDrop);
+    els44.imageUploaderGrid?.addEventListener("dragenter", handleImageDragEnter);
+    els44.imageUploaderGrid?.addEventListener("dragover", handleImageDragOver);
+    els44.imageUploaderGrid?.addEventListener("dragleave", handleImageDragLeave);
+    els44.imageUploaderGrid?.addEventListener("drop", handleImageDrop);
   }
   function initInputSourcesFeature() {
     if (inputSourcesFeatureInitialized) return;
@@ -24990,10 +25077,10 @@ js: import "konva/skia-backend";
     return remoteImageSourceFile(source);
   }
   function setImageEditorStatus(message, type = "") {
-    const els43 = getEls();
-    if (!els43.imageEditorStatus) return;
-    els43.imageEditorStatus.textContent = message || "";
-    els43.imageEditorStatus.className = `image-editor-status ${type || ""}`.trim();
+    const els44 = getEls();
+    if (!els44.imageEditorStatus) return;
+    els44.imageEditorStatus.textContent = message || "";
+    els44.imageEditorStatus.className = `image-editor-status ${type || ""}`.trim();
   }
   function nextImageEditorSession() {
     imageEditorState.sessionId += 1;
@@ -25385,8 +25472,8 @@ js: import "konva/skia-backend";
     imageEditorState.previewNode = null;
   }
   function initializeImageEditorKonva(width, height) {
-    const els43 = getEls();
-    const container = els43.imageEditorKonvaMount;
+    const els44 = getEls();
+    const container = els44.imageEditorKonvaMount;
     if (!container) throw new Error(translate("imageEditor.canvasCreateFailed"));
     destroyImageEditorKonva();
     container.innerHTML = "";
@@ -25463,8 +25550,8 @@ js: import "konva/skia-backend";
     pushImageEditorHistory();
   }
   function renderImageEditor() {
-    const els43 = getEls();
-    const visible = els43.imageEditorCanvas;
+    const els44 = getEls();
+    const visible = els44.imageEditorCanvas;
     const stage = imageEditorState.konvaStage;
     const work = imageEditorState.workCanvas;
     if (visible && work) {
@@ -25508,16 +25595,16 @@ js: import "konva/skia-backend";
     restoreImageEditorSnapshot(snapshot);
   }
   function updateImageEditorControls() {
-    const els43 = getEls();
+    const els44 = getEls();
     const canUndo = imageEditorState.historyIndex > 0;
     const canRedo = imageEditorState.historyIndex >= 0 && imageEditorState.historyIndex < imageEditorState.history.length - 1;
     const selectedLayer = selectedImageEditorLayer();
-    if (els43.imageEditorUndo) els43.imageEditorUndo.disabled = !canUndo;
-    if (els43.imageEditorRedo) els43.imageEditorRedo.disabled = !canRedo;
-    if (els43.imageEditorLayerUp) els43.imageEditorLayerUp.disabled = !selectedLayer || imageEditorState.layers.indexOf(selectedLayer) >= imageEditorState.layers.length - 1;
-    if (els43.imageEditorLayerDown) els43.imageEditorLayerDown.disabled = !selectedLayer || imageEditorState.layers.indexOf(selectedLayer) <= 0;
-    if (els43.imageEditorLayerDelete) els43.imageEditorLayerDelete.disabled = !selectedLayer || imageEditorState.layers.length <= 1;
-    if (els43.imageEditorStrokeValue) els43.imageEditorStrokeValue.textContent = `${imageEditorState.strokeWidth}px`;
+    if (els44.imageEditorUndo) els44.imageEditorUndo.disabled = !canUndo;
+    if (els44.imageEditorRedo) els44.imageEditorRedo.disabled = !canRedo;
+    if (els44.imageEditorLayerUp) els44.imageEditorLayerUp.disabled = !selectedLayer || imageEditorState.layers.indexOf(selectedLayer) >= imageEditorState.layers.length - 1;
+    if (els44.imageEditorLayerDown) els44.imageEditorLayerDown.disabled = !selectedLayer || imageEditorState.layers.indexOf(selectedLayer) <= 0;
+    if (els44.imageEditorLayerDelete) els44.imageEditorLayerDelete.disabled = !selectedLayer || imageEditorState.layers.length <= 1;
+    if (els44.imageEditorStrokeValue) els44.imageEditorStrokeValue.textContent = `${imageEditorState.strokeWidth}px`;
     document.querySelectorAll("[data-image-editor-tool]").forEach((button) => {
       button.classList.toggle("active", button.dataset.imageEditorTool === imageEditorState.tool);
     });
@@ -25549,9 +25636,9 @@ js: import "konva/skia-backend";
     transformer.rotateAnchorOffset?.(Math.max(28, Math.round(28 / safeScale)));
   }
   function updateImageEditorDisplayScale() {
-    const els43 = getEls();
-    const wrap = els43.imageEditorCanvasWrap;
-    const mount = els43.imageEditorKonvaMount;
+    const els44 = getEls();
+    const wrap = els44.imageEditorCanvasWrap;
+    const mount = els44.imageEditorKonvaMount;
     const stage = imageEditorState.konvaStage;
     if (!wrap || !mount || !stage) return;
     const width = stage.width();
@@ -25574,16 +25661,16 @@ js: import "konva/skia-backend";
     mount.style.setProperty("--image-editor-stage-scale", String(displayScale));
   }
   function updateImageEditorCropBox() {
-    const els43 = getEls();
-    const box = els43.imageEditorCropBox;
-    const wrap = els43.imageEditorCanvasWrap;
+    const els44 = getEls();
+    const box = els44.imageEditorCropBox;
+    const wrap = els44.imageEditorCanvasWrap;
     const stage = imageEditorState.konvaStage;
     const crop = imageEditorState.crop;
     if (!box || !wrap || !stage || !crop) {
       box?.classList.add("hidden");
       return;
     }
-    const content = els43.imageEditorKonvaMount?.querySelector(".konvajs-content");
+    const content = els44.imageEditorKonvaMount?.querySelector(".konvajs-content");
     const rect = content?.getBoundingClientRect() || wrap.getBoundingClientRect();
     const wrapRect = wrap.getBoundingClientRect();
     const scaleX = rect.width / Math.max(1, stage.width());
@@ -26101,7 +26188,7 @@ ${hint}` : hint;
   }
   async function saveImageEdit() {
     const state32 = getState();
-    const els43 = getEls();
+    const els44 = getEls();
     const sessionId = imageEditorState.sessionId;
     const source = imageEditorState.source;
     const saveCanvas = imageEditorCanvasForSave();
@@ -26109,7 +26196,7 @@ ${hint}` : hint;
       setImageEditorStatus(translate("imageEditor.saveFailed"), "error");
       return;
     }
-    if (els43.imageEditorSave) els43.imageEditorSave.disabled = true;
+    if (els44.imageEditorSave) els44.imageEditorSave.disabled = true;
     try {
       const blob = await imageEditorExportBlob(saveCanvas);
       const sourceIndex = state32.images.indexOf(source);
@@ -26140,7 +26227,7 @@ ${hint}` : hint;
     } catch (error) {
       setImageEditorStatus(error.message || translate("imageEditor.saveFailed"), "error");
     } finally {
-      if (els43.imageEditorSave) els43.imageEditorSave.disabled = false;
+      if (els44.imageEditorSave) els44.imageEditorSave.disabled = false;
     }
   }
   function sourcePreviewUrlForEditor(source) {
@@ -26320,7 +26407,7 @@ ${hint}` : hint;
   }
   async function openImageEditor(index) {
     const state32 = getState();
-    const els43 = getEls();
+    const els44 = getEls();
     const source = state32.images[index];
     if (!source || !isEditableImageSource(source)) {
       legacyMethod3("setStatus", translate("imageEditor.uneditable"), "error");
@@ -26331,16 +26418,16 @@ ${hint}` : hint;
     imageEditorState.source = source;
     imageEditorState.originalFile = null;
     imageEditorState.tool = "crop";
-    imageEditorState.color = els43.imageEditorColor?.value || "#ff3b30";
-    imageEditorState.strokeWidth = Number(els43.imageEditorStroke?.value || 8);
+    imageEditorState.color = els44.imageEditorColor?.value || "#ff3b30";
+    imageEditorState.strokeWidth = Number(els44.imageEditorStroke?.value || 8);
     imageEditorState.hasInstructionMarks = false;
     imageEditorState.drawing = null;
     imageEditorState.canvasScope = "base";
     setImageEditorStatus("");
-    if (els43.imageEditorSubtitle) {
-      els43.imageEditorSubtitle.textContent = legacyMethod3("sourceName", source) || translate("imageEditor.inputFallback");
+    if (els44.imageEditorSubtitle) {
+      els44.imageEditorSubtitle.textContent = legacyMethod3("sourceName", source) || translate("imageEditor.inputFallback");
     }
-    els43.imageEditorModal?.classList.remove("hidden");
+    els44.imageEditorModal?.classList.remove("hidden");
     try {
       const file = await imageEditorSourceFile(source);
       if (sessionId !== imageEditorState.sessionId || imageEditorState.source !== source) return;
@@ -26357,9 +26444,9 @@ ${hint}` : hint;
     }
   }
   function closeImageEditor() {
-    const els43 = getEls();
+    const els44 = getEls();
     nextImageEditorSession();
-    els43.imageEditorModal?.classList.add("hidden");
+    els44.imageEditorModal?.classList.add("hidden");
     destroyImageEditorKonva();
     imageEditorState.sourceIndex = null;
     imageEditorState.source = null;
@@ -26421,8 +26508,8 @@ ${hint}` : hint;
     }
   }
   function isImageEditorModalOpen() {
-    const els43 = getEls();
-    return Boolean(els43.imageEditorModal && !els43.imageEditorModal.classList.contains("hidden"));
+    const els44 = getEls();
+    return Boolean(els44.imageEditorModal && !els44.imageEditorModal.classList.contains("hidden"));
   }
   function handleImageEditorHistoryShortcut(event) {
     if (!isImageEditorModalOpen()) return false;
@@ -26467,11 +26554,11 @@ ${hint}` : hint;
     });
   }
   function bindImageEditorEvents() {
-    const els43 = getEls();
-    els43.imageEditorClose?.addEventListener("click", closeImageEditor);
-    els43.imageEditorCancel?.addEventListener("click", closeImageEditor);
-    els43.imageEditorModal?.addEventListener("click", (event) => {
-      if (event.target === els43.imageEditorModal) closeImageEditor();
+    const els44 = getEls();
+    els44.imageEditorClose?.addEventListener("click", closeImageEditor);
+    els44.imageEditorCancel?.addEventListener("click", closeImageEditor);
+    els44.imageEditorModal?.addEventListener("click", (event) => {
+      if (event.target === els44.imageEditorModal) closeImageEditor();
     });
     document.querySelectorAll("[data-image-editor-tool]").forEach((button) => {
       button.addEventListener("click", () => setImageEditorTool(button.dataset.imageEditorTool));
@@ -26479,32 +26566,32 @@ ${hint}` : hint;
     document.querySelectorAll("[data-image-editor-color]").forEach((button) => {
       button.addEventListener("click", () => {
         imageEditorState.color = button.dataset.imageEditorColor || imageEditorState.color;
-        if (els43.imageEditorColor) els43.imageEditorColor.value = imageEditorState.color;
+        if (els44.imageEditorColor) els44.imageEditorColor.value = imageEditorState.color;
         updateImageEditorControls();
       });
     });
     document.querySelectorAll("[data-image-editor-canvas-scope]").forEach((button) => {
       button.addEventListener("click", () => setImageEditorCanvasScope(button.dataset.imageEditorCanvasScope));
     });
-    els43.imageEditorColor?.addEventListener("input", () => {
-      imageEditorState.color = els43.imageEditorColor.value || imageEditorState.color;
+    els44.imageEditorColor?.addEventListener("input", () => {
+      imageEditorState.color = els44.imageEditorColor.value || imageEditorState.color;
       updateImageEditorControls();
     });
-    els43.imageEditorStroke?.addEventListener("input", () => {
-      imageEditorState.strokeWidth = Number(els43.imageEditorStroke.value || 8);
+    els44.imageEditorStroke?.addEventListener("input", () => {
+      imageEditorState.strokeWidth = Number(els44.imageEditorStroke.value || 8);
       updateImageEditorControls();
     });
-    els43.imageEditorUndo?.addEventListener("click", undoImageEdit);
-    els43.imageEditorRedo?.addEventListener("click", redoImageEdit);
-    els43.imageEditorReset?.addEventListener("click", resetImageEdit);
-    els43.imageEditorSave?.addEventListener("click", saveImageEdit);
-    els43.imageEditorLayerUp?.addEventListener("click", () => moveImageEditorLayer("up"));
-    els43.imageEditorLayerDown?.addEventListener("click", () => moveImageEditorLayer("down"));
-    els43.imageEditorLayerDelete?.addEventListener("click", deleteSelectedImageEditorLayer);
-    els43.imageEditorCanvas?.addEventListener("pointerdown", handleImageEditorPointerDown);
-    els43.imageEditorCanvas?.addEventListener("pointermove", handleImageEditorPointerMove);
-    els43.imageEditorCanvas?.addEventListener("pointerup", handleImageEditorPointerUp);
-    els43.imageEditorCanvas?.addEventListener("pointercancel", handleImageEditorPointerCancel);
+    els44.imageEditorUndo?.addEventListener("click", undoImageEdit);
+    els44.imageEditorRedo?.addEventListener("click", redoImageEdit);
+    els44.imageEditorReset?.addEventListener("click", resetImageEdit);
+    els44.imageEditorSave?.addEventListener("click", saveImageEdit);
+    els44.imageEditorLayerUp?.addEventListener("click", () => moveImageEditorLayer("up"));
+    els44.imageEditorLayerDown?.addEventListener("click", () => moveImageEditorLayer("down"));
+    els44.imageEditorLayerDelete?.addEventListener("click", deleteSelectedImageEditorLayer);
+    els44.imageEditorCanvas?.addEventListener("pointerdown", handleImageEditorPointerDown);
+    els44.imageEditorCanvas?.addEventListener("pointermove", handleImageEditorPointerMove);
+    els44.imageEditorCanvas?.addEventListener("pointerup", handleImageEditorPointerUp);
+    els44.imageEditorCanvas?.addEventListener("pointercancel", handleImageEditorPointerCancel);
   }
   function initImageEditorFeature() {
     if (imageEditorFeatureInitialized) return;
@@ -26553,9 +26640,9 @@ ${hint}` : hint;
   }
   function imageStripNeedsCompactGrid() {
     const state32 = getState();
-    const els43 = getEls();
-    if (!els43.imageUploaderGrid || !state32.images.length) return false;
-    const availableWidth = Math.max(0, els43.imageUploaderGrid.clientWidth - 24);
+    const els44 = getEls();
+    if (!els44.imageUploaderGrid || !state32.images.length) return false;
+    const availableWidth = Math.max(0, els44.imageUploaderGrid.clientWidth - 24);
     if (!availableWidth) return false;
     const thumbCount = state32.images.length;
     const fullSizeThumbsWidth = thumbCount * 116 + Math.max(0, thumbCount - 1) * 10;
@@ -26565,24 +26652,24 @@ ${hint}` : hint;
   }
   function updateImageStripDensity() {
     const state32 = getState();
-    const els43 = getEls();
+    const els44 = getEls();
     const hasImages = Boolean(state32.images.length);
     const compactGrid = imageStripNeedsCompactGrid();
-    els43.imageUploaderGrid?.classList.toggle("has-images", hasImages);
-    els43.imageUploaderGrid?.classList.toggle("compact-grid", compactGrid);
+    els44.imageUploaderGrid?.classList.toggle("has-images", hasImages);
+    els44.imageUploaderGrid?.classList.toggle("compact-grid", compactGrid);
   }
   function wheelDeltaInPixels(event) {
     const dominantDelta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
     if (event.deltaMode === WheelEvent.DOM_DELTA_LINE) return dominantDelta * 16;
     if (event.deltaMode === WheelEvent.DOM_DELTA_PAGE) {
-      const els43 = getEls();
-      return dominantDelta * Math.max(1, els43.imageStrip?.clientWidth || 1);
+      const els44 = getEls();
+      return dominantDelta * Math.max(1, els44.imageStrip?.clientWidth || 1);
     }
     return dominantDelta;
   }
   function handleImageStripWheel(event) {
-    const els43 = getEls();
-    const scrollTarget = els43.imageUploaderGrid?.classList.contains("compact-grid") ? els43.imageStrip : els43.imageThumbList;
+    const els44 = getEls();
+    const scrollTarget = els44.imageUploaderGrid?.classList.contains("compact-grid") ? els44.imageStrip : els44.imageThumbList;
     if (!scrollTarget) return;
     const maxScrollLeft = Math.max(0, scrollTarget.scrollWidth - scrollTarget.clientWidth);
     if (!maxScrollLeft) return;
@@ -26595,9 +26682,9 @@ ${hint}` : hint;
   }
   function renderImageStrip() {
     const state32 = getState();
-    const els43 = getEls();
+    const els44 = getEls();
     const hasImages = Boolean(state32.images.length);
-    const thumbList = els43.imageThumbList || els43.imageStrip;
+    const thumbList = els44.imageThumbList || els44.imageStrip;
     updateImageStripDensity();
     if (!thumbList) return;
     if (!hasImages) {
@@ -26679,10 +26766,10 @@ ${hint}` : hint;
     legacyMethod4("updateCustomRatioReferenceButtonState");
   }
   function bindImageStripEvents() {
-    const els43 = getEls();
-    els43.imageInput?.addEventListener("change", addImages);
-    els43.clearImagesButton?.addEventListener("click", clearImages);
-    els43.imageStrip?.addEventListener("wheel", handleImageStripWheel, { passive: false });
+    const els44 = getEls();
+    els44.imageInput?.addEventListener("change", addImages);
+    els44.clearImagesButton?.addEventListener("click", clearImages);
+    els44.imageStrip?.addEventListener("wheel", handleImageStripWheel, { passive: false });
     window.addEventListener("resize", updateImageStripDensity);
     document.addEventListener(LOCALE_CHANGE_EVENT, renderImageStrip);
   }
@@ -28883,6 +28970,7 @@ ${hint}` : hint;
       select.value = model;
     }
     syncImageModelControl();
+    getLegacyBridge().methods.syncGifOutputMode?.();
     if (user && IMAGE_MODELS.includes(model)) {
       localStorage.setItem(`${SELECTED_MODEL_STORAGE}.${user.id}`, model);
     }
@@ -28924,25 +29012,25 @@ ${hint}` : hint;
     if (error) throw new Error(error);
   }
   function updateOmniLegacyAuthState() {
-    const bridge39 = getLegacyBridge();
+    const bridge40 = getLegacyBridge();
     const ready = Boolean(authenticated && !refreshing && !modelSelectionError());
-    bridge39.state.authAvailable = ready;
-    bridge39.state.authStatus = {
+    bridge40.state.authAvailable = ready;
+    bridge40.state.authStatus = {
       selected_source: "api",
       effective_source: "api",
       auth_available: ready,
       sources: {}
     };
-    if (bridge39.els.apiStatus) {
-      bridge39.els.apiStatus.className = `status-dot ${sessionConnectionOk ? "ok" : "error"}`;
+    if (bridge40.els.apiStatus) {
+      bridge40.els.apiStatus.className = `status-dot ${sessionConnectionOk ? "ok" : "error"}`;
     }
-    if (bridge39.els.runButton) {
-      bridge39.els.runButton.disabled = !ready;
+    if (bridge40.els.runButton) {
+      bridge40.els.runButton.disabled = !ready;
     }
-    if (bridge39.els.authSourceDetail) {
+    if (bridge40.els.authSourceDetail) {
       const text = ready ? "Omni API Key" : authenticated ? modelSelectionError() : translate("omni.loginRequired");
-      bridge39.els.authSourceDetail.textContent = text;
-      bridge39.els.authSourceDetail.title = text;
+      bridge40.els.authSourceDetail.textContent = text;
+      bridge40.els.authSourceDetail.title = text;
     }
   }
   function mountPoint() {
@@ -29412,12 +29500,12 @@ ${hint}` : hint;
     if (typeof method === "function") method(...args);
   }
   function systemSettingsPanel() {
-    const { els: els43 } = getLegacyBridge();
-    return els43.systemSettingsModal?.querySelector(".system-settings-modal-panel") || null;
+    const { els: els44 } = getLegacyBridge();
+    return els44.systemSettingsModal?.querySelector(".system-settings-modal-panel") || null;
   }
   function shouldAnimateSystemSettingsHeight() {
-    const { els: els43 } = getLegacyBridge();
-    if (els43.systemSettingsModal?.classList.contains("hidden")) return false;
+    const { els: els44 } = getLegacyBridge();
+    if (els44.systemSettingsModal?.classList.contains("hidden")) return false;
     return !window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
   }
   function clearSystemSettingsHeightAnimation(panel) {
@@ -29430,8 +29518,8 @@ ${hint}` : hint;
     panel.style.height = "";
   }
   function positionSystemSettingsModal() {
-    const { els: els43 } = getLegacyBridge();
-    const modal = els43.systemSettingsModal;
+    const { els: els44 } = getLegacyBridge();
+    const modal = els44.systemSettingsModal;
     const panel = systemSettingsPanel();
     if (!modal || !panel || modal.classList.contains("hidden")) return;
     const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
@@ -29479,12 +29567,12 @@ ${hint}` : hint;
   }
   function setSystemSettingsTab(tab, options = {}) {
     const selected = normalizedTab(tab);
-    const { els: els43 } = getLegacyBridge();
+    const { els: els44 } = getLegacyBridge();
     const panel = systemSettingsPanel();
     const animateHeight = Boolean(panel && shouldAnimateSystemSettingsHeight());
     const beforeHeight = animateHeight && panel ? panel.getBoundingClientRect().height : 0;
     if (animateHeight && panel) clearSystemSettingsHeightAnimation(panel);
-    const buttons = Array.from(els43.systemSettingsTabs?.querySelectorAll("[data-system-settings-tab]") || []);
+    const buttons = Array.from(els44.systemSettingsTabs?.querySelectorAll("[data-system-settings-tab]") || []);
     buttons.forEach((button) => {
       const active = button.dataset.systemSettingsTab === selected;
       button.classList.toggle("active", active);
@@ -29492,10 +29580,10 @@ ${hint}` : hint;
       button.tabIndex = active ? 0 : -1;
     });
     [
-      ["api", els43.systemSettingsApiPanel],
-      ["codex", els43.systemSettingsCodexPanel],
-      ["language", els43.systemSettingsLanguagePanel],
-      ["storage", els43.systemSettingsStoragePanel]
+      ["api", els44.systemSettingsApiPanel],
+      ["codex", els44.systemSettingsCodexPanel],
+      ["language", els44.systemSettingsLanguagePanel],
+      ["storage", els44.systemSettingsStoragePanel]
     ].forEach(([name, panel2]) => {
       if (!panel2) return;
       const active = name === selected;
@@ -29513,19 +29601,19 @@ ${hint}` : hint;
     if (animateHeight && panel) animateSystemSettingsPanelHeight(panel, beforeHeight);
   }
   function openSystemSettingsModal(tab = "api") {
-    const { els: els43 } = getLegacyBridge();
-    const wasHidden = els43.systemSettingsModal?.classList.contains("hidden") ?? true;
+    const { els: els44 } = getLegacyBridge();
+    const wasHidden = els44.systemSettingsModal?.classList.contains("hidden") ?? true;
     setSystemSettingsTab(tab);
-    els43.systemSettingsModal?.classList.remove("hidden");
-    els43.systemSettingsModal?.setAttribute("aria-hidden", "false");
+    els44.systemSettingsModal?.classList.remove("hidden");
+    els44.systemSettingsModal?.setAttribute("aria-hidden", "false");
     if (wasHidden) positionSystemSettingsModal();
     refreshSegmentedIndicators();
   }
   function closeSystemSettingsModal() {
-    const { els: els43 } = getLegacyBridge();
-    els43.systemSettingsModal?.classList.add("hidden");
-    els43.systemSettingsModal?.setAttribute("aria-hidden", "true");
-    els43.systemSettingsModal?.style.removeProperty("--system-settings-modal-top");
+    const { els: els44 } = getLegacyBridge();
+    els44.systemSettingsModal?.classList.add("hidden");
+    els44.systemSettingsModal?.setAttribute("aria-hidden", "true");
+    els44.systemSettingsModal?.style.removeProperty("--system-settings-modal-top");
   }
   function handleSystemSettingsTabClick(event) {
     const target = event.target;
@@ -29540,8 +29628,8 @@ ${hint}` : hint;
   function initSystemSettingsFeature() {
     if (systemSettingsFeatureInitialized) return;
     systemSettingsFeatureInitialized = true;
-    const { els: els43 } = getLegacyBridge();
-    els43.systemSettingsTabs?.addEventListener("click", handleSystemSettingsTabClick);
+    const { els: els44 } = getLegacyBridge();
+    els44.systemSettingsTabs?.addEventListener("click", handleSystemSettingsTabClick);
     window.addEventListener("resize", handleSystemSettingsResize);
     Object.assign(getLegacyBridge().methods, {
       setSystemSettingsTab,
@@ -30239,9 +30327,9 @@ ${hint}` : hint;
     if (apiSettingsFeatureInitialized) return;
     apiSettingsFeatureInitialized = true;
     document.addEventListener(LOCALE_CHANGE_EVENT, () => {
-      const bridge39 = getLegacyBridge();
-      renderAuthSource(bridge39.state.authStatus);
-      if (!bridge39.els.systemSettingsModal?.classList.contains("hidden") && (!bridge39.els.systemSettingsApiPanel?.hidden || !bridge39.els.systemSettingsCodexPanel?.hidden)) {
+      const bridge40 = getLegacyBridge();
+      renderAuthSource(bridge40.state.authStatus);
+      if (!bridge40.els.systemSettingsModal?.classList.contains("hidden") && (!bridge40.els.systemSettingsApiPanel?.hidden || !bridge40.els.systemSettingsCodexPanel?.hidden)) {
         setApiSettingsFeedback("", "");
       }
     });
@@ -34111,8 +34199,12 @@ ${galleryText}`;
       updateRangeProgress(els23.nInput);
     }
   }
+  var UNCOMPRESSED_FORMATS = ["png", "gif"];
+  function compressionSupported(format = els23.outputFormat?.value) {
+    return !UNCOMPRESSED_FORMATS.includes(String(format || ""));
+  }
   function updateCompression() {
-    const compressionEnabled = els23.outputFormat.value !== "png";
+    const compressionEnabled = compressionSupported();
     els23.compression.disabled = !compressionEnabled;
     if (!compressionEnabled) {
       closeCompressionPopover();
@@ -34121,7 +34213,7 @@ ${galleryText}`;
     updateRangeProgress(els23.compression);
   }
   function openCompressionPopover() {
-    if (!els23.compressionPopover || els23.outputFormat.value === "png") return;
+    if (!els23.compressionPopover || !compressionSupported()) return;
     els23.compressionPopover.classList.remove("hidden");
     els23.compressionPopover.setAttribute("aria-hidden", "false");
   }
@@ -34284,6 +34376,81 @@ ${galleryText}`;
     }
   }
 
+  // codex_image/webui/frontend/src/gif-frame-size.ts
+  var GIF_OUTPUT_FORMAT = "gif";
+  var GIF_DEFAULT_FRAME_COUNT = 9;
+  var GIF_MIN_FRAME_COUNT = 2;
+  var GIF_MAX_FRAME_COUNT = 16;
+  var GIF_DEFAULT_FRAME_DURATION_MS = 200;
+  var GIF_MIN_FRAME_DURATION_MS = 20;
+  var GIF_MAX_FRAME_DURATION_MS = 2e3;
+  var GIF_FRAME_DURATION_STEP_MS = 10;
+  var GIF_SHEET_MAX_SIDE = 3840;
+  var GIF_SHEET_MAX_PIXELS = 8294400;
+  var GIF_FRAME_MAX_SIDE = 1024;
+  var GIF_FRAME_STEP = 16;
+  var GIF_ALLOWED_QUALITIES = ["low", "medium"];
+  var GIF_DEFAULT_QUALITY = "medium";
+  function gifModelSupported(model) {
+    return /^gpt-image-2\.6-/.test(String(model || "").trim());
+  }
+  function gifSheetGrids(frameCount) {
+    if (!Number.isInteger(frameCount) || frameCount < GIF_MIN_FRAME_COUNT || frameCount > GIF_MAX_FRAME_COUNT) return [];
+    if (frameCount <= 8) return [[4, 2], [2, 4]];
+    if (frameCount === 9) return [[3, 3]];
+    if (frameCount <= 12) return [[4, 3], [3, 4], [4, 4]];
+    return [[4, 4]];
+  }
+  function gifSheetGridFits(width, height, [columns, rows]) {
+    return columns * width <= GIF_SHEET_MAX_SIDE && rows * height <= GIF_SHEET_MAX_SIDE && columns * width * rows * height <= GIF_SHEET_MAX_PIXELS;
+  }
+  function floorToStep(value) {
+    return Math.floor(value / GIF_FRAME_STEP + 1e-9) * GIF_FRAME_STEP;
+  }
+  function gifFrameSizeFor(ratioW, ratioH, frameCount) {
+    const validRatio = Number.isFinite(ratioW) && Number.isFinite(ratioH) && ratioW > 0 && ratioH > 0;
+    const rw = validRatio ? ratioW : 1;
+    const rh = validRatio ? ratioH : 1;
+    const frames = normalizeGifFrameCount(frameCount);
+    const target = rw / rh;
+    let best = null;
+    for (const [columns, rows] of gifSheetGrids(frames)) {
+      const scale = Math.min(
+        GIF_FRAME_MAX_SIDE / Math.max(rw, rh),
+        GIF_SHEET_MAX_SIDE / (columns * rw),
+        GIF_SHEET_MAX_SIDE / (rows * rh),
+        Math.sqrt(GIF_SHEET_MAX_PIXELS / (columns * rows * rw * rh))
+      );
+      const width = Math.max(GIF_FRAME_STEP, floorToStep(scale * rw));
+      const height = Math.max(GIF_FRAME_STEP, floorToStep(scale * rh));
+      if (!gifSheetGridFits(width, height, [columns, rows])) continue;
+      const area = width * height;
+      const error = Math.abs(Math.log(width / height / target));
+      if (!best || area > best.area || area === best.area && error < best.error) {
+        best = { width, height, area, error };
+      }
+    }
+    return best ? [best.width, best.height] : [GIF_FRAME_STEP, GIF_FRAME_STEP];
+  }
+  function parseGifRatio(ratio) {
+    const match = String(ratio || "").trim().match(/^(\d+(?:\.\d+)?)\s*:\s*(\d+(?:\.\d+)?)$/);
+    if (!match) return [1, 1];
+    const width = Number(match[1]);
+    const height = Number(match[2]);
+    return width > 0 && height > 0 ? [width, height] : [1, 1];
+  }
+  function normalizeGifFrameCount(value) {
+    const parsed = Math.round(Number(value));
+    if (String(value ?? "").trim() === "" || !Number.isFinite(parsed)) return GIF_DEFAULT_FRAME_COUNT;
+    return Math.min(GIF_MAX_FRAME_COUNT, Math.max(GIF_MIN_FRAME_COUNT, parsed));
+  }
+  function normalizeGifFrameDuration(value) {
+    const parsed = Number(value);
+    if (String(value ?? "").trim() === "" || !Number.isFinite(parsed)) return GIF_DEFAULT_FRAME_DURATION_MS;
+    const stepped = Math.round(parsed / GIF_FRAME_DURATION_STEP_MS) * GIF_FRAME_DURATION_STEP_MS;
+    return Math.min(GIF_MAX_FRAME_DURATION_MS, Math.max(GIF_MIN_FRAME_DURATION_MS, stepped));
+  }
+
   // codex_image/webui/frontend/src/size-presets.ts
   var DEFAULT_RESOLUTION = "2k";
   var DEFAULT_RATIO = "1:1";
@@ -34392,6 +34559,9 @@ ${galleryText}`;
     const [width, height] = presetDimensions(resolution, ratio);
     return `${width}x${height}`;
   }
+  function orientationForRatio(ratio) {
+    return RATIO_ORIENTATION[ratio] || DEFAULT_ORIENTATION;
+  }
   function orientationForDimensions(width, height) {
     const numericWidth = Number(width);
     const numericHeight = Number(height);
@@ -34427,7 +34597,26 @@ ${galleryText}`;
     }
     return null;
   }
+  function isGifOutputSelected() {
+    return els25.outputFormat?.value === GIF_OUTPUT_FORMAT;
+  }
+  function currentGifFrameCount() {
+    return normalizeGifFrameCount(els25.gifFrameCount?.value);
+  }
+  function currentGifFrameDuration() {
+    return normalizeGifFrameDuration(els25.gifFrameDuration?.value);
+  }
+  function currentGifRatio() {
+    const ratio = String(els25.ratio?.value || "");
+    return RATIO_ORIENTATION[ratio] ? ratio : DEFAULT_RATIO;
+  }
+  function currentGifFrameSize() {
+    const [ratioWidth, ratioHeight] = parseGifRatio(currentGifRatio());
+    const [width, height] = gifFrameSizeFor(ratioWidth, ratioHeight, currentGifFrameCount());
+    return `${width}x${height}`;
+  }
   function currentSize() {
+    if (isGifOutputSelected()) return currentGifFrameSize();
     if (els25.size.value !== "custom") return els25.size.value;
     return `${els25.customWidth.value}x${els25.customHeight.value}`;
   }
@@ -34455,13 +34644,19 @@ ${galleryText}`;
       quality: els25.quality.value,
       output_format: els25.outputFormat.value,
       moderation: els25.moderation.value,
-      output_compression: els25.outputFormat.value === "png" ? null : Number(els25.compression.value)
+      output_compression: compressionSupported() ? Number(els25.compression.value) : null
     };
     if (currentWebSearchEnabled()) {
       params.web_search = true;
     }
     const presetMatch = findPresetForSize(params.size);
-    if (presetMatch) {
+    if (isGifOutputSelected()) {
+      delete params.output_compression;
+      params.frame_count = currentGifFrameCount();
+      params.frame_duration_ms = currentGifFrameDuration();
+      params.ratio = currentGifRatio();
+      params.orientation = orientationForRatio(params.ratio);
+    } else if (presetMatch) {
       params.resolution = presetMatch.resolution;
       params.ratio = presetMatch.ratio;
       params.orientation = presetMatch.orientation;
@@ -34744,6 +34939,19 @@ ${galleryText}`;
   }
   function updatePixelPreview(size) {
     if (!els26.pixelPreview) return;
+    if (isGifOutputSelected()) {
+      const [width2, height2] = currentGifFrameSize().split("x");
+      const frames = currentGifFrameCount();
+      const duration = currentGifFrameDuration();
+      els26.pixelPreview.textContent = formatTranslation("output.gifFramePreview", {
+        width: width2 || "",
+        height: height2 || "",
+        frames,
+        duration,
+        total: (frames * duration / 1e3).toFixed(2).replace(/\.?0+$/, "")
+      });
+      return;
+    }
     if (size === "auto") {
       els26.pixelPreview.textContent = formatTranslation("output.pixelPreviewAuto");
       return;
@@ -35068,10 +35276,154 @@ ${galleryText}`;
     });
   }
 
-  // codex_image/webui/frontend/src/task-list-render.ts
+  // codex_image/webui/frontend/src/gif-output.ts
   var bridge25 = getLegacyBridge();
-  var state19 = bridge25.state;
   var els28 = bridge25.els;
+  var gifActive = false;
+  var savedStaticSettings = null;
+  var syncing = false;
+  var gifOutputInitialized = false;
+  function gifFormatButton() {
+    return els28.outputFormatGroup?.querySelector(`[data-val="${GIF_OUTPUT_FORMAT}"]`) || null;
+  }
+  function qualityButtons() {
+    const group = els28.quality?.previousElementSibling;
+    return group ? Array.from(group.querySelectorAll(".radio-btn")) : [];
+  }
+  function setChoiceDisabled(button, disabled, title) {
+    button.classList.toggle("is-disabled", disabled);
+    button.setAttribute("aria-disabled", disabled ? "true" : "false");
+    if (disabled && title) {
+      button.title = title;
+    } else {
+      button.removeAttribute("title");
+    }
+  }
+  function setSelectValue(select, value) {
+    if (!select || select.value === value) return;
+    select.value = value;
+    select.dispatchEvent(new Event("change"));
+  }
+  function syncGifFormatAvailability() {
+    const supported = gifModelSupported(currentImageToolModel());
+    const button = gifFormatButton();
+    if (button) setChoiceDisabled(button, !supported, translate("output.gifUnsupportedModel"));
+    return supported;
+  }
+  function syncQualityRestriction() {
+    qualityButtons().forEach((button) => {
+      const blocked = gifActive && !GIF_ALLOWED_QUALITIES.includes(String(button.dataset.val || ""));
+      setChoiceDisabled(button, blocked, translate("output.gifQualityLimited"));
+    });
+  }
+  function enterGifMode() {
+    gifActive = true;
+    savedStaticSettings = {
+      quality: String(els28.quality?.value || ""),
+      customMode: els28.size?.value === "custom",
+      customWidth: String(els28.customWidth?.value || ""),
+      customHeight: String(els28.customHeight?.value || "")
+    };
+    els28.settingsGrid?.classList.add("gif-mode");
+    els28.gifSettingsField?.setAttribute("aria-hidden", "false");
+    if (!GIF_ALLOWED_QUALITIES.includes(String(els28.quality?.value || ""))) {
+      setSelectValue(els28.quality, GIF_DEFAULT_QUALITY);
+    }
+    if (savedStaticSettings.customMode && els28.customSizeToggle) {
+      els28.customSizeToggle.checked = false;
+      updateSizeFromPreset();
+    }
+  }
+  function leaveGifMode(restore) {
+    gifActive = false;
+    els28.settingsGrid?.classList.remove("gif-mode");
+    els28.gifSettingsField?.setAttribute("aria-hidden", "true");
+    const previous = savedStaticSettings;
+    savedStaticSettings = null;
+    if (!restore || !previous) return;
+    if (previous.quality) setSelectValue(els28.quality, previous.quality);
+    if (previous.customMode && els28.customSizeToggle) {
+      els28.customSizeToggle.checked = true;
+      updateSizeFromPreset();
+      if (els28.customWidth && previous.customWidth) els28.customWidth.value = previous.customWidth;
+      if (els28.customHeight && previous.customHeight) els28.customHeight.value = previous.customHeight;
+      updateCustomSize();
+    }
+  }
+  function syncGifOutputMode() {
+    if (syncing || !els28.outputFormat) return;
+    syncing = true;
+    try {
+      const supported = syncGifFormatAvailability();
+      if (!supported && els28.outputFormat.value === GIF_OUTPUT_FORMAT) {
+        setSelectValue(els28.outputFormat, "png");
+      }
+      const wantGif = els28.outputFormat.value === GIF_OUTPUT_FORMAT;
+      if (wantGif && !gifActive) enterGifMode();
+      else if (!wantGif && gifActive) leaveGifMode(true);
+      if (gifActive && !GIF_ALLOWED_QUALITIES.includes(String(els28.quality?.value || ""))) {
+        setSelectValue(els28.quality, GIF_DEFAULT_QUALITY);
+      }
+      syncQualityRestriction();
+      updateCompression();
+      updatePixelPreview(els28.size?.value === "custom" ? "custom" : els28.size?.value || "");
+      updateRequestPreview10();
+    } finally {
+      syncing = false;
+    }
+  }
+  function discardGifOutputMode() {
+    if (gifActive) leaveGifMode(false);
+    savedStaticSettings = null;
+    syncQualityRestriction();
+  }
+  function setGifFrameControls(frameCount, frameDurationMs) {
+    if (els28.gifFrameCount) els28.gifFrameCount.value = String(normalizeGifFrameCount(frameCount));
+    if (els28.gifFrameDuration) els28.gifFrameDuration.value = String(normalizeGifFrameDuration(frameDurationMs));
+  }
+  function resetGifFrameControls() {
+    setGifFrameControls(GIF_DEFAULT_FRAME_COUNT, GIF_DEFAULT_FRAME_DURATION_MS);
+  }
+  function handleGifFrameInput() {
+    updatePixelPreview(els28.size?.value || "");
+    updateRequestPreview10();
+  }
+  function handleGifFrameChange() {
+    setGifFrameControls(els28.gifFrameCount?.value, els28.gifFrameDuration?.value);
+    handleGifFrameInput();
+  }
+  function initGifOutputFeature() {
+    if (gifOutputInitialized) return;
+    gifOutputInitialized = true;
+    els28.settingsGrid?.addEventListener("click", (event) => {
+      const target = event.target;
+      if (target?.closest?.('.radio-btn[aria-disabled="true"]')) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    }, true);
+    els28.outputFormat?.addEventListener("change", syncGifOutputMode);
+    [els28.gifFrameCount, els28.gifFrameDuration].filter(Boolean).forEach((input) => {
+      input.addEventListener("input", handleGifFrameInput);
+      input.addEventListener("change", handleGifFrameChange);
+    });
+    document.addEventListener(LOCALE_CHANGE_EVENT, () => {
+      syncGifFormatAvailability();
+      syncQualityRestriction();
+    });
+    syncGifFormatAvailability();
+    Object.assign(bridge25.methods, {
+      syncGifOutputMode,
+      discardGifOutputMode,
+      setGifFrameControls,
+      resetGifFrameControls
+    });
+  }
+
+  // codex_image/webui/frontend/src/task-list-render.ts
+  var bridge26 = getLegacyBridge();
+  var state19 = bridge26.state;
+  var els29 = bridge26.els;
   var EXPANDED_TASK_GROUP_INITIAL_CARD_COUNT = 24;
   var EXPANDED_TASK_GROUP_CHUNK_SIZE = 48;
   var EXPANDED_TASK_GROUP_ANIMATION_FALLBACK_MS = 320;
@@ -35167,26 +35519,26 @@ ${galleryText}`;
     renderActiveTaskGroup(activeHtml);
     if (!tasks.length) {
       expandedTaskGroupRenderToken += 1;
-      els28.taskList.innerHTML = `<div class="task-meta">${escapeHtml13(translate("taskList.empty"))}</div>`;
+      els29.taskList.innerHTML = `<div class="task-meta">${escapeHtml13(translate("taskList.empty"))}</div>`;
       updateDocumentTitle();
       restoreTaskListScrollAnchor(scrollAnchor);
       return;
     }
     if (!layout.expandedGroup) {
       expandedTaskGroupRenderToken += 1;
-      els28.taskList.innerHTML = "";
+      els29.taskList.innerHTML = "";
       updateDocumentTitle();
       restoreTaskListScrollAnchor(scrollAnchor);
       return;
     }
     const group = layout.expandedGroup;
-    els28.taskList.innerHTML = renderExpandedTaskGroupShellHtml(group);
+    els29.taskList.innerHTML = renderExpandedTaskGroupShellHtml(group);
     scheduleExpandedTaskGroupItemsRender(group, layout.expandedKey || group?.key || null);
     updateDocumentTitle();
     restoreTaskListScrollAnchor(scrollAnchor);
   }
   function taskListScrollContainer() {
-    return els28.sidebarContent || els28.taskHistoryShell || els28.taskList || null;
+    return els29.sidebarContent || els29.taskHistoryShell || els29.taskList || null;
   }
   function captureTaskListScrollAnchor() {
     const scroller = taskListScrollContainer();
@@ -35232,15 +35584,15 @@ ${galleryText}`;
     requestAnimationFrame(restore);
   }
   function renderHistoryLibraryGroup(tasks, query) {
-    if (!els28.taskHistoryLibrarySlot) return;
+    if (!els29.taskHistoryLibrarySlot) return;
     const html = historyLibraryGroup(tasks, query);
-    els28.taskHistoryLibrarySlot.innerHTML = html;
-    els28.taskHistoryLibrarySlot.classList.toggle("hidden", !html);
+    els29.taskHistoryLibrarySlot.innerHTML = html;
+    els29.taskHistoryLibrarySlot.classList.toggle("hidden", !html);
   }
   function renderActiveTaskGroup(activeHtml) {
-    if (!els28.taskActiveList) return;
-    els28.taskActiveList.innerHTML = activeHtml;
-    els28.taskActiveList.classList.toggle("hidden", !activeHtml);
+    if (!els29.taskActiveList) return;
+    els29.taskActiveList.innerHTML = activeHtml;
+    els29.taskActiveList.classList.toggle("hidden", !activeHtml);
   }
   function taskAnchorLayout(groups, expandedKey, query) {
     if (query) {
@@ -35272,10 +35624,10 @@ ${galleryText}`;
   }
   function expandedTaskGroupBodyElements(groupKey) {
     const escapedGroupKey = cssEscape(groupKey);
-    const body = els28.taskList?.querySelector(
+    const body = els29.taskList?.querySelector(
       `.task-group-items-expanded[data-expanded-task-group-items-key="${escapedGroupKey}"]`
     );
-    const headerButton = els28.taskList?.querySelector(
+    const headerButton = els29.taskList?.querySelector(
       `.task-group[data-task-group="${escapedGroupKey}"] .task-group-header-split`
     );
     return { body, headerButton };
@@ -35318,8 +35670,8 @@ ${galleryText}`;
     fallbackTimerId = window.setTimeout(finalize, EXPANDED_TASK_GROUP_ANIMATION_FALLBACK_MS);
   }
   function expandedTaskGroupItemsContainer(groupKey) {
-    if (!els28.taskList) return null;
-    return els28.taskList.querySelector(
+    if (!els29.taskList) return null;
+    return els29.taskList.querySelector(
       `.task-group-items-expanded[data-expanded-task-group-items-key="${cssEscape(groupKey)}"]`
     );
   }
@@ -35364,7 +35716,7 @@ ${galleryText}`;
     requestAnimationFrame(renderChunk);
   }
   function taskCardRoot() {
-    return els28.taskHistoryShell || els28.sidebarContent || els28.taskList;
+    return els29.taskHistoryShell || els29.sidebarContent || els29.taskList;
   }
   function taskCardElement(taskId) {
     const root = taskCardRoot();
@@ -35393,14 +35745,14 @@ ${galleryText}`;
     updateDocumentTitle();
   }
   function taskSearchQuery() {
-    return els28.taskSearch.value.trim().toLowerCase();
+    return els29.taskSearch.value.trim().toLowerCase();
   }
   function taskFilterValues() {
     return {
-      ratio: els28.taskRatioFilter?.value || "",
-      orientation: els28.taskOrientationFilter?.value || "",
-      promptFidelity: els28.taskPromptFidelityFilter?.value || "",
-      resolution: els28.taskResolutionFilter?.value || ""
+      ratio: els29.taskRatioFilter?.value || "",
+      orientation: els29.taskOrientationFilter?.value || "",
+      promptFidelity: els29.taskPromptFidelityFilter?.value || "",
+      resolution: els29.taskResolutionFilter?.value || ""
     };
   }
   function taskMatchesSearch(task, query) {
@@ -35421,11 +35773,11 @@ ${galleryText}`;
   }
   function clearTaskListFiltersForActiveGroup() {
     let changed = false;
-    if (els28.taskSearch?.value) {
-      els28.taskSearch.value = "";
+    if (els29.taskSearch?.value) {
+      els29.taskSearch.value = "";
       changed = true;
     }
-    [els28.taskRatioFilter, els28.taskOrientationFilter, els28.taskPromptFidelityFilter, els28.taskResolutionFilter].filter(Boolean).forEach((element2) => {
+    [els29.taskRatioFilter, els29.taskOrientationFilter, els29.taskPromptFidelityFilter, els29.taskResolutionFilter].filter(Boolean).forEach((element2) => {
       if (element2.value) {
         element2.value = "";
         changed = true;
@@ -35941,12 +36293,17 @@ ${galleryText}`;
     const status = String(task?.status || "");
     return Boolean(task?.local_pending || ["submitting", "queued", "running"].includes(status));
   }
+  function taskOutputIsGif(task) {
+    if (String(task?.params?.output_format || "").toLowerCase() === "gif") return true;
+    return Array.isArray(task?.outputs) && task.outputs.some((item) => String(item?.format || "").toLowerCase() === "gif");
+  }
   function taskThumbHtml(task, className = "task-thumb") {
     const outputUrl = taskOutputUrls(task)[0];
     const outputThumbnailUrl = taskThumbnailUrls(task)[0];
     const inputPreviewUrl = taskInputPreviewUrls(task)[0];
     const imageUrl = outputThumbnailUrl || outputUrl || task.preview_url || inputPreviewUrl;
     const safeClassName = escapeHtml13(className);
+    const formatBadge = taskOutputIsGif(task) ? '<span class="task-thumb-format-badge" aria-hidden="true">GIF</span>' : "";
     if (imageUrl && inputPreviewUrl) {
       const loadingSpinner = taskThumbShowsLoading(task) ? '<span class="task-thumb-stack-spinner" aria-hidden="true"></span>' : "";
       const imageToImageLabel = escapeHtml13(translate("taskCard.imageToImageThumb"));
@@ -35955,6 +36312,7 @@ ${galleryText}`;
         <img class="task-thumb-reference" src="${escapeHtml13(inputPreviewUrl)}" alt="" loading="lazy" decoding="async" onerror="this.hidden=true">
         <img class="task-thumb-output" src="${escapeHtml13(imageUrl)}" alt="" loading="lazy" decoding="async" onerror="this.hidden=true">
         ${loadingSpinner}
+        ${formatBadge}
       </div>
     `;
     }
@@ -35965,6 +36323,7 @@ ${galleryText}`;
       <div class="${safeClassName} task-thumb-single" aria-label="${textToImageLabel}">
         <img class="task-thumb-single-image" src="${escapeHtml13(imageUrl)}" alt="" loading="lazy" decoding="async" onerror="this.hidden=true">
         <span class="task-thumb-mode-badge" aria-hidden="true">${textBadge}</span>
+        ${formatBadge}
       </div>
     `;
     }
@@ -36073,9 +36432,9 @@ ${galleryText}`;
   }
 
   // codex_image/webui/frontend/src/task-history-anchors.ts
-  var bridge26 = getLegacyBridge();
-  var state20 = bridge26.state;
-  var els29 = bridge26.els;
+  var bridge27 = getLegacyBridge();
+  var state20 = bridge27.state;
+  var els30 = bridge27.els;
   var taskHistoryAnchorInsetObserver = null;
   var TASK_HISTORY_LAYOUT_EASING = "ease";
   var TASK_HISTORY_LAYOUT_DURATION_MS = 180;
@@ -36121,8 +36480,8 @@ ${galleryText}`;
     }
   }
   function syncTaskHistoryAnchorInset() {
-    const shell = element(els29.taskHistoryShell);
-    const sidebarContent = element(els29.sidebarContent);
+    const shell = element(els30.taskHistoryShell);
+    const sidebarContent = element(els30.sidebarContent);
     if (!shell || !sidebarContent) return;
     const scrollbarInset = Math.max(0, sidebarContent.offsetWidth - sidebarContent.clientWidth);
     shell.style.setProperty("--task-history-scrollbar-offset", `${scrollbarInset}px`);
@@ -36183,7 +36542,7 @@ ${galleryText}`;
     return true;
   }
   function scrollExpandedTaskGroupToTop2(behavior = "smooth") {
-    const sidebarContent = element(els29.sidebarContent);
+    const sidebarContent = element(els30.sidebarContent);
     if (!sidebarContent) return;
     sidebarContent.scrollTo({ top: 0, behavior: prefersReducedMotion() ? "auto" : behavior });
   }
@@ -36219,8 +36578,8 @@ ${galleryText}`;
   `;
   }
   function renderTaskHistoryAnchors2(layout) {
-    const topAnchors = element(els29.taskHistoryTopAnchors);
-    const bottomAnchors = element(els29.taskHistoryBottomAnchors);
+    const topAnchors = element(els30.taskHistoryTopAnchors);
+    const bottomAnchors = element(els30.taskHistoryBottomAnchors);
     if (!topAnchors || !bottomAnchors) return;
     syncTaskHistoryAnchorInset();
     topAnchors.innerHTML = layout.top.map((group) => anchorRowHtml(group)).join("");
@@ -36230,7 +36589,7 @@ ${galleryText}`;
     applyImmediateAnchorSelection(layout.expandedKey || "");
   }
   function taskHistoryLayoutElements() {
-    const shell = element(els29.taskHistoryShell);
+    const shell = element(els30.taskHistoryShell);
     if (!shell) return [];
     return Array.from(
       shell.querySelectorAll(".task-history-anchor-row, .task-group-header-split")
@@ -36304,9 +36663,9 @@ ${galleryText}`;
     });
   }
   function initTaskHistoryAnchorsFeature() {
-    if (typeof ResizeObserver === "function" && !taskHistoryAnchorInsetObserver && element(els29.sidebarContent)) {
+    if (typeof ResizeObserver === "function" && !taskHistoryAnchorInsetObserver && element(els30.sidebarContent)) {
       taskHistoryAnchorInsetObserver = new ResizeObserver(() => syncTaskHistoryAnchorInset());
-      taskHistoryAnchorInsetObserver.observe(element(els29.sidebarContent));
+      taskHistoryAnchorInsetObserver.observe(element(els30.sidebarContent));
     }
     syncTaskHistoryAnchorInset();
     Object.assign(getLegacyBridge().methods, {
@@ -36321,9 +36680,9 @@ ${galleryText}`;
   }
 
   // codex_image/webui/frontend/src/task-archive-controls.ts
-  var bridge27 = getLegacyBridge();
-  var state21 = bridge27.state;
-  var els30 = bridge27.els;
+  var bridge28 = getLegacyBridge();
+  var state21 = bridge28.state;
+  var els31 = bridge28.els;
   function legacyMethod31(name, ...args) {
     const method = getLegacyBridge().methods[name];
     if (typeof method !== "function") {
@@ -36425,8 +36784,8 @@ ${galleryText}`;
     }
   }
   function renderArchiveButton() {
-    if (!els30.archiveButton) return;
-    els30.archiveButton.textContent = translate("footer.historyLibrary");
+    if (!els31.archiveButton) return;
+    els31.archiveButton.textContent = translate("footer.historyLibrary");
   }
   async function restoreArchivedTask(taskId) {
     try {
@@ -36443,22 +36802,22 @@ ${galleryText}`;
   function openArchiveModal() {
     closePromptPopover4();
     renderArchiveModal();
-    els30.archiveModal?.classList.remove("hidden");
-    els30.archiveModal?.setAttribute("aria-hidden", "false");
+    els31.archiveModal?.classList.remove("hidden");
+    els31.archiveModal?.setAttribute("aria-hidden", "false");
   }
   function closeArchiveModal() {
-    els30.archiveModal?.classList.add("hidden");
-    els30.archiveModal?.setAttribute("aria-hidden", "true");
+    els31.archiveModal?.classList.add("hidden");
+    els31.archiveModal?.setAttribute("aria-hidden", "true");
   }
   function renderArchiveModal() {
-    if (!els30.archiveList || !els30.archiveCount) return;
+    if (!els31.archiveList || !els31.archiveCount) return;
     const archivedTasks = state21.tasks.filter((task) => isTaskArchived2(task.task_id));
-    els30.archiveCount.textContent = archivedTasks.length ? formatTranslation("archive.count", { count: archivedTasks.length }) : translate("archive.empty");
+    els31.archiveCount.textContent = archivedTasks.length ? formatTranslation("archive.count", { count: archivedTasks.length }) : translate("archive.empty");
     if (!archivedTasks.length) {
-      els30.archiveList.innerHTML = `<div class="archive-empty">${translate("archive.empty")}</div>`;
+      els31.archiveList.innerHTML = `<div class="archive-empty">${translate("archive.empty")}</div>`;
       return;
     }
-    els30.archiveList.innerHTML = archivedTasks.map((task) => {
+    els31.archiveList.innerHTML = archivedTasks.map((task) => {
       const image = taskThumbHtml2(task, "archive-thumb");
       const title = escapeHtml15(task.prompt || task.mode || "Untitled");
       const status = escapeHtml15(formatTaskStatus3(task));
@@ -36478,19 +36837,19 @@ ${galleryText}`;
       </article>
     `;
     }).join("");
-    els30.archiveList.querySelectorAll("[data-archive-select-task-id]").forEach((card) => {
+    els31.archiveList.querySelectorAll("[data-archive-select-task-id]").forEach((card) => {
       card.addEventListener("click", () => {
         legacyMethod31("selectTask", card.dataset.archiveSelectTaskId);
         closeArchiveModal();
       });
     });
-    els30.archiveList.querySelectorAll("[data-restore-archive-task-id]").forEach((button) => {
+    els31.archiveList.querySelectorAll("[data-restore-archive-task-id]").forEach((button) => {
       button.addEventListener("click", (event) => {
         event.stopPropagation();
         restoreArchivedTask(button.dataset.restoreArchiveTaskId);
       });
     });
-    els30.archiveList.querySelectorAll("[data-delete-archive-task-id]").forEach((button) => {
+    els31.archiveList.querySelectorAll("[data-delete-archive-task-id]").forEach((button) => {
       button.addEventListener("click", (event) => {
         event.stopPropagation();
         openTaskDeleteConfirm(button, button.dataset.deleteArchiveTaskId);
@@ -36521,9 +36880,9 @@ ${galleryText}`;
   }
 
   // codex_image/webui/frontend/src/task-batch-controls.ts
-  var bridge28 = getLegacyBridge();
-  var state22 = bridge28.state;
-  var els31 = bridge28.els;
+  var bridge29 = getLegacyBridge();
+  var state22 = bridge29.state;
+  var els32 = bridge29.els;
   function legacyMethod32(name, ...args) {
     const method = getLegacyBridge().methods[name];
     if (typeof method !== "function") {
@@ -36594,7 +36953,7 @@ ${galleryText}`;
     state22.batchSelectedTaskIds = state22.batchSelectedTaskIds.filter((item) => item !== id);
   }
   function visibleBatchTaskIds() {
-    const root = els31.taskHistoryShell || els31.sidebarContent || els31.taskList;
+    const root = els32.taskHistoryShell || els32.sidebarContent || els32.taskList;
     if (!root) return [];
     return Array.from(root.querySelectorAll(TASK_CARD_SELECTOR)).map((card) => String(card.dataset.taskId || "")).filter((taskId) => taskId && !isTaskArchived3(taskId));
   }
@@ -36637,15 +36996,15 @@ ${galleryText}`;
     return true;
   }
   function renderBatchToolbar2() {
-    if (!els31.batchToolbar) return;
-    els31.batchToolbar.classList.toggle("hidden", !state22.batchMode);
-    els31.taskList?.classList.toggle("batch-marquee-enabled", state22.batchMode);
-    els31.batchManageButton?.classList.toggle("active", state22.batchMode);
+    if (!els32.batchToolbar) return;
+    els32.batchToolbar.classList.toggle("hidden", !state22.batchMode);
+    els32.taskList?.classList.toggle("batch-marquee-enabled", state22.batchMode);
+    els32.batchManageButton?.classList.toggle("active", state22.batchMode);
     const count = state22.batchSelectedTaskIds.length;
-    if (els31.batchSelectedCount) {
-      els31.batchSelectedCount.textContent = formatTranslation("batch.selectedCount", { count });
+    if (els32.batchSelectedCount) {
+      els32.batchSelectedCount.textContent = formatTranslation("batch.selectedCount", { count });
     }
-    [els31.batchArchiveButton, els31.batchDeleteButton].forEach((button) => {
+    [els32.batchArchiveButton, els32.batchDeleteButton].forEach((button) => {
       if (button) button.disabled = count === 0;
     });
   }
@@ -36687,7 +37046,7 @@ ${galleryText}`;
       setStatus15(formatTranslation("batch.runningCannotDeleteSelected"), "error");
       return;
     }
-    openConfirmPopover5(els31.batchDeleteButton, {
+    openConfirmPopover5(els32.batchDeleteButton, {
       title: formatTranslation("batch.deleteTitle", { count: deletableTasks.length }),
       message: formatTranslation("batch.deleteMessage"),
       detail: skippedCount ? formatTranslation("batch.deleteSkippedDetail", { count: skippedCount }) : "",
@@ -36720,9 +37079,9 @@ ${galleryText}`;
     }
   }
   function handleTaskListPointerDown(event) {
-    if (!state22.batchMode || !els31.taskList || event.button !== 0) return;
+    if (!state22.batchMode || !els32.taskList || event.button !== 0) return;
     if (event.target.closest("button, input, select, textarea, a")) return;
-    if (!event.target.closest(".task-card[data-task-id]") && event.target !== els31.taskList) return;
+    if (!event.target.closest(".task-card[data-task-id]") && event.target !== els32.taskList) return;
     state22.batchSelectionDrag = {
       pointerId: event.pointerId,
       startX: event.clientX,
@@ -36747,7 +37106,7 @@ ${galleryText}`;
       if (distance < 6) return;
       drag.active = true;
       state22.suppressTaskClickAfterDrag = true;
-      els31.taskList?.classList.add("batch-marquee-active");
+      els32.taskList?.classList.add("batch-marquee-active");
       drag.marquee = document.createElement("div");
       drag.marquee.className = "batch-selection-marquee";
       document.body.appendChild(drag.marquee);
@@ -36775,7 +37134,7 @@ ${galleryText}`;
       drag.marquee.style.height = `${selectionRect.height}px`;
     }
     const nextSelectedIds = new Set(drag.originSelectedTaskIds.map(String));
-    els31.taskList.querySelectorAll(TASK_CARD_SELECTOR).forEach((card) => {
+    els32.taskList.querySelectorAll(TASK_CARD_SELECTOR).forEach((card) => {
       const cardRect = card.getBoundingClientRect();
       if (rectsIntersect(selectionRect, cardRect)) {
         nextSelectedIds.add(String(card.dataset.taskId));
@@ -36791,7 +37150,7 @@ ${galleryText}`;
     if (previous === next) return;
     state22.batchSelectedTaskIds = nextIds;
     state22.batchSelectionAnchorTaskId = nextIds.length ? nextIds[nextIds.length - 1] : state22.batchSelectionAnchorTaskId || null;
-    els31.taskList.querySelectorAll(TASK_CARD_SELECTOR).forEach((card) => {
+    els32.taskList.querySelectorAll(TASK_CARD_SELECTOR).forEach((card) => {
       const selected = nextSet.has(String(card.dataset.taskId));
       card.classList.toggle("batch-selected", selected);
       const selectButton = card.querySelector("[data-batch-select-task-id]");
@@ -36822,7 +37181,7 @@ ${galleryText}`;
       drag.marquee.remove();
     }
     state22.batchSelectionDrag = null;
-    els31.taskList?.classList.remove("batch-marquee-active");
+    els32.taskList?.classList.remove("batch-marquee-active");
     window.removeEventListener("pointermove", handleTaskListPointerMove);
     window.removeEventListener("pointerup", handleTaskListPointerUp);
     window.removeEventListener("pointercancel", handleTaskListPointerUp);
@@ -36853,9 +37212,9 @@ ${galleryText}`;
   }
 
   // codex_image/webui/frontend/src/task-actions.ts
-  var bridge29 = getLegacyBridge();
-  var state23 = bridge29.state;
-  var els32 = bridge29.els;
+  var bridge30 = getLegacyBridge();
+  var state23 = bridge30.state;
+  var els33 = bridge30.els;
   function legacyMethod33(name, ...args) {
     const method = getLegacyBridge().methods[name];
     if (typeof method !== "function") {
@@ -37140,9 +37499,9 @@ ${galleryText}`;
   }
 
   // codex_image/webui/frontend/src/task-submit.ts
-  var bridge30 = getLegacyBridge();
-  var state24 = bridge30.state;
-  var els33 = bridge30.els;
+  var bridge31 = getLegacyBridge();
+  var state24 = bridge31.state;
+  var els34 = bridge31.els;
   function legacyMethod34(name, ...args) {
     const method = getLegacyBridge().methods[name];
     if (typeof method !== "function") {
@@ -37274,44 +37633,71 @@ ${galleryText}`;
   function renderPreview4(...args) {
     return legacyMethod34("renderPreview", ...args);
   }
+  function discardGifOutputMode2(...args) {
+    return legacyMethod34("discardGifOutputMode", ...args);
+  }
+  function syncGifOutputMode2(...args) {
+    return legacyMethod34("syncGifOutputMode", ...args);
+  }
+  function setGifFrameControls2(...args) {
+    return legacyMethod34("setGifFrameControls", ...args);
+  }
+  function syncRatioControls(ratio) {
+    if (!els34.ratio || !els34.orientation) return;
+    if (els34.customSizeToggle) els34.customSizeToggle.checked = false;
+    const ratioOption = Array.from(els34.ratio.options || []).some((option) => option.value === ratio);
+    els34.ratio.value = ratioOption ? ratio : "1:1";
+    els34.ratio.dispatchEvent(new Event("change"));
+    syncRadioButtons2(els34.resolution, els34.ratio, els34.orientation);
+  }
   function applyTaskToForm(task) {
     const params = task.params || {};
+    const gifTask = params.output_format === "gif";
+    discardGifOutputMode2();
+    if (params.output_format) els34.outputFormat.value = params.output_format;
+    else if (els34.outputFormat.value === "gif") els34.outputFormat.value = "png";
     setMode5(task.mode || "generate");
     setPromptWithGalleryRefs2(task.prompt || "", task.gallery_refs || []);
     const mainModel = params.main_model || task.request?.model;
-    if (mainModel && els33.mainModel) {
-      els33.mainModel.value = mainModel;
+    if (mainModel && els34.mainModel) {
+      els34.mainModel.value = mainModel;
       persistMainModel2();
     }
-    if (els33.promptFidelity) {
+    if (els34.promptFidelity) {
       const fidelity = ["strict", "original", "off"].includes(params.prompt_fidelity) ? params.prompt_fidelity : "strict";
-      els33.promptFidelity.value = fidelity;
-      els33.promptFidelity.dispatchEvent(new Event("change"));
+      els34.promptFidelity.value = fidelity;
+      els34.promptFidelity.dispatchEvent(new Event("change"));
     }
-    if (els33.webSearch) {
-      els33.webSearch.checked = Boolean(params.web_search);
-      els33.webSearch.dispatchEvent(new Event("input"));
+    if (els34.webSearch) {
+      els34.webSearch.checked = Boolean(params.web_search);
+      els34.webSearch.dispatchEvent(new Event("input"));
     }
     if (params.model) {
       if (isOmniPocMode()) setOmniImageModel(params.model);
-      else els33.model.value = params.model;
+      else els34.model.value = params.model;
     }
-    if (params.size) syncSizeControlsFromSize2(params.size);
-    if (params.n && els33.nInput) {
-      els33.nInput.value = String(params.n);
+    if (gifTask) {
+      syncRatioControls(params.ratio);
+      setGifFrameControls2(params.frame_count, params.frame_duration_ms);
+    } else if (params.size) {
+      syncSizeControlsFromSize2(params.size);
     }
-    if (params.quality) els33.quality.value = params.quality;
-    if (params.output_format) els33.outputFormat.value = params.output_format;
-    if (params.moderation) els33.moderation.value = params.moderation;
+    if (params.n && els34.nInput) {
+      els34.nInput.value = String(params.n);
+    }
+    if (params.quality) els34.quality.value = params.quality;
+    if (params.output_format) els34.outputFormat.value = params.output_format;
+    if (params.moderation) els34.moderation.value = params.moderation;
     if (params.output_compression !== null && params.output_compression !== void 0) {
-      els33.compression.value = params.output_compression;
+      els34.compression.value = params.output_compression;
     }
-    [els33.quality, els33.outputFormat, els33.moderation].forEach((element2) => {
+    [els34.quality, els34.outputFormat, els34.moderation].forEach((element2) => {
       element2.dispatchEvent(new Event("change"));
     });
+    syncGifOutputMode2();
     updatePromptCount6();
     updateQuantity2();
-    syncRadioButtons2(els33.nInput);
+    syncRadioButtons2(els34.nInput);
     updateCompression2();
     updateCustomSize2();
     updateRequestPreview11();
@@ -37338,6 +37724,8 @@ ${galleryText}`;
       output_format: params.output_format,
       moderation: params.moderation,
       output_compression: params.output_compression,
+      frame_count: params.frame_count,
+      frame_duration_ms: params.frame_duration_ms,
       prompt_fidelity: currentPromptFidelity3(),
       web_search: Boolean(params.web_search),
       n: params.n,
@@ -37378,6 +37766,10 @@ ${galleryText}`;
         if (params.output_compression !== null && params.output_compression !== void 0) {
           imageTool.output_compression = params.output_compression;
         }
+        if (params.frame_count !== void 0) {
+          imageTool.frame_count = params.frame_count;
+          imageTool.frame_duration_ms = params.frame_duration_ms;
+        }
       } else {
         payload2.endpoint = action === "edit" ? "/images/edits" : "/images/generations";
       }
@@ -37404,6 +37796,10 @@ ${galleryText}`;
         }
         if (params.output_compression !== null && params.output_compression !== void 0) {
           imageTool.output_compression = params.output_compression;
+        }
+        if (params.frame_count !== void 0) {
+          imageTool.frame_count = params.frame_count;
+          imageTool.frame_duration_ms = params.frame_duration_ms;
         }
       } else {
         payload2.endpoint = action === "edit" ? "/images/edits" : "/images/generations";
@@ -37469,7 +37865,8 @@ ${galleryText}`;
       setStatus17(translate("status.editNeedsImage"), "error");
       return;
     }
-    const customSizeError = els33.size?.value === "custom" ? customSizeValidationMessage2() : "";
+    const gifOutput = els34.outputFormat.value === "gif";
+    const customSizeError = !gifOutput && els34.size?.value === "custom" ? customSizeValidationMessage2() : "";
     if (customSizeError) {
       updateCustomSize2();
       updatePixelPreview2("custom");
@@ -37506,8 +37903,12 @@ ${galleryText}`;
     } else if (currentAuthSource3() === "codex") {
       form.append("codex_mode", currentCodexMode4());
     }
-    if (els33.outputFormat.value !== "png") {
+    if (params.output_compression !== null && params.output_compression !== void 0) {
       form.append("output_compression", String(params.output_compression));
+    }
+    if (gifOutput) {
+      form.append("frame_count", String(params.frame_count));
+      form.append("frame_duration_ms", String(params.frame_duration_ms));
     }
     galleries.forEach((source) => form.append("gallery_image_ids", source.id));
     assets.forEach((source) => form.append("reference_asset_ids", source.id));
@@ -37518,11 +37919,11 @@ ${galleryText}`;
     }
     const pendingTask = createPendingTask();
     addPendingTask2(pendingTask);
-    if (els33.requestJson) {
-      els33.requestJson.textContent = JSON.stringify(pendingTask.request, null, 2);
+    if (els34.requestJson) {
+      els34.requestJson.textContent = JSON.stringify(pendingTask.request, null, 2);
     }
     startRunFeedback2(pendingTask, translate("taskStatus.submitting"));
-    els33.runButton.disabled = true;
+    els34.runButton.disabled = true;
     const controller = new AbortController();
     const submitTimeoutId = window.setTimeout(() => controller.abort(), SUBMIT_TASK_TIMEOUT_MS);
     try {
@@ -37537,8 +37938,8 @@ ${galleryText}`;
         throw new Error(data.detail || translate("taskSubmit.requestFailed"));
       }
       addQueuedTask(data.task);
-      if (els33.requestJson) {
-        els33.requestJson.textContent = JSON.stringify(data.request || {}, null, 2);
+      if (els34.requestJson) {
+        els34.requestJson.textContent = JSON.stringify(data.request || {}, null, 2);
       }
       stopRunFeedback2();
       setStatus17(translate("taskSubmit.queued"), "ok");
@@ -37553,7 +37954,7 @@ ${galleryText}`;
     } finally {
       window.clearTimeout(submitTimeoutId);
       stopRunFeedback2();
-      els33.runButton.disabled = !state24.authAvailable;
+      els34.runButton.disabled = !state24.authAvailable;
     }
   }
   function initTaskSubmitFeature() {
@@ -37567,9 +37968,9 @@ ${galleryText}`;
   }
 
   // codex_image/webui/frontend/src/task-list-controls.ts
-  var bridge31 = getLegacyBridge();
-  var state25 = bridge31.state;
-  var els34 = bridge31.els;
+  var bridge32 = getLegacyBridge();
+  var state25 = bridge32.state;
+  var els35 = bridge32.els;
   function legacyMethod35(name, ...args) {
     const method = getLegacyBridge().methods[name];
     if (typeof method !== "function") {
@@ -37598,7 +37999,7 @@ ${galleryText}`;
   var taskSearchAcceptManualInput = false;
   var taskSearchHasUserEdited = false;
   function setTaskSearchLocked(locked) {
-    const input = els34.taskSearch;
+    const input = els35.taskSearch;
     if (!input) return;
     if (locked) {
       input.setAttribute("readonly", "");
@@ -37611,7 +38012,7 @@ ${galleryText}`;
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed);
   }
   function guardTaskSearchAutofill(delays = []) {
-    const input = els34.taskSearch;
+    const input = els35.taskSearch;
     if (!input) return false;
     let cleared = false;
     const clearIfAutofilled = () => {
@@ -37628,28 +38029,28 @@ ${galleryText}`;
   function bindTaskListControlEvents() {
     if (taskListControlEventsBound) return;
     taskListControlEventsBound = true;
-    els34.archiveModalClose?.addEventListener("click", closeArchiveModal2);
-    els34.archiveModal?.addEventListener("click", (event) => {
-      if (event.target === els34.archiveModal) closeArchiveModal2();
+    els35.archiveModalClose?.addEventListener("click", closeArchiveModal2);
+    els35.archiveModal?.addEventListener("click", (event) => {
+      if (event.target === els35.archiveModal) closeArchiveModal2();
     });
-    els34.batchManageButton?.addEventListener("click", () => toggleBatchMode2());
-    els34.archiveButton?.addEventListener("click", openArchiveModal2);
-    els34.batchArchiveButton?.addEventListener("click", archiveSelectedTasks2);
-    els34.batchDeleteButton?.addEventListener("click", openBatchDeleteConfirm2);
-    els34.batchCancelButton?.addEventListener("click", () => toggleBatchMode2(false));
+    els35.batchManageButton?.addEventListener("click", () => toggleBatchMode2());
+    els35.archiveButton?.addEventListener("click", openArchiveModal2);
+    els35.batchArchiveButton?.addEventListener("click", archiveSelectedTasks2);
+    els35.batchDeleteButton?.addEventListener("click", openBatchDeleteConfirm2);
+    els35.batchCancelButton?.addEventListener("click", () => toggleBatchMode2(false));
     setTaskSearchLocked(true);
     guardTaskSearchAutofill([80, 240, 720]);
     window.addEventListener("pageshow", () => guardTaskSearchAutofill([80, 240, 720]));
-    els34.taskSearch.addEventListener("pointerdown", (event) => {
-      const input = els34.taskSearch;
+    els35.taskSearch.addEventListener("pointerdown", (event) => {
+      const input = els35.taskSearch;
       if (!input?.readOnly) return;
       event.preventDefault();
       setTaskSearchLocked(false);
       guardTaskSearchAutofill();
       input.focus({ preventScroll: true });
     });
-    els34.taskSearch.addEventListener("keydown", (event) => {
-      const input = els34.taskSearch;
+    els35.taskSearch.addEventListener("keydown", (event) => {
+      const input = els35.taskSearch;
       if (input?.readOnly && !event.metaKey && !event.ctrlKey && !event.altKey) {
         const key = event.key || "";
         const isPrintable = key.length === 1;
@@ -37667,31 +38068,31 @@ ${galleryText}`;
       taskSearchAcceptManualInput = true;
       taskSearchHasUserEdited = true;
     });
-    els34.taskSearch.addEventListener("paste", () => {
+    els35.taskSearch.addEventListener("paste", () => {
       taskSearchAcceptManualInput = true;
       taskSearchHasUserEdited = true;
     });
-    els34.taskSearch.addEventListener("drop", () => {
+    els35.taskSearch.addEventListener("drop", () => {
       taskSearchAcceptManualInput = true;
       taskSearchHasUserEdited = true;
     });
-    els34.taskSearch.addEventListener("focus", () => {
+    els35.taskSearch.addEventListener("focus", () => {
       taskSearchAcceptManualInput = false;
       guardTaskSearchAutofill([120, 360, 900]);
     });
-    els34.taskSearch.addEventListener("blur", () => {
+    els35.taskSearch.addEventListener("blur", () => {
       taskSearchAcceptManualInput = false;
       setTaskSearchLocked(true);
     });
-    els34.taskSearch.addEventListener("input", handleTaskSearchInput);
-    [els34.taskRatioFilter, els34.taskOrientationFilter, els34.taskPromptFidelityFilter, els34.taskResolutionFilter].filter(Boolean).forEach((element2) => {
+    els35.taskSearch.addEventListener("input", handleTaskSearchInput);
+    [els35.taskRatioFilter, els35.taskOrientationFilter, els35.taskPromptFidelityFilter, els35.taskResolutionFilter].filter(Boolean).forEach((element2) => {
       element2.addEventListener("change", renderTasks6);
     });
     bindTaskListEvents();
   }
   function handleTaskSearchInput() {
     if (!taskSearchAcceptManualInput && guardTaskSearchAutofill([120, 360, 900])) return;
-    const input = els34.taskSearch;
+    const input = els35.taskSearch;
     if (!input) return;
     taskSearchHasUserEdited = Boolean(input.value);
     if (!input.value) taskSearchHasUserEdited = false;
@@ -37699,13 +38100,13 @@ ${galleryText}`;
     void syncTaskSearchHistoryResults();
   }
   function bindTaskListEvents() {
-    const interactiveRoot = els34.taskHistoryShell || els34.sidebarContent || els34.taskList;
+    const interactiveRoot = els35.taskHistoryShell || els35.sidebarContent || els35.taskList;
     interactiveRoot?.addEventListener("click", handleTaskListClick);
     interactiveRoot?.addEventListener("keydown", handleTaskListKeydown);
-    els34.taskList?.addEventListener("pointerdown", handleTaskListPointerDown2);
+    els35.taskList?.addEventListener("pointerdown", handleTaskListPointerDown2);
   }
   function taskHistoryInteractiveRoot() {
-    return els34.taskHistoryShell || els34.sidebarContent || els34.taskList;
+    return els35.taskHistoryShell || els35.sidebarContent || els35.taskList;
   }
   function commitExpandedTaskGroupKey(nextKey, behavior = null) {
     const previousLayout = captureTaskHistoryLayout3();
@@ -37814,8 +38215,8 @@ ${galleryText}`;
     window.updateQueueElapsedDisplays = updateQueueElapsedDisplays;
   }
   function bindQueueControls() {
-    const els43 = getEls();
-    els43.queueButton?.addEventListener("click", jumpToActiveTaskGroup);
+    const els44 = getEls();
+    els44.queueButton?.addEventListener("click", jumpToActiveTaskGroup);
   }
   function startRealtimeUpdates({ migrateLegacyArchives = false } = {}) {
     const state32 = getState();
@@ -37881,11 +38282,11 @@ ${galleryText}`;
     await handleRealtimePayload(payload2);
   }
   async function handleRealtimePayload(payload2) {
-    const bridge39 = getLegacyBridge();
-    const state32 = bridge39.state;
+    const bridge40 = getLegacyBridge();
+    const state32 = bridge40.state;
     if (payload2?.type === "snapshot") {
       applyQueueState(payload2.queue);
-      await bridge39.methods.applyTasksSnapshot(payload2.tasks || [], {
+      await bridge40.methods.applyTasksSnapshot(payload2.tasks || [], {
         migrateLegacyArchives: state32.realtimeSnapshotNeedsArchiveMigration
       });
       applyQueueTasks(payload2.queue);
@@ -37899,13 +38300,13 @@ ${galleryText}`;
     }
     if (payload2?.type === "task") {
       const previousTask = state32.tasks.find((item) => String(item.task_id) === String(payload2.task?.task_id));
-      bridge39.methods.notifyTaskUpdate?.(previousTask, payload2.task);
-      bridge39.methods.applyTaskUpdate(payload2.task);
+      bridge40.methods.notifyTaskUpdate?.(previousTask, payload2.task);
+      bridge40.methods.applyTaskUpdate(payload2.task);
     }
   }
   async function refreshQueue() {
-    const bridge39 = getLegacyBridge();
-    const state32 = bridge39.state;
+    const bridge40 = getLegacyBridge();
+    const state32 = bridge40.state;
     const requestSeq = ++state32.queueRequestSeq;
     try {
       const response = await fetch("/api/queue");
@@ -37917,7 +38318,7 @@ ${galleryText}`;
       state32.queue = normalizeQueueState(data);
       renderQueue();
     } catch (error) {
-      bridge39.methods.setStatus(errorMessage5(error, translate("queue.readFailed")), "error");
+      bridge40.methods.setStatus(errorMessage5(error, translate("queue.readFailed")), "error");
     }
   }
   function defaultQueueState() {
@@ -37941,8 +38342,8 @@ ${galleryText}`;
     renderQueue();
   }
   function renderQueue() {
-    const bridge39 = getLegacyBridge();
-    const state32 = bridge39.state;
+    const bridge40 = getLegacyBridge();
+    const state32 = bridge40.state;
     const summary = state32.queue.summary || {};
     const waitingCount = Number(summary.waiting_count ?? state32.queue.waiting.length ?? 0);
     const runningCount = Number(summary.running_count ?? state32.queue.running.length ?? 0);
@@ -37956,7 +38357,7 @@ ${galleryText}`;
       usableChannelCount,
       dispatchPending
     });
-    bridge39.methods.updateDocumentTitle();
+    bridge40.methods.updateDocumentTitle();
     if (dispatchPending) {
       scheduleQueueDispatchSync();
     } else {
@@ -37972,8 +38373,8 @@ ${galleryText}`;
     renderActiveTaskGroupForQueueChange();
   }
   function renderActiveTaskGroupForQueueChange() {
-    const bridge39 = getLegacyBridge();
-    bridge39.methods.renderTasks?.();
+    const bridge40 = getLegacyBridge();
+    bridge40.methods.renderTasks?.();
   }
   function renderQueueStatusChip({
     waitingCount,
@@ -37982,24 +38383,24 @@ ${galleryText}`;
     usableChannelCount,
     dispatchPending
   }) {
-    const els43 = getEls();
+    const els44 = getEls();
     const total = waitingCount + runningCount;
     const channelText = usableChannelCount === channelCount ? formatTranslation("queue.channel", { count: channelCount }) : formatTranslation("queue.availableChannels", { usable: usableChannelCount, total: channelCount });
     const text = dispatchPending ? formatTranslation("queue.dispatching", { waiting: waitingCount }) : total ? formatTranslation("queue.runningWaiting", { running: runningCount, waiting: waitingCount }) : translate("queue.empty");
     const label = total ? formatTranslation("queue.statusLabel", { text, channelText }) : translate("queue.emptyAria");
-    if (els43.queueStatusText) els43.queueStatusText.textContent = text;
-    if (els43.queueButton) {
-      els43.queueButton.setAttribute("aria-label", label);
-      els43.queueButton.title = total ? translate("queue.jumpTitle") : translate("queue.emptyTitle");
-      els43.queueButton.classList.toggle("has-queue", total > 0 || dispatchPending);
+    if (els44.queueStatusText) els44.queueStatusText.textContent = text;
+    if (els44.queueButton) {
+      els44.queueButton.setAttribute("aria-label", label);
+      els44.queueButton.title = total ? translate("queue.jumpTitle") : translate("queue.emptyTitle");
+      els44.queueButton.classList.toggle("has-queue", total > 0 || dispatchPending);
     }
   }
   function jumpToActiveTaskGroup() {
-    const bridge39 = getLegacyBridge();
-    const state32 = bridge39.state;
+    const bridge40 = getLegacyBridge();
+    const state32 = bridge40.state;
     const hasActiveTasks = Boolean((state32.queue.running || []).length || (state32.queue.waiting || []).length);
     if (!hasActiveTasks) return;
-    bridge39.methods.revealActiveTaskGroup?.();
+    bridge40.methods.revealActiveTaskGroup?.();
   }
   function isQueueDispatchPending() {
     const state32 = getState();
@@ -38053,9 +38454,9 @@ ${galleryText}`;
     const state32 = getState();
     state32.activeTaskPollTimerId = null;
     if (!queueHasActiveTasks()) return;
-    const bridge39 = getLegacyBridge();
+    const bridge40 = getLegacyBridge();
     await refreshQueue();
-    await bridge39.methods.refreshTasks();
+    await bridge40.methods.refreshTasks();
     if (queueHasActiveTasks()) {
       scheduleActiveTaskPolling();
     }
@@ -38084,11 +38485,11 @@ ${galleryText}`;
     });
   }
   function queueItemTitleText(task, position = null) {
-    const bridge39 = getLegacyBridge();
+    const bridge40 = getLegacyBridge();
     const queueTask = task;
-    const prefix = position ? `#${position}` : bridge39.methods.formatTaskStatus(task) || translate("taskStatus.task");
+    const prefix = position ? `#${position}` : bridge40.methods.formatTaskStatus(task) || translate("taskStatus.task");
     const mode = taskModeLabel(task);
-    const count = formatTranslation("taskCard.count", { count: bridge39.methods.taskTotalCount(task) });
+    const count = formatTranslation("taskCard.count", { count: bridge40.methods.taskTotalCount(task) });
     const size = queueTask.output_size || task.params?.size || "";
     return [prefix, mode, count, size].filter(Boolean).join(" \xB7 ");
   }
@@ -38098,7 +38499,7 @@ ${galleryText}`;
     return "";
   }
   async function promoteQueueTask(taskId) {
-    const bridge39 = getLegacyBridge();
+    const bridge40 = getLegacyBridge();
     if (!taskId) return;
     invalidateQueueRequests();
     try {
@@ -38106,9 +38507,9 @@ ${galleryText}`;
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.detail || translate("queue.promoteFailed"));
       applyQueueState(data);
-      await bridge39.methods.refreshTasks();
+      await bridge40.methods.refreshTasks();
     } catch (error) {
-      bridge39.methods.setStatus(errorMessage5(error, translate("queue.promoteFailed")), "error");
+      bridge40.methods.setStatus(errorMessage5(error, translate("queue.promoteFailed")), "error");
     }
   }
   function moveQueueTask(taskId, direction) {
@@ -38126,11 +38527,11 @@ ${galleryText}`;
     void reorderQueue(nextIds);
   }
   function deleteQueuedTask(button, taskId) {
-    const bridge39 = getLegacyBridge();
+    const bridge40 = getLegacyBridge();
     if (!taskId) return;
-    const task = bridge39.state.queue.waiting.find((item) => item.task_id === taskId);
+    const task = bridge40.state.queue.waiting.find((item) => item.task_id === taskId);
     const title = task ? queueItemTitleText(task, task.queue_position || null) : taskId;
-    bridge39.methods.openConfirmPopover(button, {
+    bridge40.methods.openConfirmPopover(button, {
       title: translate("queue.deleteWaitingTitleConfirm"),
       message: translate("queue.deleteWaitingMessage"),
       detail: title,
@@ -38141,8 +38542,8 @@ ${galleryText}`;
     });
   }
   async function performDeleteQueuedTask(taskId) {
-    const bridge39 = getLegacyBridge();
-    const state32 = bridge39.state;
+    const bridge40 = getLegacyBridge();
+    const state32 = bridge40.state;
     invalidateQueueRequests();
     try {
       const response = await fetch(`/api/queue/${encodeURIComponent(taskId)}`, { method: "DELETE" });
@@ -38161,19 +38562,19 @@ ${galleryText}`;
         }
       });
       await refreshQueue();
-      await bridge39.methods.refreshTasks();
-      bridge39.methods.renderPreview();
-      bridge39.methods.setStatus(translate("queue.queuedDeleted"), "ok");
+      await bridge40.methods.refreshTasks();
+      bridge40.methods.renderPreview();
+      bridge40.methods.setStatus(translate("queue.queuedDeleted"), "ok");
     } catch (error) {
-      bridge39.methods.setStatus(errorMessage5(error, translate("queue.deleteQueuedFailed")), "error");
+      bridge40.methods.setStatus(errorMessage5(error, translate("queue.deleteQueuedFailed")), "error");
     }
   }
   function cancelRunningTask(button, taskId) {
-    const bridge39 = getLegacyBridge();
+    const bridge40 = getLegacyBridge();
     if (!taskId) return;
-    const task = bridge39.state.queue.running.find((item) => item.task_id === taskId);
+    const task = bridge40.state.queue.running.find((item) => item.task_id === taskId);
     const title = task ? queueItemTitleText(task) : taskId;
-    bridge39.methods.openConfirmPopover(button, {
+    bridge40.methods.openConfirmPopover(button, {
       title: translate("queue.cancelRunningTitleConfirm"),
       message: translate("queue.cancelRunningMessage"),
       detail: title,
@@ -38184,8 +38585,8 @@ ${galleryText}`;
     });
   }
   async function performCancelRunningTask(taskId) {
-    const bridge39 = getLegacyBridge();
-    const state32 = bridge39.state;
+    const bridge40 = getLegacyBridge();
+    const state32 = bridge40.state;
     invalidateQueueRequests();
     try {
       const response = await fetch(`/api/queue/${encodeURIComponent(taskId)}`, { method: "DELETE" });
@@ -38200,15 +38601,15 @@ ${galleryText}`;
         }
       });
       await refreshQueue();
-      await bridge39.methods.refreshTasks();
-      bridge39.methods.renderPreview();
-      bridge39.methods.setStatus(translate("queue.runningCancelled"), "ok");
+      await bridge40.methods.refreshTasks();
+      bridge40.methods.renderPreview();
+      bridge40.methods.setStatus(translate("queue.runningCancelled"), "ok");
     } catch (error) {
-      bridge39.methods.setStatus(errorMessage5(error, translate("queue.cancelRunningFailed")), "error");
+      bridge40.methods.setStatus(errorMessage5(error, translate("queue.cancelRunningFailed")), "error");
     }
   }
   async function reorderQueue(taskIds) {
-    const bridge39 = getLegacyBridge();
+    const bridge40 = getLegacyBridge();
     invalidateQueueRequests();
     try {
       const response = await fetch(`/api/queue/reorder`, {
@@ -38219,9 +38620,9 @@ ${galleryText}`;
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.detail || translate("queue.reorderFailed"));
       applyQueueState(data);
-      await bridge39.methods.refreshTasks();
+      await bridge40.methods.refreshTasks();
     } catch (error) {
-      bridge39.methods.setStatus(errorMessage5(error, translate("queue.reorderFailed")), "error");
+      bridge40.methods.setStatus(errorMessage5(error, translate("queue.reorderFailed")), "error");
       await refreshQueue();
     }
   }
@@ -38246,7 +38647,7 @@ ${galleryText}`;
     getState().queueDragTaskId = null;
   }
   function applyQueueTasks(queue) {
-    const bridge39 = getLegacyBridge();
+    const bridge40 = getLegacyBridge();
     const tasks = [
       ...Array.isArray(queue?.waiting) ? queue.waiting : [],
       ...Array.isArray(queue?.running) ? queue.running : []
@@ -38255,37 +38656,37 @@ ${galleryText}`;
     const needsTaskReconcile = activeTasksNeedQueueReconcile(queueTaskIds);
     if (!tasks.length) {
       if (needsTaskReconcile) {
-        void bridge39.methods.refreshTasks();
+        void bridge40.methods.refreshTasks();
       }
       return;
     }
     let changed = false;
     tasks.forEach((task) => {
-      const previousTask = bridge39.state.tasks.find((item) => String(item.task_id) === String(task.task_id));
-      bridge39.methods.notifyTaskUpdate?.(previousTask, task);
-      changed = bridge39.methods.updateTaskInState(task) || changed;
-      if (String(task.task_id) === String(bridge39.state.selectedTaskId) && bridge39.methods.taskHasViewableUpdate(task)) {
-        void bridge39.methods.markTaskViewed(task.task_id);
+      const previousTask = bridge40.state.tasks.find((item) => String(item.task_id) === String(task.task_id));
+      bridge40.methods.notifyTaskUpdate?.(previousTask, task);
+      changed = bridge40.methods.updateTaskInState(task) || changed;
+      if (String(task.task_id) === String(bridge40.state.selectedTaskId) && bridge40.methods.taskHasViewableUpdate(task)) {
+        void bridge40.methods.markTaskViewed(task.task_id);
       }
     });
     if (!changed) {
       if (needsTaskReconcile) {
-        void bridge39.methods.refreshTasks();
+        void bridge40.methods.refreshTasks();
       }
       return;
     }
-    bridge39.methods.cleanupSessionSelections();
-    bridge39.methods.renderTasks();
-    bridge39.methods.renderArchiveButton();
-    bridge39.methods.renderArchiveModal();
-    bridge39.methods.renderPreview();
+    bridge40.methods.cleanupSessionSelections();
+    bridge40.methods.renderTasks();
+    bridge40.methods.renderArchiveButton();
+    bridge40.methods.renderArchiveModal();
+    bridge40.methods.renderPreview();
     if (needsTaskReconcile) {
-      void bridge39.methods.refreshTasks();
+      void bridge40.methods.refreshTasks();
     }
   }
   function activeTasksNeedQueueReconcile(queueTaskIds) {
-    const bridge39 = getLegacyBridge();
-    return bridge39.state.tasks.some((task) => {
+    const bridge40 = getLegacyBridge();
+    return bridge40.state.tasks.some((task) => {
       const taskId = String(task?.task_id || "");
       if (!taskId || queueTaskIds.has(taskId) || task?.local_pending) return false;
       const status = String(task?.status || "");
@@ -38303,9 +38704,9 @@ ${galleryText}`;
   }
 
   // codex_image/webui/frontend/src/task-list-queue-controls.ts
-  var bridge32 = getLegacyBridge();
-  var state26 = bridge32.state;
-  var els35 = bridge32.els;
+  var bridge33 = getLegacyBridge();
+  var state26 = bridge33.state;
+  var els36 = bridge33.els;
   var taskListQueueControlsInitialized = false;
   var taskListQueueControlsBound = false;
   var queueDragOriginalOrder = [];
@@ -38324,7 +38725,7 @@ ${galleryText}`;
     event.stopPropagation();
   }
   function taskListQueueControlRoots() {
-    return [els35.taskActiveList, els35.taskList].filter((root) => root instanceof HTMLElement);
+    return [els36.taskActiveList, els36.taskList].filter((root) => root instanceof HTMLElement);
   }
   function bindTaskListQueueControls() {
     if (taskListQueueControlsBound) return;
@@ -38517,9 +38918,9 @@ ${galleryText}`;
   }
 
   // codex_image/webui/frontend/src/task-context-menu.ts
-  var bridge33 = getLegacyBridge();
-  var state27 = bridge33.state;
-  var els36 = bridge33.els;
+  var bridge34 = getLegacyBridge();
+  var state27 = bridge34.state;
+  var els37 = bridge34.els;
   var taskContextMenuInitialized = false;
   var taskContextMenuEventsBound = false;
   var taskContextMenuEl = null;
@@ -38552,21 +38953,21 @@ ${galleryText}`;
   function bindTaskContextMenuEvents() {
     if (taskContextMenuEventsBound) return;
     taskContextMenuEventsBound = true;
-    els36.taskList.addEventListener("contextmenu", handleTaskListContextMenu);
-    els36.taskList.addEventListener("keydown", handleTaskListContextMenuKeydown);
+    els37.taskList.addEventListener("contextmenu", handleTaskListContextMenu);
+    els37.taskList.addEventListener("keydown", handleTaskListContextMenuKeydown);
     document.addEventListener("click", handleTaskContextDocumentClick, true);
     document.addEventListener("keydown", handleTaskContextDocumentKeydown);
     document.addEventListener("scroll", closeTaskContextMenu, true);
     window.addEventListener("resize", closeTaskContextMenu);
     if ("MutationObserver" in window) {
       taskListMutationObserver = new MutationObserver(closeTaskContextMenu);
-      taskListMutationObserver.observe(els36.taskList, { childList: true });
+      taskListMutationObserver.observe(els37.taskList, { childList: true });
     }
   }
   function handleTaskListContextMenu(event) {
     const target = eventTargetElement3(event);
     const card = target?.closest(".task-card[data-task-id]");
-    if (!card || !els36.taskList.contains(card)) return;
+    if (!card || !els37.taskList.contains(card)) return;
     event.preventDefault();
     event.stopPropagation();
     openTaskContextMenu(card, event.clientX, event.clientY);
@@ -38575,7 +38976,7 @@ ${galleryText}`;
     if (event.key !== "ContextMenu" && !(event.shiftKey && event.key === "F10")) return;
     const target = eventTargetElement3(event);
     const card = target?.closest(".task-card[data-task-id]");
-    if (!card || !els36.taskList.contains(card)) return;
+    if (!card || !els37.taskList.contains(card)) return;
     event.preventDefault();
     const rect = card.getBoundingClientRect();
     openTaskContextMenu(card, rect.left + 18, rect.top + 18);
@@ -38701,7 +39102,7 @@ ${galleryText}`;
     if (!records.length) throw new Error(translate("taskContext.noDownloadableOutputs"));
     if (records.length === 1) {
       const record = records[0];
-      triggerDownload(String(record.url), outputDownloadFilename(taskId, record, 1));
+      triggerDownload(String(record.url), outputDownloadFilename(taskId, record, 1, detailedTask));
     } else {
       triggerDownload(`/api/tasks/${encodeURIComponent(taskId)}/outputs.zip`, `${taskId}-images.zip`);
     }
@@ -38730,12 +39131,12 @@ ${galleryText}`;
     }
     return records.sort((a, b) => a.index - b.index);
   }
-  function outputDownloadFilename(taskId, record, fallbackIndex) {
+  function outputDownloadFilename(taskId, record, fallbackIndex, task) {
     const source = String(record.file || record.url || "");
     const pathname = source.split(/[?#]/)[0] || "";
     const filename = pathname.split("/").filter(Boolean).pop() || "";
     if (filename && /\.[a-z0-9]+$/i.test(filename)) return filename;
-    return `${taskId}-image-${record.index || fallbackIndex}.png`;
+    return `${taskId}-image-${record.index || fallbackIndex}.${outputDownloadExtension(task, record.url)}`;
   }
   function triggerDownload(url, filename) {
     const link = document.createElement("a");
@@ -38891,37 +39292,37 @@ ${galleryText}`;
     openTaskNotificationCenter();
   }
   function renderTaskNotifications() {
-    const bridge39 = getLegacyBridge();
-    const state32 = bridge39.state;
-    const els43 = bridge39.els;
+    const bridge40 = getLegacyBridge();
+    const state32 = bridge40.state;
+    const els44 = bridge40.els;
     const unreadCount = state32.taskNotifications.filter((notification) => notification.unread).length;
     state32.taskNotificationUnreadCount = unreadCount;
     const unreadLabel = unreadCount > 0 ? formatTranslation("notifications.unread", { count: unreadCount }) : translate("notifications.title");
-    if (els43.taskNotificationBadge) {
-      els43.taskNotificationBadge.textContent = "";
-      els43.taskNotificationBadge.setAttribute("aria-hidden", "true");
-      els43.taskNotificationBadge.classList.toggle("hidden", unreadCount === 0);
+    if (els44.taskNotificationBadge) {
+      els44.taskNotificationBadge.textContent = "";
+      els44.taskNotificationBadge.setAttribute("aria-hidden", "true");
+      els44.taskNotificationBadge.classList.toggle("hidden", unreadCount === 0);
     }
-    if (els43.taskNotificationButton) {
-      els43.taskNotificationButton.classList.toggle("has-unread", unreadCount > 0);
-      els43.taskNotificationButton.setAttribute("aria-label", unreadLabel);
-      els43.taskNotificationButton.title = unreadLabel;
-      els43.taskNotificationButton.setAttribute("aria-expanded", state32.taskNotificationCenterOpen ? "true" : "false");
+    if (els44.taskNotificationButton) {
+      els44.taskNotificationButton.classList.toggle("has-unread", unreadCount > 0);
+      els44.taskNotificationButton.setAttribute("aria-label", unreadLabel);
+      els44.taskNotificationButton.title = unreadLabel;
+      els44.taskNotificationButton.setAttribute("aria-expanded", state32.taskNotificationCenterOpen ? "true" : "false");
     }
-    if (els43.taskNotificationUnreadSummary) {
-      els43.taskNotificationUnreadSummary.textContent = formatTranslation("notifications.unreadSummary", { count: unreadCount });
-      els43.taskNotificationUnreadSummary.classList.toggle("hidden", unreadCount === 0);
+    if (els44.taskNotificationUnreadSummary) {
+      els44.taskNotificationUnreadSummary.textContent = formatTranslation("notifications.unreadSummary", { count: unreadCount });
+      els44.taskNotificationUnreadSummary.classList.toggle("hidden", unreadCount === 0);
     }
-    if (els43.taskNotificationCenter) {
-      els43.taskNotificationCenter.classList.toggle("hidden", !state32.taskNotificationCenterOpen);
-      els43.taskNotificationCenter.setAttribute("aria-hidden", state32.taskNotificationCenterOpen ? "false" : "true");
+    if (els44.taskNotificationCenter) {
+      els44.taskNotificationCenter.classList.toggle("hidden", !state32.taskNotificationCenterOpen);
+      els44.taskNotificationCenter.setAttribute("aria-hidden", state32.taskNotificationCenterOpen ? "false" : "true");
     }
-    if (!els43.taskNotificationList) return;
+    if (!els44.taskNotificationList) return;
     if (!state32.taskNotifications.length) {
-      els43.taskNotificationList.innerHTML = `<div class="task-notification-empty">${translate("notifications.empty")}</div>`;
+      els44.taskNotificationList.innerHTML = `<div class="task-notification-empty">${translate("notifications.empty")}</div>`;
       return;
     }
-    els43.taskNotificationList.innerHTML = state32.taskNotifications.map((notification) => taskNotificationItemHtml(notification)).join("");
+    els44.taskNotificationList.innerHTML = state32.taskNotifications.map((notification) => taskNotificationItemHtml(notification)).join("");
   }
   async function requestSystemNotificationPermission() {
     if (typeof Notification === "undefined") {
@@ -38942,23 +39343,23 @@ ${galleryText}`;
     return true;
   }
   function bindTaskNotificationEvents() {
-    const els43 = getLegacyBridge().els;
-    els43.taskNotificationButton?.addEventListener("click", (event) => {
+    const els44 = getLegacyBridge().els;
+    els44.taskNotificationButton?.addEventListener("click", (event) => {
       event.stopPropagation();
       toggleTaskNotificationCenter();
     });
-    els43.taskNotificationClearButton?.addEventListener("click", (event) => {
+    els44.taskNotificationClearButton?.addEventListener("click", (event) => {
       event.stopPropagation();
       clearTaskNotifications();
     });
-    els43.taskNotificationList?.addEventListener("click", (event) => {
+    els44.taskNotificationList?.addEventListener("click", (event) => {
       const item = eventTargetElement4(event)?.closest("[data-task-notification-id]");
       if (!(item instanceof HTMLElement)) return;
       const notification = notificationById(item.dataset.taskNotificationId);
       if (notification) void openNotificationTask(notification);
     });
-    els43.taskNotificationInApp?.addEventListener("change", handleTaskNotificationInAppChange);
-    els43.taskNotificationSystem?.addEventListener("change", (event) => {
+    els44.taskNotificationInApp?.addEventListener("change", handleTaskNotificationInAppChange);
+    els44.taskNotificationSystem?.addEventListener("change", (event) => {
       void handleTaskNotificationSystemChange(event);
     });
     document.addEventListener("click", handleTaskNotificationDocumentClick);
@@ -38990,9 +39391,9 @@ ${galleryText}`;
   }
   function handleTaskNotificationDocumentClick(event) {
     const target = event.target;
-    const els43 = getLegacyBridge().els;
+    const els44 = getLegacyBridge().els;
     if (!(target instanceof Node)) return;
-    if (els43.taskNotificationCenter?.contains(target) || els43.taskNotificationButton?.contains(target)) return;
+    if (els44.taskNotificationCenter?.contains(target) || els44.taskNotificationButton?.contains(target)) return;
     closeTaskNotificationCenter();
   }
   function handleTaskNotificationKeydown(event) {
@@ -39009,8 +39410,8 @@ ${galleryText}`;
     renderTaskNotifications();
   }
   function showTaskNotificationToast(notification) {
-    const bridge39 = getLegacyBridge();
-    const region = bridge39.els.taskNotificationToastRegion;
+    const bridge40 = getLegacyBridge();
+    const region = bridge40.els.taskNotificationToastRegion;
     if (!region) return;
     const toast = document.createElement("button");
     toast.type = "button";
@@ -39024,9 +39425,9 @@ ${galleryText}`;
     region.prepend(toast);
     const timerId = window.setTimeout(() => {
       toast.remove();
-      bridge39.state.taskNotificationToastTimerIds = bridge39.state.taskNotificationToastTimerIds.filter((id) => id !== timerId);
+      bridge40.state.taskNotificationToastTimerIds = bridge40.state.taskNotificationToastTimerIds.filter((id) => id !== timerId);
     }, TASK_NOTIFICATION_TOAST_MS);
-    bridge39.state.taskNotificationToastTimerIds.push(timerId);
+    bridge40.state.taskNotificationToastTimerIds.push(timerId);
   }
   function sendSystemTaskNotification(notification) {
     const settings = getLegacyBridge().state.taskNotificationSettings;
@@ -39041,8 +39442,8 @@ ${galleryText}`;
     };
   }
   async function openNotificationTask(notification) {
-    const bridge39 = getLegacyBridge();
-    const task = bridge39.state.tasks.find((item) => String(item.task_id) === String(notification.task_id));
+    const bridge40 = getLegacyBridge();
+    const task = bridge40.state.tasks.find((item) => String(item.task_id) === String(notification.task_id));
     markTaskNotificationRead(notification.id);
     closeTaskNotificationCenter();
     if (!task) {
@@ -39051,7 +39452,7 @@ ${galleryText}`;
     }
     window.focus();
     try {
-      const selectTask3 = bridge39.methods.selectTask;
+      const selectTask3 = bridge40.methods.selectTask;
       if (typeof selectTask3 !== "function") throw new Error("selectTask is unavailable");
       await selectTask3(task.task_id);
     } catch {
@@ -39119,8 +39520,8 @@ ${galleryText}`;
     return notification.message;
   }
   function firstTaskThumbnailUrl(task) {
-    const bridge39 = getLegacyBridge();
-    const urls = bridge39.methods.taskThumbnailUrls?.(task);
+    const bridge40 = getLegacyBridge();
+    const urls = bridge40.methods.taskThumbnailUrls?.(task);
     if (Array.isArray(urls) && urls[0]) return String(urls[0]);
     if (Array.isArray(task.thumbnail_urls) && task.thumbnail_urls[0]) {
       return normalizeNotificationThumbnailUrl(task, task.thumbnail_urls[0], 1);
@@ -39224,13 +39625,13 @@ ${galleryText}`;
     syncTaskNotificationSettingsInputs();
   }
   function syncTaskNotificationSettingsInputs() {
-    const bridge39 = getLegacyBridge();
-    const settings = bridge39.state.taskNotificationSettings;
-    if (bridge39.els.taskNotificationInApp instanceof HTMLInputElement) {
-      bridge39.els.taskNotificationInApp.checked = settings.inApp;
+    const bridge40 = getLegacyBridge();
+    const settings = bridge40.state.taskNotificationSettings;
+    if (bridge40.els.taskNotificationInApp instanceof HTMLInputElement) {
+      bridge40.els.taskNotificationInApp.checked = settings.inApp;
     }
-    if (bridge39.els.taskNotificationSystem instanceof HTMLInputElement) {
-      bridge39.els.taskNotificationSystem.checked = settings.system;
+    if (bridge40.els.taskNotificationSystem instanceof HTMLInputElement) {
+      bridge40.els.taskNotificationSystem.checked = settings.system;
     }
   }
   function restoreTaskNotificationSeenKeys() {
@@ -39989,9 +40390,9 @@ ${galleryText}`;
   }
 
   // codex_image/webui/frontend/src/task-preview.ts
-  var bridge34 = getLegacyBridge();
-  var state28 = bridge34.state;
-  var els37 = bridge34.els;
+  var bridge35 = getLegacyBridge();
+  var state28 = bridge35.state;
+  var els38 = bridge35.els;
   var previewGridEventsBound = false;
   var pendingPreviewRenderToken = 0;
   var PREVIEW_FINAL_STATUSES = /* @__PURE__ */ new Set(["completed", "failed", "partial_failed", "cancelled"]);
@@ -40128,7 +40529,7 @@ ${galleryText}`;
       closePromptPopover7();
       cancelDeferredPreviewRender();
       clearPreviewGridLayout();
-      els37.previewGrid.innerHTML = `
+      els38.previewGrid.innerHTML = `
       <div class="empty-preview error-preview">
         ${failedPreviewContent(selected)}
       </div>
@@ -40141,7 +40542,7 @@ ${galleryText}`;
       closePromptPopover7();
       cancelDeferredPreviewRender();
       clearPreviewGridLayout();
-      els37.previewGrid.innerHTML = `<div class="empty-preview">${escapeHtml19(translate("preview.empty"))}</div>`;
+      els38.previewGrid.innerHTML = `<div class="empty-preview">${escapeHtml19(translate("preview.empty"))}</div>`;
       return;
     }
     renderOutputPreview(selected);
@@ -40249,24 +40650,24 @@ ${galleryText}`;
     window.requestAnimationFrame(syncPreviewImageOrientation);
   }
   function reconcilePreviewOutputCards(task, outputUrls, totalCount, { preservePreviousImages = true, imageAlreadyLoaded = false } = {}) {
-    if (!els37.previewGrid) return;
+    if (!els38.previewGrid) return;
     const desiredKeys = new Set(outputUrls.map((url, index) => previewOutputCardKey(task, url, index)));
     removeStalePreviewNodes(desiredKeys);
     outputUrls.forEach((url, index) => {
       const key = previewOutputCardKey(task, url, index);
       const card = ensurePreviewOutputCard(key);
-      if (els37.previewGrid.children[index] !== card) {
-        els37.previewGrid.insertBefore(card, els37.previewGrid.children[index] || null);
+      if (els38.previewGrid.children[index] !== card) {
+        els38.previewGrid.insertBefore(card, els38.previewGrid.children[index] || null);
       }
       updatePreviewOutputCard(card, task, url, index, totalCount, { preservePreviousImage: preservePreviousImages, imageAlreadyLoaded });
     });
   }
   function currentPreviewOutputCardCount() {
-    if (!els37.previewGrid) return 0;
-    return els37.previewGrid.querySelectorAll(".preview-card[data-preview-card-key]").length;
+    if (!els38.previewGrid) return 0;
+    return els38.previewGrid.querySelectorAll(".preview-card[data-preview-card-key]").length;
   }
   function removeStalePreviewNodes(desiredKeys) {
-    [...els37.previewGrid.children].forEach((child) => {
+    [...els38.previewGrid.children].forEach((child) => {
       if (!(child instanceof HTMLElement)) return;
       const key = child.dataset.previewCardKey;
       if (key) {
@@ -40281,7 +40682,7 @@ ${galleryText}`;
     return `slot-${taskOutputIndex2(task, url, index) || index + 1}`;
   }
   function ensurePreviewOutputCard(key) {
-    const existing = [...els37.previewGrid.querySelectorAll(".preview-card[data-preview-card-key]")].find((card2) => {
+    const existing = [...els38.previewGrid.querySelectorAll(".preview-card[data-preview-card-key]")].find((card2) => {
       return card2 instanceof HTMLElement && card2.dataset.previewCardKey === key;
     });
     if (existing instanceof HTMLElement) return existing;
@@ -40444,7 +40845,7 @@ ${galleryText}`;
     });
   }
   function reconcilePreviewStatusCard(task, flags, visibleOutputCount) {
-    const existing = els37.previewGrid.querySelector("[data-preview-status-card]");
+    const existing = els38.previewGrid.querySelector("[data-preview-status-card]");
     const html = flags.running ? runningProgressCard(task, visibleOutputCount) : flags.waiting ? waitingProgressCard(task, visibleOutputCount) : flags.failure ? failureSummaryCard(task, visibleOutputCount) : "";
     if (!html) {
       existing?.remove();
@@ -40458,13 +40859,13 @@ ${galleryText}`;
     if (existing) {
       existing.replaceWith(next);
     } else {
-      els37.previewGrid.append(next);
+      els38.previewGrid.append(next);
     }
   }
   function bindPreviewGridEvents() {
-    if (previewGridEventsBound || !els37.previewGrid) return;
+    if (previewGridEventsBound || !els38.previewGrid) return;
     previewGridEventsBound = true;
-    els37.previewGrid.addEventListener("click", handlePreviewGridClick);
+    els38.previewGrid.addEventListener("click", handlePreviewGridClick);
   }
   function handlePreviewGridClick(event) {
     const target = event.target instanceof Element ? event.target : null;
@@ -40518,7 +40919,7 @@ ${galleryText}`;
     }
     const image = target.closest("[data-lightbox-url]");
     if (!image) return;
-    const images = [...els37.previewGrid.querySelectorAll("[data-lightbox-url]")];
+    const images = [...els38.previewGrid.querySelectorAll("[data-lightbox-url]")];
     const urls = images.map((item) => item.dataset.lightboxUrl || item.currentSrc || item.src).filter((url) => Boolean(url));
     const currentUrl = image.dataset.lightboxUrl || image.currentSrc || image.src;
     if (!currentUrl) return;
@@ -40539,16 +40940,16 @@ ${galleryText}`;
   function updatePreviewDownloadActions(task) {
     updatePreviewSelectionActions(task);
     const outputUrls = taskOutputUrls3(task);
-    if (!els37.downloadAllButton) return;
+    if (!els38.downloadAllButton) return;
     if (!task?.task_id || outputUrls.length < 2) {
-      els37.downloadAllButton.classList.add("hidden");
-      els37.downloadAllButton.removeAttribute("href");
-      els37.downloadAllButton.removeAttribute("download");
+      els38.downloadAllButton.classList.add("hidden");
+      els38.downloadAllButton.removeAttribute("href");
+      els38.downloadAllButton.removeAttribute("download");
       return;
     }
-    els37.downloadAllButton.href = taskOutputZipUrl(task);
-    els37.downloadAllButton.download = `${task.task_id}-images.zip`;
-    els37.downloadAllButton.classList.remove("hidden");
+    els38.downloadAllButton.href = taskOutputZipUrl(task);
+    els38.downloadAllButton.download = `${task.task_id}-images.zip`;
+    els38.downloadAllButton.classList.remove("hidden");
   }
   function updatePreviewSelectionActions(task) {
     const outputUrls = taskOutputUrls3(task);
@@ -40556,28 +40957,28 @@ ${galleryText}`;
     const selectedCount = selectedUrls.length;
     const totalCount = outputUrls.length;
     const hasSelection = Boolean(task?.task_id && selectedCount > 0 && totalCount > 1);
-    els37.previewSelectionActions?.classList.toggle("hidden", !hasSelection);
-    if (els37.previewSelectionCount) {
-      els37.previewSelectionCount.textContent = selectedCount ? formatTranslation("preview.selectedCount", { selected: selectedCount, total: totalCount }) : translate("preview.selectedZero");
+    els38.previewSelectionActions?.classList.toggle("hidden", !hasSelection);
+    if (els38.previewSelectionCount) {
+      els38.previewSelectionCount.textContent = selectedCount ? formatTranslation("preview.selectedCount", { selected: selectedCount, total: totalCount }) : translate("preview.selectedZero");
     }
-    if (els37.downloadSelectedButton) {
+    if (els38.downloadSelectedButton) {
       if (!hasSelection) {
-        els37.downloadSelectedButton.classList.add("hidden");
-        els37.downloadSelectedButton.removeAttribute("href");
-        els37.downloadSelectedButton.removeAttribute("download");
+        els38.downloadSelectedButton.classList.add("hidden");
+        els38.downloadSelectedButton.removeAttribute("href");
+        els38.downloadSelectedButton.removeAttribute("download");
       } else {
-        els37.downloadSelectedButton.href = taskSelectedOutputDownloadUrl(task);
-        els37.downloadSelectedButton.download = taskSelectedOutputDownloadName(task);
-        els37.downloadSelectedButton.classList.remove("hidden");
+        els38.downloadSelectedButton.href = taskSelectedOutputDownloadUrl(task);
+        els38.downloadSelectedButton.download = taskSelectedOutputDownloadName(task);
+        els38.downloadSelectedButton.classList.remove("hidden");
       }
     }
-    if (els37.deleteUnselectedOutputsButton) {
+    if (els38.deleteUnselectedOutputsButton) {
       const canDeleteUnselected = hasSelection && selectedCount < totalCount;
-      els37.deleteUnselectedOutputsButton.classList.toggle("hidden", !canDeleteUnselected);
+      els38.deleteUnselectedOutputsButton.classList.toggle("hidden", !canDeleteUnselected);
       if (canDeleteUnselected) {
-        els37.deleteUnselectedOutputsButton.dataset.deleteUnselectedTaskId = String(task.task_id || "");
+        els38.deleteUnselectedOutputsButton.dataset.deleteUnselectedTaskId = String(task.task_id || "");
       } else {
-        delete els37.deleteUnselectedOutputsButton.dataset.deleteUnselectedTaskId;
+        delete els38.deleteUnselectedOutputsButton.dataset.deleteUnselectedTaskId;
       }
     }
   }
@@ -40662,7 +41063,7 @@ ${galleryText}`;
     }
   }
   function outputDownloadFilename2(task, url, index) {
-    return outputFilenameFromUrl(url) || `${safeDownloadStem(task?.task_id || "image")}-image-${taskOutputIndex2(task, url, index)}.png`;
+    return outputFilenameFromUrl(url) || `${safeDownloadStem(task?.task_id || "image")}-image-${taskOutputIndex2(task, url, index)}.${outputDownloadExtension(task, url)}`;
   }
   function outputFilenameFromUrl(url) {
     try {
@@ -40683,36 +41084,36 @@ ${galleryText}`;
     return String(value || "image").replace(/[^\w.-]+/g, "-") || "image";
   }
   function clearPreviewGridLayout() {
-    if (!els37.previewGrid) return;
-    els37.previewGrid.classList.remove("multi-output");
-    [...els37.previewGrid.classList].forEach((className) => {
+    if (!els38.previewGrid) return;
+    els38.previewGrid.classList.remove("multi-output");
+    [...els38.previewGrid.classList].forEach((className) => {
       if (className.startsWith("preview-count-") || className.startsWith("preview-orientation-")) {
-        els37.previewGrid.classList.remove(className);
+        els38.previewGrid.classList.remove(className);
       }
     });
   }
   function applyPreviewGridLayout(outputCount, itemCount) {
     const previousOrientationClass = currentPreviewOrientationClass();
     clearPreviewGridLayout();
-    if (!els37.previewGrid) return;
-    els37.previewGrid.classList.toggle("multi-output", itemCount > 1);
-    els37.previewGrid.classList.add(`preview-count-${outputCount}`);
-    els37.previewGrid.classList.add(previousOrientationClass || "preview-orientation-unknown");
+    if (!els38.previewGrid) return;
+    els38.previewGrid.classList.toggle("multi-output", itemCount > 1);
+    els38.previewGrid.classList.add(`preview-count-${outputCount}`);
+    els38.previewGrid.classList.add(previousOrientationClass || "preview-orientation-unknown");
   }
   function currentPreviewOrientationClass() {
-    if (!els37.previewGrid) return "";
-    return [...els37.previewGrid.classList].find((className) => className.startsWith("preview-orientation-")) || "";
+    if (!els38.previewGrid) return "";
+    return [...els38.previewGrid.classList].find((className) => className.startsWith("preview-orientation-")) || "";
   }
   function syncPreviewImageOrientation() {
-    if (!els37.previewGrid) return;
-    const images = [...els37.previewGrid.querySelectorAll("[data-lightbox-url]")];
+    if (!els38.previewGrid) return;
+    const images = [...els38.previewGrid.querySelectorAll("[data-lightbox-url]")];
     const loadedImages = images.filter((image) => image.naturalWidth > 0 && image.naturalHeight > 0);
     if (!loadedImages.length) return;
     const portraitCount = loadedImages.filter((image) => image.naturalHeight > image.naturalWidth).length;
     const landscapeCount = loadedImages.filter((image) => image.naturalWidth > image.naturalHeight).length;
     const orientation = portraitCount > landscapeCount ? "portrait" : landscapeCount > portraitCount ? "landscape" : "square";
-    els37.previewGrid.classList.remove("preview-orientation-unknown", "preview-orientation-portrait", "preview-orientation-landscape", "preview-orientation-square");
-    els37.previewGrid.classList.add(`preview-orientation-${orientation}`);
+    els38.previewGrid.classList.remove("preview-orientation-unknown", "preview-orientation-portrait", "preview-orientation-landscape", "preview-orientation-square");
+    els38.previewGrid.classList.add(`preview-orientation-${orientation}`);
   }
   function promptPopoverData(task, index) {
     const originalPrompt = task.prompt || task.prompt_for_model || "";
@@ -40856,7 +41257,7 @@ ${galleryText}`;
     const retryState = taskRetryStateText4(task);
     const retryStateHtml = retryState ? `<p data-preview-retry-state>${escapeHtml19(retryState)}</p>` : "";
     const failureNotice = runningFailureNotice(task);
-    els37.previewGrid.innerHTML = `
+    els38.previewGrid.innerHTML = `
     <div class="waiting-preview">
       <div class="waiting-spinner" aria-hidden="true"></div>
       <div>
@@ -40881,7 +41282,7 @@ ${galleryText}`;
     const retryReason = !submitting && task.last_error ? `<p>${escapeHtml19(formatTranslation("preview.lastError", { error: task.last_error }))}</p>` : "";
     const retryState = taskRetryStateText4(task);
     const retryStateHtml = retryState ? `<p data-preview-retry-state>${escapeHtml19(retryState)}</p>` : "";
-    els37.previewGrid.innerHTML = `
+    els38.previewGrid.innerHTML = `
     <div class="waiting-preview">
       <div class="waiting-spinner" aria-hidden="true"></div>
       <div>
@@ -40897,8 +41298,8 @@ ${galleryText}`;
   `;
   }
   function initTaskPreviewFeature() {
-    els37.deleteUnselectedOutputsButton?.addEventListener("click", () => {
-      openDeleteUnselectedOutputsConfirm(els37.deleteUnselectedOutputsButton);
+    els38.deleteUnselectedOutputsButton?.addEventListener("click", () => {
+      openDeleteUnselectedOutputsConfirm(els38.deleteUnselectedOutputsButton);
     });
     document.addEventListener(LOCALE_CHANGE_EVENT, () => {
       state28.previewRenderKey = null;
@@ -40927,9 +41328,9 @@ ${galleryText}`;
   }
 
   // codex_image/webui/frontend/src/tasks.ts
-  var bridge35 = getLegacyBridge();
-  var state29 = bridge35.state;
-  var els38 = bridge35.els;
+  var bridge36 = getLegacyBridge();
+  var state29 = bridge36.state;
+  var els39 = bridge36.els;
   function legacyMethod39(name, ...args) {
     const method = getLegacyBridge().methods[name];
     if (typeof method !== "function") {
@@ -40998,7 +41399,7 @@ ${galleryText}`;
     await renderSelectedTaskPreview();
   }
   function currentTaskSearchQuery() {
-    return String(els38.taskSearch?.value || "").trim();
+    return String(els39.taskSearch?.value || "").trim();
   }
   function activeOrSelectedTask(task) {
     const taskId = String(task?.task_id || "");
@@ -41128,9 +41529,9 @@ ${galleryText}`;
   }
 
   // codex_image/webui/frontend/src/task-selection.ts
-  var bridge36 = getLegacyBridge();
-  var state30 = bridge36.state;
-  var els39 = bridge36.els;
+  var bridge37 = getLegacyBridge();
+  var state30 = bridge37.state;
+  var els40 = bridge37.els;
   var taskSelectionInitialized = false;
   var HISTORY_TASK_REUSE_HANDOFF_KEY = "codex-image-history-task-reuse-handoff";
   var selectedTaskDetailRequestSeq = 0;
@@ -41192,8 +41593,8 @@ ${galleryText}`;
   }
   function applySelectedTaskRequestPreview(task) {
     const requestPayload = taskRequestPreviewPayload2(task);
-    if (requestPayload && els39.requestJson) {
-      els39.requestJson.textContent = JSON.stringify(requestPayload, null, 2);
+    if (requestPayload && els40.requestJson) {
+      els40.requestJson.textContent = JSON.stringify(requestPayload, null, 2);
     }
   }
   function applyTaskInputRestoreSources(sources, taskId, restoreSeq) {
@@ -41432,8 +41833,8 @@ ${galleryText}`;
   }
 
   // codex_image/webui/frontend/src/overlay-popovers.ts
-  var bridge37 = getLegacyBridge();
-  var els40 = bridge37.els;
+  var bridge38 = getLegacyBridge();
+  var els41 = bridge38.els;
   var overlayPopoversInitialized = false;
   var overlayPopoverEventsBound = false;
   var confirmPopoverEl = null;
@@ -41719,8 +42120,8 @@ ${galleryText}`;
         closeConfirmPopover4();
       }
     }
-    if (!els40.compressionPopover || els40.compressionPopover.classList.contains("hidden")) return;
-    if (els40.compressionPopover.contains(target) || els40.outputFormatField?.contains(target)) return;
+    if (!els41.compressionPopover || els41.compressionPopover.classList.contains("hidden")) return;
+    if (els41.compressionPopover.contains(target) || els41.outputFormatField?.contains(target)) return;
     closeCompressionPopover2();
   }
   function handleDocumentKeydown(event) {
@@ -41772,9 +42173,9 @@ ${galleryText}`;
   var SIDEBAR_MIN_WIDTH = 280;
   var SIDEBAR_MAX_WIDTH = 520;
   var SIDEBAR_DEFAULT_WIDTH = 347;
-  var bridge38 = getLegacyBridge();
-  var state31 = bridge38.state;
-  var els41 = bridge38.els;
+  var bridge39 = getLegacyBridge();
+  var state31 = bridge39.state;
+  var els42 = bridge39.els;
   var shellUiInitialized = false;
   var shellUiEventsBound = false;
   var previewPanelHeightFrameId = null;
@@ -41818,6 +42219,15 @@ ${galleryText}`;
   function updateSizeFromPreset2() {
     legacyMethod42("updateSizeFromPreset");
   }
+  function discardGifOutputMode3() {
+    legacyMethod42("discardGifOutputMode");
+  }
+  function resetGifFrameControls2() {
+    legacyMethod42("resetGifFrameControls");
+  }
+  function syncGifOutputMode3() {
+    legacyMethod42("syncGifOutputMode");
+  }
   function updatePromptCount7() {
     legacyMethod42("updatePromptCount");
   }
@@ -41840,8 +42250,8 @@ ${galleryText}`;
     legacyMethod42("updateRequestPreview");
   }
   function handleShellLocaleChange() {
-    if (!els41.statusText) return;
-    const current = String(els41.statusText.textContent || "").trim();
+    if (!els42.statusText) return;
+    const current = String(els42.statusText.textContent || "").trim();
     const waitingLabels = [translate("status.waiting", "zh-CN"), translate("status.waiting", "en")];
     if (waitingLabels.includes(current)) {
       setStatus23(translate("status.waiting"), "");
@@ -41850,7 +42260,7 @@ ${galleryText}`;
   function bindShellUiEvents() {
     if (shellUiEventsBound) return;
     shellUiEventsBound = true;
-    els41.themeSwitcher?.addEventListener("click", (event) => {
+    els42.themeSwitcher?.addEventListener("click", (event) => {
       const button = event.target.closest("[data-theme-option]");
       if (!button) return;
       applyThemePreference(button.dataset.themeOption || "system");
@@ -41858,13 +42268,13 @@ ${galleryText}`;
     state31.themeSystemQuery = window.matchMedia?.("(prefers-color-scheme: dark)");
     state31.themeSystemQuery?.addEventListener?.("change", handleThemeSystemChange);
     document.addEventListener(LOCALE_CHANGE_EVENT, handleShellLocaleChange);
-    if (els41.copyJsonButton) {
-      els41.copyJsonButton.addEventListener("click", copyJson);
+    if (els42.copyJsonButton) {
+      els42.copyJsonButton.addEventListener("click", copyJson);
     }
-    els41.newTaskButton?.addEventListener("click", resetForm);
-    els41.sidebarResizeHandle?.addEventListener("pointerdown", startSidebarResize);
-    els41.sidebarResizeHandle?.addEventListener("keydown", handleSidebarResizeKeydown);
-    els41.sidebarResizeHandle?.addEventListener("dblclick", resetSidebarWidth);
+    els42.newTaskButton?.addEventListener("click", resetForm);
+    els42.sidebarResizeHandle?.addEventListener("pointerdown", startSidebarResize);
+    els42.sidebarResizeHandle?.addEventListener("keydown", handleSidebarResizeKeydown);
+    els42.sidebarResizeHandle?.addEventListener("dblclick", resetSidebarWidth);
     syncSidebarResizeHandleAria();
   }
   function normalizeThemePreference(value) {
@@ -41875,7 +42285,7 @@ ${galleryText}`;
     return window.matchMedia?.("(prefers-color-scheme: dark)")?.matches ? "dark" : "light";
   }
   function updateThemeSwitcher() {
-    els41.themeSwitcher?.querySelectorAll("[data-theme-option]").forEach((button) => {
+    els42.themeSwitcher?.querySelectorAll("[data-theme-option]").forEach((button) => {
       const active = button.dataset.themeOption === state31.themePreference;
       button.classList.toggle("active", active);
       button.setAttribute("aria-pressed", active ? "true" : "false");
@@ -41928,9 +42338,9 @@ ${galleryText}`;
     return Math.min(sidebarMaxWidth(), Math.max(SIDEBAR_MIN_WIDTH, width));
   }
   function syncSidebarResizeHandleAria(width = null) {
-    const handle = els41.sidebarResizeHandle;
+    const handle = els42.sidebarResizeHandle;
     if (!handle) return;
-    const currentWidth = width !== null ? width : Math.round(els41.sidebar?.getBoundingClientRect().width || SIDEBAR_DEFAULT_WIDTH);
+    const currentWidth = width !== null ? width : Math.round(els42.sidebar?.getBoundingClientRect().width || SIDEBAR_DEFAULT_WIDTH);
     handle.setAttribute("aria-valuemin", String(SIDEBAR_MIN_WIDTH));
     handle.setAttribute("aria-valuemax", String(SIDEBAR_MAX_WIDTH));
     handle.setAttribute("aria-valuenow", String(currentWidth));
@@ -41951,17 +42361,17 @@ ${galleryText}`;
     applySidebarWidth(SIDEBAR_DEFAULT_WIDTH);
   }
   function startSidebarResize(event) {
-    if (!els41.sidebar || event.button !== 0) return;
+    if (!els42.sidebar || event.button !== 0) return;
     event.preventDefault();
-    const currentWidth = els41.sidebar.getBoundingClientRect().width || SIDEBAR_MIN_WIDTH;
+    const currentWidth = els42.sidebar.getBoundingClientRect().width || SIDEBAR_MIN_WIDTH;
     state31.sidebarResize = {
       pointerId: event.pointerId,
       startX: event.clientX,
       startWidth: currentWidth
     };
-    els41.sidebar.classList.add("resizing");
+    els42.sidebar.classList.add("resizing");
     document.body.classList.add("sidebar-resizing");
-    els41.sidebarResizeHandle?.setPointerCapture?.(event.pointerId);
+    els42.sidebarResizeHandle?.setPointerCapture?.(event.pointerId);
     window.addEventListener("pointermove", updateSidebarResize);
     window.addEventListener("pointerup", finishSidebarResize);
     window.addEventListener("pointercancel", finishSidebarResize);
@@ -41974,20 +42384,20 @@ ${galleryText}`;
   function finishSidebarResize(event) {
     const resize = state31.sidebarResize;
     if (!resize || event.pointerId !== resize.pointerId) return;
-    const currentWidth = els41.sidebar?.getBoundingClientRect().width || resize.startWidth;
+    const currentWidth = els42.sidebar?.getBoundingClientRect().width || resize.startWidth;
     applySidebarWidth(currentWidth, { persist: true });
     state31.sidebarResize = null;
-    els41.sidebar?.classList.remove("resizing");
+    els42.sidebar?.classList.remove("resizing");
     document.body.classList.remove("sidebar-resizing");
-    els41.sidebarResizeHandle?.releasePointerCapture?.(event.pointerId);
+    els42.sidebarResizeHandle?.releasePointerCapture?.(event.pointerId);
     window.removeEventListener("pointermove", updateSidebarResize);
     window.removeEventListener("pointerup", finishSidebarResize);
     window.removeEventListener("pointercancel", finishSidebarResize);
   }
   function handleSidebarResizeKeydown(event) {
-    if (!els41.sidebar) return;
+    if (!els42.sidebar) return;
     const step = event.shiftKey ? 32 : 16;
-    const currentWidth = els41.sidebar.getBoundingClientRect().width || SIDEBAR_MIN_WIDTH;
+    const currentWidth = els42.sidebar.getBoundingClientRect().width || SIDEBAR_MIN_WIDTH;
     if (event.key === "ArrowLeft") {
       event.preventDefault();
       applySidebarWidth(currentWidth - step);
@@ -42003,12 +42413,12 @@ ${galleryText}`;
     }
   }
   function setupPreviewPanelHeightSync() {
-    if (!els41.controlsCol || !els41.previewCol || !els41.previewPanel) return;
+    if (!els42.controlsCol || !els42.previewCol || !els42.previewPanel) return;
     window.addEventListener("resize", schedulePreviewPanelHeightSync);
     if (window.ResizeObserver) {
       const observer = new ResizeObserver(schedulePreviewPanelHeightSync);
-      observer.observe(els41.controlsCol);
-      els41.controlsCol.querySelectorAll(":scope > .panel").forEach((panel) => observer.observe(panel));
+      observer.observe(els42.controlsCol);
+      els42.controlsCol.querySelectorAll(":scope > .panel").forEach((panel) => observer.observe(panel));
     }
     schedulePreviewPanelHeightSync();
   }
@@ -42022,19 +42432,19 @@ ${galleryText}`;
     });
   }
   function syncPreviewPanelHeight() {
-    if (!els41.controlsCol || !els41.previewCol || !els41.previewPanel) return;
+    if (!els42.controlsCol || !els42.previewCol || !els42.previewPanel) return;
     if (window.matchMedia("(max-width: 1024px)").matches) {
-      els41.previewCol.style.removeProperty("--controls-col-height");
-      els41.previewPanel.style.removeProperty("--controls-col-height");
+      els42.previewCol.style.removeProperty("--controls-col-height");
+      els42.previewPanel.style.removeProperty("--controls-col-height");
       return;
     }
-    const panels = [...els41.controlsCol.querySelectorAll(":scope > .panel")];
+    const panels = [...els42.controlsCol.querySelectorAll(":scope > .panel")];
     if (!panels.length) return;
     const firstPanelRect = panels[0].getBoundingClientRect();
     const lastPanelRect = panels[panels.length - 1].getBoundingClientRect();
     const height = Math.max(260, Math.ceil(lastPanelRect.bottom - firstPanelRect.top));
-    els41.previewCol.style.setProperty("--controls-col-height", `${height}px`);
-    els41.previewPanel.style.setProperty("--controls-col-height", `${height}px`);
+    els42.previewCol.style.setProperty("--controls-col-height", `${height}px`);
+    els42.previewPanel.style.setProperty("--controls-col-height", `${height}px`);
   }
   function updateDocumentTitle2() {
     const summary = state31.queue.summary || {};
@@ -42053,9 +42463,9 @@ ${galleryText}`;
     document.title = status ? `${status} \xB7 ${getLegacyBridge().constants.defaultDocumentTitle}` : getLegacyBridge().constants.defaultDocumentTitle;
   }
   function setStatus23(message, type) {
-    if (!els41.statusText) return;
-    els41.statusText.textContent = message;
-    els41.statusText.className = `status-text ${type || ""}`;
+    if (!els42.statusText) return;
+    els42.statusText.textContent = message;
+    els42.statusText.className = `status-text ${type || ""}`;
   }
   function resetForm() {
     closePromptPopover10();
@@ -42072,23 +42482,26 @@ ${galleryText}`;
     state31.batchSelectionAnchorTaskId = null;
     finishBatchMarqueeSelection2();
     setPromptText3("");
-    if (els41.customSizeToggle) els41.customSizeToggle.checked = false;
-    if (els41.nInput) els41.nInput.value = "1";
-    if (els41.resolution) els41.resolution.value = "2k";
-    if (els41.ratio) els41.ratio.value = "1:1";
-    if (els41.orientation) els41.orientation.value = "square";
-    els41.size.value = "2048x2048";
-    els41.quality.value = "auto";
-    els41.outputFormat.value = "png";
-    els41.moderation.value = "auto";
-    els41.compression.value = "80";
-    if (els41.promptFidelity) els41.promptFidelity.value = "strict";
-    if (els41.webSearch) els41.webSearch.checked = false;
-    [els41.nInput, els41.resolution, els41.ratio, els41.orientation, els41.quality, els41.outputFormat, els41.moderation, els41.promptFidelity, els41.webSearch].forEach((sel) => {
+    discardGifOutputMode3();
+    resetGifFrameControls2();
+    if (els42.customSizeToggle) els42.customSizeToggle.checked = false;
+    if (els42.nInput) els42.nInput.value = "1";
+    if (els42.resolution) els42.resolution.value = "2k";
+    if (els42.ratio) els42.ratio.value = "1:1";
+    if (els42.orientation) els42.orientation.value = "square";
+    els42.size.value = "2048x2048";
+    els42.quality.value = "auto";
+    els42.outputFormat.value = "png";
+    els42.moderation.value = "auto";
+    els42.compression.value = "80";
+    if (els42.promptFidelity) els42.promptFidelity.value = "strict";
+    if (els42.webSearch) els42.webSearch.checked = false;
+    [els42.nInput, els42.resolution, els42.ratio, els42.orientation, els42.quality, els42.outputFormat, els42.moderation, els42.promptFidelity, els42.webSearch].forEach((sel) => {
       if (sel) sel.dispatchEvent(new Event("change"));
     });
     setMode6("generate");
     updateSizeFromPreset2();
+    syncGifOutputMode3();
     updatePromptCount7();
     updateQuantity3();
     updateCompression3();
@@ -42099,8 +42512,8 @@ ${galleryText}`;
     setStatus23(translate("status.waiting"), "");
   }
   async function copyJson() {
-    if (!els41.requestJson) return;
-    await navigator.clipboard.writeText(els41.requestJson.textContent);
+    if (!els42.requestJson) return;
+    await navigator.clipboard.writeText(els42.requestJson.textContent);
     setStatus23(translate("status.jsonCopied"), "ok");
   }
   function initShellUiFeature() {
@@ -42137,25 +42550,25 @@ ${galleryText}`;
   // codex_image/webui/frontend/src/app-version.ts
   var appVersionInitialized = false;
   var payload = null;
-  function els42() {
+  function els43() {
     return getLegacyBridge().els;
   }
   function setModalHidden(hidden) {
-    const modal = els42().versionModal;
+    const modal = els43().versionModal;
     if (!modal) return;
     modal.classList.toggle("hidden", hidden);
     modal.setAttribute("aria-hidden", hidden ? "true" : "false");
   }
   function renderAppVersion(statusText) {
-    const versionInfo = els42().versionInfo;
-    const versionLabel = els42().versionLabel;
-    const badge = els42().versionUpdateBadge;
-    const current = els42().versionCurrent;
-    const latest = els42().versionLatest;
-    const source = els42().versionSource;
-    const releaseLink = els42().versionReleaseLink;
-    const updateButton = els42().versionUpdateButton;
-    const modalStatus = els42().versionModalStatus;
+    const versionInfo = els43().versionInfo;
+    const versionLabel = els43().versionLabel;
+    const badge = els43().versionUpdateBadge;
+    const current = els43().versionCurrent;
+    const latest = els43().versionLatest;
+    const source = els43().versionSource;
+    const releaseLink = els43().versionReleaseLink;
+    const updateButton = els43().versionUpdateButton;
+    const modalStatus = els43().versionModalStatus;
     const currentLabel = payload?.current_version_label || "...";
     const latestLabel = payload?.latest_version_label || currentLabel;
     const updateAvailable = Boolean(payload?.update_available);
@@ -42205,7 +42618,7 @@ ${galleryText}`;
     renderAppVersion();
   }
   async function openUpdater() {
-    const updateButton = els42().versionUpdateButton;
+    const updateButton = els43().versionUpdateButton;
     if (updateButton) updateButton.disabled = true;
     try {
       const response = await fetch("/api/app-version/open-updater", { method: "POST" });
@@ -42217,15 +42630,15 @@ ${galleryText}`;
     }
   }
   function bindAppVersionEvents() {
-    els42().versionInfo?.addEventListener("click", () => {
+    els43().versionInfo?.addEventListener("click", () => {
       renderAppVersion();
       setModalHidden(false);
     });
-    els42().versionModalClose?.addEventListener("click", () => setModalHidden(true));
-    els42().versionModal?.addEventListener("click", (event) => {
-      if (event.target === els42().versionModal) setModalHidden(true);
+    els43().versionModalClose?.addEventListener("click", () => setModalHidden(true));
+    els43().versionModal?.addEventListener("click", (event) => {
+      if (event.target === els43().versionModal) setModalHidden(true);
     });
-    els42().versionUpdateButton?.addEventListener("click", () => {
+    els43().versionUpdateButton?.addEventListener("click", () => {
       void openUpdater();
     });
     document.addEventListener("keydown", (event) => {
@@ -42460,6 +42873,7 @@ ${galleryText}`;
   initPromptFeature();
   initPromptFindReplaceFeature();
   initFormControlsFeature();
+  initGifOutputFeature();
   initTaskListRenderFeature();
   initTaskHistoryAnchorsFeature();
   initTaskArchiveControlsFeature();

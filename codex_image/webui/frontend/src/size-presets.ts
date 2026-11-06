@@ -3,8 +3,15 @@ import { currentAuthSource } from "./auth-source";
 import { currentApiImageModel, currentApiImagesConcurrency, currentApiMode, currentApiProviderId, currentCodexMode } from "./api-provider-settings";
 import { currentOmniImageModel, isOmniPocMode } from "./omni-poc-key";
 import { currentMainModel } from "./main-model-combobox";
-import { currentQuantity } from "./output-controls";
+import { compressionSupported, currentQuantity } from "./output-controls";
 import { translate } from "./i18n";
+import {
+  GIF_OUTPUT_FORMAT,
+  gifFrameSizeFor,
+  normalizeGifFrameCount,
+  normalizeGifFrameDuration,
+  parseGifRatio,
+} from "./gif-frame-size";
 
 export const DEFAULT_RESOLUTION = "2k";
 export const DEFAULT_RATIO = "1:1";
@@ -169,7 +176,32 @@ export function findPresetForSize(size: any): any {
   return null;
 }
 
+export function isGifOutputSelected(): boolean {
+  return els.outputFormat?.value === GIF_OUTPUT_FORMAT;
+}
+
+export function currentGifFrameCount(): number {
+  return normalizeGifFrameCount(els.gifFrameCount?.value);
+}
+
+export function currentGifFrameDuration(): number {
+  return normalizeGifFrameDuration(els.gifFrameDuration?.value);
+}
+
+// GIF frames always follow a preset ratio; anything else (e.g. "auto") is treated as 1:1.
+export function currentGifRatio(): string {
+  const ratio = String(els.ratio?.value || "");
+  return RATIO_ORIENTATION[ratio] ? ratio : DEFAULT_RATIO;
+}
+
+export function currentGifFrameSize(): string {
+  const [ratioWidth, ratioHeight] = parseGifRatio(currentGifRatio());
+  const [width, height] = gifFrameSizeFor(ratioWidth, ratioHeight, currentGifFrameCount());
+  return `${width}x${height}`;
+}
+
 export function currentSize(): string {
+  if (isGifOutputSelected()) return currentGifFrameSize();
   if (els.size.value !== "custom") return els.size.value;
   return `${els.customWidth.value}x${els.customHeight.value}`;
 }
@@ -201,13 +233,19 @@ export function currentTaskParams(): any {
     quality: els.quality.value,
     output_format: els.outputFormat.value,
     moderation: els.moderation.value,
-    output_compression: els.outputFormat.value === "png" ? null : Number(els.compression.value),
+    output_compression: compressionSupported() ? Number(els.compression.value) : null,
   };
   if (currentWebSearchEnabled()) {
     params.web_search = true;
   }
   const presetMatch = findPresetForSize(params.size);
-  if (presetMatch) {
+  if (isGifOutputSelected()) {
+    delete params.output_compression;
+    params.frame_count = currentGifFrameCount();
+    params.frame_duration_ms = currentGifFrameDuration();
+    params.ratio = currentGifRatio();
+    params.orientation = orientationForRatio(params.ratio);
+  } else if (presetMatch) {
     params.resolution = presetMatch.resolution;
     params.ratio = presetMatch.ratio;
     params.orientation = presetMatch.orientation;

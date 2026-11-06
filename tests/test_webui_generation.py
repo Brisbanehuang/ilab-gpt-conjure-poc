@@ -302,6 +302,105 @@ class WebUIGenerationTests(unittest.TestCase):
         self.assertEqual(metadata["outputs"][0]["thumbnail_file"], output["thumbnail_file"])
         self.assertTrue(thumbnail_file_exists)
 
+    def _gif_bytes(self) -> bytes:
+        frames = [Image.new("RGB", (48, 32), color) for color in ((220, 20, 20), (20, 220, 20), (20, 20, 220))]
+        buffer = BytesIO()
+        frames[0].save(buffer, format="GIF", save_all=True, append_images=frames[1:], duration=200, loop=0)
+        return buffer.getvalue()
+
+    def test_gif_generate_without_omni_requires_image_2_6_but_allows_any_quality(self) -> None:
+        from codex_image.webui.app import create_app
+
+        with tempfile.TemporaryDirectory() as tmp:
+            app = create_app(output_root=Path(tmp), client_factory=lambda: FakeImageClient(), auth_checker=lambda: True, auto_start_queue=False)
+            client = TestClient(app)
+            rejected = client.post("/api/generate", data={"prompt": "gif", "model": "gpt-image-2", "size": "960x960", "output_format": "gif"})
+            accepted = client.post(
+                "/api/generate",
+                data={"prompt": "gif", "model": "gpt-image-2.6-flare", "size": "960x960", "quality": "high", "output_format": "gif", "output_compression": "50"},
+            )
+            body = accepted.json()
+
+        self.assertEqual(rejected.status_code, 400)
+        self.assertIn("GPT Image 2.6", rejected.json()["detail"])
+        self.assertEqual(accepted.status_code, 200, accepted.text)
+        self.assertEqual(body["task"]["params"]["frame_count"], 9)
+        self.assertEqual(body["task"]["params"]["frame_duration_ms"], 200)
+        self.assertEqual(body["task"]["params"]["quality"], "high")
+        self.assertNotIn("output_compression", body["task"]["params"])
+        self.assertEqual(body["request"]["frame_count"], 9)
+        self.assertNotIn("output_compression", body["request"])
+
+    def test_generate_dedupe_fingerprint_distinguishes_gif_frame_counts(self) -> None:
+        from codex_image.webui.app import create_app
+
+        with tempfile.TemporaryDirectory() as tmp:
+            app = create_app(output_root=Path(tmp), client_factory=lambda: FakeImageClient(), auth_checker=lambda: True, auto_start_queue=False)
+            client = TestClient(app)
+            base = {"prompt": "same gif", "model": "gpt-image-2.6-flare", "size": "960x960", "quality": "low", "output_format": "gif"}
+            first = client.post("/api/generate", data={**base, "frame_count": "9"})
+            other_frames = client.post("/api/generate", data={**base, "frame_count": "8"})
+            repeat = client.post("/api/generate", data={**base, "frame_count": "9"})
+
+        self.assertEqual(first.status_code, 200)
+        self.assertNotEqual(other_frames.json()["task"]["task_id"], first.json()["task"]["task_id"])
+        self.assertFalse(other_frames.json()["task"].get("deduplicated", False))
+        self.assertEqual(repeat.json()["task"]["task_id"], first.json()["task"]["task_id"])
+        self.assertTrue(repeat.json()["task"].get("deduplicated"))
+
+    def test_queue_worker_stores_gif_output_with_first_frame_thumbnail(self) -> None:
+        from codex_image.client import ImageResult
+        from codex_image.webui.app import create_app
+
+        gif_bytes = self._gif_bytes()
+
+        class GifImageClient(FakeImageClient):
+            def generate_image(inner_self, **kwargs: Any):
+                inner_self.generate_calls.append(kwargs)
+                return ImageResult(gif_bytes, "revised", "gif", kwargs["size"], "auto", kwargs["quality"], {})
+
+        fake = GifImageClient()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            app = create_app(
+                output_root=root,
+                client_factory=lambda: fake,
+                auth_checker=lambda: True,
+                auth_settings_path=root / "auth-settings.json",
+                batch_delay_seconds=0,
+                auto_start_queue=False,
+            )
+            client = TestClient(app)
+            created = client.post(
+                "/api/generate",
+                data={"prompt": "gif", "model": "gpt-image-2.6-flare", "size": "960x960", "quality": "low", "output_format": "gif", "frame_count": "3", "frame_duration_ms": "120", "complexity": "low"},
+            )
+            task_id = created.json()["task"]["task_id"]
+            asyncio.run(app.state.queue_manager.run_available_once())
+            task = client.get(f"/api/tasks/{task_id}").json()["task"]
+            output = task["outputs"][0]
+            output_file = root / output_name(task_id, 1, "gif")
+            stored_bytes = output_file.read_bytes() if output_file.is_file() else b""
+            with Image.open(root / output["thumbnail_file"]) as thumbnail:
+                thumbnail_format = thumbnail.format
+                thumbnail_pixel = thumbnail.convert("RGB").getpixel((thumbnail.width // 2, thumbnail.height // 2))
+            served = client.get(f"/api/tasks/{task_id}/outputs/1")
+
+        call = fake.generate_calls[0]
+        self.assertEqual(task["status"], "completed")
+        self.assertEqual((call["output_format"], call["frame_count"], call["frame_duration_ms"], call["complexity"]), ("gif", 3, 120, "low"))
+        self.assertNotIn("output_compression", {key: value for key, value in call.items() if value is not None})
+        self.assertEqual(output["format"], "gif")
+        self.assertTrue(output["file"].endswith(".gif"))
+        self.assertEqual(stored_bytes, gif_bytes)
+        self.assertTrue(output["thumbnail_file"].endswith("-thumb.jpg"))
+        self.assertEqual(thumbnail_format, "JPEG")
+        self.assertGreater(thumbnail_pixel[0], 150, "thumbnail must come from the first (red) frame")
+        self.assertLess(thumbnail_pixel[1], 100)
+        self.assertEqual(served.status_code, 200)
+        self.assertEqual(served.headers["content-type"], "image/gif")
+        self.assertEqual(served.content, gif_bytes)
+
     def test_queue_worker_keeps_local_output_file_after_r2_sync(self) -> None:
         from codex_image.client import ImageResult
         from codex_image.webui.app import create_app

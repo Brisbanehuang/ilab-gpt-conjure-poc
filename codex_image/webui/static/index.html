@@ -63,7 +63,7 @@
         document.documentElement.dataset.locale = locale;
       })();
     </script>
-    <link rel="stylesheet" href="/static/styles.css?v=runtime-376" />
+    <link rel="stylesheet" href="/static/styles.css?v=runtime-377" />
   </head>
   <body>
     <div class="layout-container">
@@ -521,6 +521,20 @@
                   <input type="checkbox" id="customSizeToggle" class="hidden" aria-hidden="true" />
                 </div>
 
+                <div id="gifSettingsField" class="field full-width gif-settings-field" aria-hidden="true">
+                  <span data-i18n="output.gifSettings">GIF 动图</span>
+                  <div class="gif-settings-row">
+                    <label class="gif-setting" for="gifFrameCount">
+                      <span class="gif-setting-label" data-i18n="output.gifFrameCount">帧数</span>
+                      <input id="gifFrameCount" class="control gif-setting-input" type="number" min="2" max="16" step="1" value="9" inputmode="numeric" />
+                    </label>
+                    <label class="gif-setting" for="gifFrameDuration">
+                      <span class="gif-setting-label" data-i18n="output.gifFrameDuration">帧时长 ms</span>
+                      <input id="gifFrameDuration" class="control gif-setting-input" type="number" min="20" max="2000" step="10" value="200" inputmode="numeric" />
+                    </label>
+                  </div>
+                </div>
+
                 <div class="field orientation-field">
                   <span data-i18n="output.orientation">方向</span>
                   <div class="radio-group" id="orientationGroup">
@@ -685,11 +699,13 @@
                     <button class="radio-btn active" data-val="png">png</button>
                     <button class="radio-btn" data-val="jpeg">jpeg</button>
                     <button class="radio-btn" data-val="webp">webp</button>
+                    <button class="radio-btn" data-val="gif" aria-disabled="true">gif</button>
                   </div>
                   <select id="outputFormat" class="hidden">
                     <option value="png">png</option>
                     <option value="jpeg">jpeg</option>
                     <option value="webp">webp</option>
+                    <option value="gif">gif</option>
                   </select>
                   <div id="compressionPopover" class="compression-popover hidden" role="dialog" aria-hidden="true" aria-label="压缩率设置" data-i18n-attr="aria-label:output.compression">
                     <label id="compressionField" class="range-control compression-range">
@@ -1234,7 +1250,7 @@
     </div>
 
     <div id="taskNotificationToastRegion" class="task-notification-toast-region" aria-live="polite"></div>
-  <script src="/static/app.js?v=runtime-376"></script>
+  <script src="/static/app.js?v=runtime-377"></script>
     <script>
       (() => {
         document.querySelectorAll(".radio-group").forEach((group) => {
