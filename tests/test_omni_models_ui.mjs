@@ -65,7 +65,15 @@ try {
       await route.fulfill({ json: payload });
     });
     await page.goto(base);
-    await page.waitForFunction(() => document.querySelector("#omni-poc-key-select option[value=old]"));
+    // No saved preference: the new default is selected even though no fixture key supports it.
+    await page.waitForFunction(() => document.querySelector("#omniModelStatus").textContent.includes("gpt-image-2.6-sunburst"));
+    assert.equal(await page.locator("#omniImageModel").inputValue(), "gpt-image-2.6-sunburst");
+    assert.equal(await page.locator("#omniImageModelValue").innerText(), "GPT Image 2.6 Sunburst");
+    assert.equal(await page.locator("#omniModelStatus").innerText(), "没有可调用 gpt-image-2.6-sunburst 的 API Key。");
+    assert.equal(await page.locator("#runButton").isDisabled(), true, "unsupported default must block submit instead of switching models");
+    assert.deepEqual(await page.locator("#omni-poc-key-select option").evaluateAll((items) => items.map((item) => item.value)), [""]);
+    assert.equal(await page.locator("#omni-poc-key-select").isDisabled(), true);
+    assert.deepEqual(await page.evaluate(() => [localStorage.getItem("ilab.omniImageModel.123"), localStorage.getItem("ilab.omniImageModelVersion.123")]), ["gpt-image-2.6-sunburst", "2"]);
     if (mobile) {
       const dashboard = page.locator(".dashboard");
       const box = await dashboard.boundingBox();
@@ -106,6 +114,7 @@ try {
     await trigger.focus();
     await trigger.press("ArrowDown");
     assert.equal(await trigger.getAttribute("aria-expanded"), "true");
+    await trigger.press("Home");
     await trigger.press("ArrowDown");
     await trigger.press("Enter");
     assert.equal(await model.inputValue(), "gpt-image-2.5-flare");
@@ -176,9 +185,76 @@ try {
     assert.equal(await page.locator("#runButton").isDisabled(), true);
     assert.equal(providerWrites, 0, "model selection must never write shared provider settings");
     assert.deepEqual(errors, []);
-    console.log(`PASS ${viewport.width}px: styled dropdown, keyboard, dismissal, model/key selection, history reuse, submit, persistence, i18n, lookup errors, no provider writes`);
+    console.log(`PASS ${viewport.width}px: new default, styled dropdown, keyboard, dismissal, model/key selection, history reuse, submit, persistence, i18n, lookup errors, no provider writes`);
     await page.close();
   }
+
+  // One-time per-user migration of saved image model preferences.
+  const ALL_MODELS = ["gpt-image-2", "gpt-image-2.5-flare", "gpt-image-2.5-sunburst", "gpt-image-2.6-flare", "gpt-image-2.6-sunburst"];
+  const openSeeded = async (seed) => {
+    const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, locale: "zh-CN" });
+    // Seed storage only before the very first load so reloads see what the app wrote.
+    await context.addInitScript((items) => {
+      if (sessionStorage.getItem("seeded")) return;
+      sessionStorage.setItem("seeded", "1");
+      Object.entries(items).forEach(([name, value]) => localStorage.setItem(name, value));
+    }, seed);
+    const page = await context.newPage();
+    const errors = [];
+    page.on("pageerror", (err) => errors.push(err.message));
+    await page.route("**/api/**", async (route) => {
+      const path = new URL(route.request().url()).pathname;
+      let payload = {};
+      if (path === "/api/health") payload = { ok: true, omni_poc: { enabled: true, image_model: "gpt-image-2.6-sunburst" }, auth: { effective_source: "api", selected_source: "api", auth_available: true } };
+      if (path === "/api/auth/session") payload = { authenticated: true, user: { id: 123, username: "UI test" } };
+      if (path === "/api/omni/keys") payload = { model: "gpt-image-2.6-sunburst", keys: [{ id: "all", name: "All models", supported_image_models: ALL_MODELS }] };
+      if (path === "/api/api-settings") payload = { settings: { image_model: "gpt-image-2", api_mode: "images" } };
+      if (path === "/api/tasks" || path === "/api/tasks/recent") payload = { tasks: [] };
+      if (path === "/api/queue") payload = { waiting: [], running: {}, channels: [] };
+      await route.fulfill({ json: payload });
+    });
+    const load = async (reload = false) => {
+      if (reload) await page.reload();
+      else await page.goto(base);
+      await page.waitForFunction(() => document.querySelector("#omni-poc-key-select option[value=all]"));
+    };
+    const stored = () => page.evaluate(() => [localStorage.getItem("ilab.omniImageModel.123"), localStorage.getItem("ilab.omniImageModelVersion.123")]);
+    const selected = () => page.locator("#omniImageModel").inputValue();
+    return { context, page, errors, load, stored, selected };
+  };
+  for (const [saved, expected] of [
+    ["gpt-image-2.5-flare", "gpt-image-2.6-flare"],
+    ["gpt-image-2.5-sunburst", "gpt-image-2.6-sunburst"],
+    // Saved gpt-image-2 may just be the old default written back on load, so it moves to the new default.
+    ["gpt-image-2", "gpt-image-2.6-sunburst"],
+    ["gpt-image-2.6-flare", "gpt-image-2.6-flare"],
+  ]) {
+    const run = await openSeeded({ "ilab.omniImageModel.123": saved, "ilab.omniImageModel.999": "gpt-image-2.5-flare" });
+    await run.load();
+    assert.equal(await run.selected(), expected, `saved ${saved} migrates to ${expected}`);
+    assert.deepEqual(await run.stored(), [expected, "2"]);
+    assert.equal(await run.page.evaluate(() => localStorage.getItem("ilab.omniImageModel.999")), "gpt-image-2.5-flare", "other users are migrated on their own load");
+    const back = saved === "gpt-image-2.6-flare" ? "gpt-image-2.5-flare" : saved;
+    await run.page.locator("#omniImageModelTrigger").click();
+    await run.page.locator(`#omniImageModelOptions [data-image-model-option="${back}"]`).click();
+    assert.equal(await run.selected(), back);
+    await run.load(true);
+    assert.equal(await run.selected(), back, `manual ${back} after migration survives reload`);
+    assert.deepEqual(await run.stored(), [back, "2"]);
+    await run.load(true);
+    assert.equal(await run.selected(), back, "migration runs only once");
+    assert.deepEqual(run.errors, []);
+    await run.context.close();
+  }
+  {
+    // Already-migrated users keep whatever they saved, including the 2.5 and 2 models.
+    const run = await openSeeded({ "ilab.omniImageModel.123": "gpt-image-2.5-sunburst", "ilab.omniImageModelVersion.123": "2" });
+    await run.load();
+    assert.equal(await run.selected(), "gpt-image-2.5-sunburst");
+    assert.deepEqual(await run.stored(), ["gpt-image-2.5-sunburst", "2"]);
+    await run.context.close();
+  }
+  console.log("PASS migration: 2.5 Flare/Sunburst -> 2.6, saved Image 2 -> 2.6 Sunburst, 2.6 kept, once per user, manual 2.5/2 kept after migration");
   console.log(`Screenshots: ${output}`);
 } finally {
   await browser.close();

@@ -28940,6 +28940,14 @@ ${hint}` : hint;
     "gpt-image-2.6-flare",
     "gpt-image-2.6-sunburst"
   ];
+  var DEFAULT_IMAGE_MODEL = "gpt-image-2.6-sunburst";
+  var MODEL_PREFERENCE_VERSION_STORAGE = "ilab.omniImageModelVersion";
+  var MODEL_PREFERENCE_VERSION = "2";
+  var MODEL_PREFERENCE_MIGRATIONS = {
+    "gpt-image-2": DEFAULT_IMAGE_MODEL,
+    "gpt-image-2.5-flare": "gpt-image-2.6-flare",
+    "gpt-image-2.5-sunburst": "gpt-image-2.6-sunburst"
+  };
   var LOGIN_URL = "https://api.brislouise.online/image-generator";
   var enabled = false;
   var authenticated = false;
@@ -28947,7 +28955,7 @@ ${hint}` : hint;
   var keys = [];
   var user = null;
   var sessionConnectionOk = true;
-  var selectedImageModel = "gpt-image-2";
+  var selectedImageModel = DEFAULT_IMAGE_MODEL;
   var refreshing = false;
   var modelChosenBeforeSession = false;
   var syncImageModelControl = () => {
@@ -28976,6 +28984,16 @@ ${hint}` : hint;
     }
     const root = document.querySelector(".omni-poc-key-control");
     if (root) renderSession(root);
+  }
+  function migratedSavedImageModel(userId) {
+    const modelStorage = `${SELECTED_MODEL_STORAGE}.${userId}`;
+    const versionStorage = `${MODEL_PREFERENCE_VERSION_STORAGE}.${userId}`;
+    const savedModel = localStorage.getItem(modelStorage);
+    if (localStorage.getItem(versionStorage) === MODEL_PREFERENCE_VERSION) return savedModel;
+    const migratedModel = savedModel ? MODEL_PREFERENCE_MIGRATIONS[savedModel] || savedModel : savedModel;
+    if (migratedModel && migratedModel !== savedModel) localStorage.setItem(modelStorage, migratedModel);
+    localStorage.setItem(versionStorage, MODEL_PREFERENCE_VERSION);
+    return migratedModel;
   }
   function compatibleKeys() {
     return keys.filter((key) => !key.model_lookup_failed && key.supported_image_models?.includes(selectedImageModel));
@@ -29116,8 +29134,8 @@ ${hint}` : hint;
       authenticated = Boolean(sessionPayload?.authenticated);
       user = authenticated ? sessionPayload.user || null : null;
       if (user?.id !== previousUserId) {
-        const savedModel = user ? localStorage.getItem(`${SELECTED_MODEL_STORAGE}.${user.id}`) : null;
-        const initialModel = !previousUserId && user && modelChosenBeforeSession ? selectedImageModel : savedModel && IMAGE_MODELS.includes(savedModel) ? savedModel : "gpt-image-2";
+        const savedModel = user ? migratedSavedImageModel(user.id) : null;
+        const initialModel = !previousUserId && user && modelChosenBeforeSession ? selectedImageModel : savedModel && IMAGE_MODELS.includes(savedModel) ? savedModel : DEFAULT_IMAGE_MODEL;
         setOmniImageModel(initialModel);
         modelChosenBeforeSession = false;
       }

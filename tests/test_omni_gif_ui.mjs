@@ -55,7 +55,7 @@ try {
       const request = route.request();
       const path = new URL(request.url()).pathname;
       let payload = {};
-      if (path === "/api/health") payload = { ok: true, omni_poc: { enabled: true, image_model: "gpt-image-2" }, auth: { effective_source: "api", selected_source: "api", auth_available: true } };
+      if (path === "/api/health") payload = { ok: true, omni_poc: { enabled: true, image_model: "gpt-image-2.6-sunburst" }, auth: { effective_source: "api", selected_source: "api", auth_available: true } };
       if (path === "/api/auth/session") payload = { authenticated: true, user: { id: 456, username: "GIF test" } };
       if (path === "/api/omni/keys") payload = { model: "gpt-image-2", keys: [{ id: "all", name: "All models", supported_image_models: ALL_MODELS }] };
       if (path === "/api/api-settings") payload = { settings: { image_model: "gpt-image-2", api_mode: "images" } };
@@ -130,8 +130,14 @@ try {
     assert.equal(await page.locator('[data-task-id="fixture-gif-done"] .task-thumb-format-badge').count(), 1);
     assert.equal(await page.locator('[data-task-id="fixture-png-done"] .task-thumb-format-badge').count(), 0);
 
+    // Default model is GPT Image 2.6 Sunburst, so gif is offered from the start.
+    assert.equal(await model.inputValue(), "gpt-image-2.6-sunburst");
+    assert.equal(await gifButton.getAttribute("aria-disabled"), "false");
+    assert.equal(await gifButton.getAttribute("title"), null);
+    assert.equal(await format.inputValue(), "png", "gif is available but not preselected");
+
     // Non-2.6 model: gif is greyed out with a hint and cannot be selected.
-    assert.equal(await model.inputValue(), "gpt-image-2");
+    await chooseModel("gpt-image-2");
     assert.equal(await gifButton.getAttribute("aria-disabled"), "true");
     assert.match(await gifButton.getAttribute("title"), /2\.6/);
     await gifButton.click({ force: true });
@@ -304,6 +310,28 @@ try {
     assert.deepEqual(errors, []);
     console.log(`PASS ${viewport.width}px: gif gating, frame controls, quality/compression/resolution rules, FormData, model fallback, history restore, layout`);
     await page.close();
+  }
+  {
+    // Signed out: no session restore runs, so gif availability comes straight from the default model at boot.
+    const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, locale: "zh-CN" });
+    const errors = [];
+    page.on("pageerror", (err) => errors.push(err.message));
+    await page.route("**/api/**", async (route) => {
+      const path = new URL(route.request().url()).pathname;
+      let payload = {};
+      if (path === "/api/health") payload = { ok: true, omni_poc: { enabled: true, image_model: "gpt-image-2.6-sunburst" }, auth: { effective_source: "api", selected_source: "api", auth_available: true } };
+      if (path === "/api/auth/session") payload = { authenticated: false };
+      if (path === "/api/tasks" || path === "/api/tasks/recent") payload = { tasks: [] };
+      if (path === "/api/queue") payload = { waiting: [], running: {}, channels: [] };
+      await route.fulfill({ json: payload });
+    });
+    await page.goto(base);
+    await page.waitForFunction(() => document.querySelector(".omni-poc-login-link") && !document.querySelector(".omni-poc-login-link").classList.contains("hidden"));
+    assert.equal(await page.locator("#omniImageModel").inputValue(), "gpt-image-2.6-sunburst");
+    assert.equal(await page.locator('#outputFormatGroup .radio-btn[data-val="gif"]').getAttribute("aria-disabled"), "false");
+    assert.deepEqual(errors, []);
+    await page.close();
+    console.log("PASS signed-out boot: default 2.6 Sunburst offers gif without a session restore");
   }
   console.log(`Screenshots: ${output}`);
 } finally {

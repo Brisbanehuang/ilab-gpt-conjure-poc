@@ -12,6 +12,17 @@ const IMAGE_MODELS = [
   "gpt-image-2.6-flare",
   "gpt-image-2.6-sunburst",
 ];
+const DEFAULT_IMAGE_MODEL = "gpt-image-2.6-sunburst";
+// Per-user preference version. The saved model is written back on every session load (not only on
+// manual picks), so a stored gpt-image-2 cannot be told apart from the old default; version 2 moves
+// 2.5 picks to their 2.6 counterparts and the old default to the new one exactly once per user.
+const MODEL_PREFERENCE_VERSION_STORAGE = "ilab.omniImageModelVersion";
+const MODEL_PREFERENCE_VERSION = "2";
+const MODEL_PREFERENCE_MIGRATIONS: Record<string, string> = {
+  "gpt-image-2": DEFAULT_IMAGE_MODEL,
+  "gpt-image-2.5-flare": "gpt-image-2.6-flare",
+  "gpt-image-2.5-sunburst": "gpt-image-2.6-sunburst",
+};
 const LOGIN_URL = "https://api.brislouise.online/image-generator";
 
 interface OmniUser {
@@ -37,7 +48,7 @@ let selectedKeyId = window.localStorage.getItem(SELECTED_KEY_STORAGE)?.trim() ||
 let keys: OmniKey[] = [];
 let user: OmniUser | null = null;
 let sessionConnectionOk = true;
-let selectedImageModel = "gpt-image-2";
+let selectedImageModel = DEFAULT_IMAGE_MODEL;
 let refreshing = false;
 let modelChosenBeforeSession = false;
 let syncImageModelControl = () => {};
@@ -69,6 +80,17 @@ export function setOmniImageModel(model: string): void {
   }
   const root = document.querySelector<HTMLElement>(".omni-poc-key-control");
   if (root) renderSession(root);
+}
+
+function migratedSavedImageModel(userId: number): string | null {
+  const modelStorage = `${SELECTED_MODEL_STORAGE}.${userId}`;
+  const versionStorage = `${MODEL_PREFERENCE_VERSION_STORAGE}.${userId}`;
+  const savedModel = localStorage.getItem(modelStorage);
+  if (localStorage.getItem(versionStorage) === MODEL_PREFERENCE_VERSION) return savedModel;
+  const migratedModel = savedModel ? MODEL_PREFERENCE_MIGRATIONS[savedModel] || savedModel : savedModel;
+  if (migratedModel && migratedModel !== savedModel) localStorage.setItem(modelStorage, migratedModel);
+  localStorage.setItem(versionStorage, MODEL_PREFERENCE_VERSION);
+  return migratedModel;
 }
 
 function compatibleKeys(): OmniKey[] {
@@ -225,10 +247,10 @@ async function refreshSessionAndKeys(root: HTMLElement): Promise<void> {
     authenticated = Boolean(sessionPayload?.authenticated);
     user = authenticated ? sessionPayload.user || null : null;
     if (user?.id !== previousUserId) {
-      const savedModel = user ? localStorage.getItem(`${SELECTED_MODEL_STORAGE}.${user.id}`) : null;
+      const savedModel = user ? migratedSavedImageModel(user.id) : null;
       const initialModel = !previousUserId && user && modelChosenBeforeSession
         ? selectedImageModel
-        : savedModel && IMAGE_MODELS.includes(savedModel) ? savedModel : "gpt-image-2";
+        : savedModel && IMAGE_MODELS.includes(savedModel) ? savedModel : DEFAULT_IMAGE_MODEL;
       setOmniImageModel(initialModel);
       modelChosenBeforeSession = false;
     }

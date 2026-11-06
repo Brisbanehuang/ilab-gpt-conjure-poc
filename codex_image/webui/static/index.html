@@ -63,7 +63,7 @@
         document.documentElement.dataset.locale = locale;
       })();
     </script>
-    <link rel="stylesheet" href="/static/styles.css?v=runtime-377" />
+    <link rel="stylesheet" href="/static/styles.css?v=runtime-378" />
   </head>
   <body>
     <div class="layout-container">
@@ -407,10 +407,10 @@
                       <option value="gpt-image-2.5-flare">GPT Image 2.5 Flare</option>
                       <option value="gpt-image-2.5-sunburst">GPT Image 2.5 Sunburst</option>
                       <option value="gpt-image-2.6-flare">GPT Image 2.6 Flare</option>
-                      <option value="gpt-image-2.6-sunburst">GPT Image 2.6 Sunburst</option>
+                      <option value="gpt-image-2.6-sunburst" selected>GPT Image 2.6 Sunburst</option>
                     </select>
                     <button id="omniImageModelTrigger" class="control model-combobox-trigger" type="button" role="combobox" aria-haspopup="listbox" aria-expanded="false" aria-controls="omniImageModelOptions" aria-labelledby="omniImageModelLabel">
-                      <span id="omniImageModelValue">GPT Image 2</span>
+                      <span id="omniImageModelValue">GPT Image 2.6 Sunburst</span>
                       <span class="model-combobox-caret" aria-hidden="true"></span>
                     </button>
                     <div id="omniImageModelOptions" class="model-combobox-options hidden" role="listbox" aria-labelledby="omniImageModelLabel"></div>
@@ -1250,7 +1250,7 @@
     </div>
 
     <div id="taskNotificationToastRegion" class="task-notification-toast-region" aria-live="polite"></div>
-  <script src="/static/app.js?v=runtime-377"></script>
+  <script src="/static/app.js?v=runtime-378"></script>
     <script>
       (() => {
         document.querySelectorAll(".radio-group").forEach((group) => {
