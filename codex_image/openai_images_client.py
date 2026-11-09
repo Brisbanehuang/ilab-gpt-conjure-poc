@@ -353,10 +353,11 @@ class OpenAIImagesImageClient:
         images = payload.get("images")
         if not isinstance(images, list) or not images:
             raise RuntimeError("OpenAI-compatible images edit requires at least one input image")
+        image_field = "image[]" if len(images) > 1 else "image"
         for index, image in enumerate(images, start=1):
             image_url = image.get("image_url") if isinstance(image, dict) else None
             mime_type, data = cls._decode_data_url(str(image_url or ""))
-            add_file("image", f"image-{index}{cls._extension_for_mime_type(mime_type)}", mime_type, data)
+            add_file(image_field, f"image-{index}{cls._extension_for_mime_type(mime_type)}", mime_type, data)
 
         mask = payload.get("mask")
         if isinstance(mask, dict) and mask.get("image_url"):

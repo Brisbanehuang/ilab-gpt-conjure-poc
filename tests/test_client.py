@@ -6,6 +6,8 @@ import socket
 import tempfile
 import unittest
 import urllib.error
+from email import policy
+from email.parser import BytesParser
 from pathlib import Path
 from typing import Any
 
@@ -788,6 +790,43 @@ class ClientTests(unittest.TestCase):
         self.assertIn('name="image"; filename="image-1.png"', request["body"].decode("utf-8", errors="replace"))
         self.assertIn(b"image", request["body"])
 
+    def test_openai_images_client_posts_multiple_images_as_array_fields(self) -> None:
+        from codex_image.client import OpenAIImagesImageClient
+
+        images = [
+            "data:image/png;base64," + base64.b64encode(b"first-image").decode("ascii"),
+            "data:image/jpeg;base64," + base64.b64encode(b"second-image").decode("ascii"),
+        ]
+        for model in ("gpt-image-2.5-sunburst", "gpt-image-2.6-sunburst", "gpt-image-2.6-flare"):
+            for action in ("edit", "generate"):
+                with self.subTest(model=model, action=action):
+                    transport = FakeTransport([
+                        FakeResponse(status=200, body=b'{"data":[{"b64_json":"aW1hZ2U="}]}'),
+                    ])
+                    client = OpenAIImagesImageClient(api_key="test-api-key", transport=transport)
+                    if action == "edit":
+                        client.edit_image(
+                            prompt="combine both images", model=model, images=images,
+                            mask_image="data:image/png;base64,bWFzaw==",
+                        )
+                    else:
+                        client.generate_image(prompt="combine both images", model=model, reference_images=images)
+
+                    request = transport.requests[0]
+                    self.assertEqual(request["url"], "https://api.openai.com/v1/images/edits")
+                    message = BytesParser(policy=policy.default).parsebytes(
+                        f'Content-Type: {request["headers"]["Content-Type"]}\r\n\r\n'.encode("ascii")
+                        + request["body"]
+                    )
+                    files = [part for part in message.iter_parts() if part.get_filename()]
+                    names = [part.get_param("name", header="Content-Disposition") for part in files]
+                    self.assertEqual(names, ["image[]", "image[]"] + (["mask"] if action == "edit" else []))
+                    self.assertEqual([part.get_payload(decode=True) for part in files[:2]], [b"first-image", b"second-image"])
+                    self.assertEqual([part.get_content_type() for part in files[:2]], ["image/png", "image/jpeg"])
+                    self.assertEqual([part.get_filename() for part in files[:2]], ["image-1.png", "image-2.jpg"])
+                    if action == "edit":
+                        self.assertEqual(files[2].get_payload(decode=True), b"mask")
+
     def test_openai_images_client_downloads_url_image_output(self) -> None:
         transport = FakeTransport(
             [
@@ -1397,7 +1436,7 @@ class ClientTests(unittest.TestCase):
         client = OpenAIImagesImageClient(api_key="test-api-key", base_url="https://api.example.com/v1", transport=transport)
         result = client.edit_image(
             prompt="animate",
-            images=["data:image/png;base64,aW1hZ2U="],
+            images=["data:image/png;base64,aW1hZ2U=", "data:image/png;base64,c2Vjb25k"],
             mask_image="data:image/png;base64,bWFzaw==",
             model="gpt-image-2.6-sunburst",
             size="1024x576",
@@ -1413,6 +1452,8 @@ class ClientTests(unittest.TestCase):
         body = request["body"].decode("utf-8", errors="replace")
         self.assertEqual(request["url"], "https://api.example.com/v1/images/edits")
         self.assertIn("multipart/form-data", request["headers"]["Content-Type"])
+        self.assertEqual(body.count('name="image[]";'), 2)
+        self.assertNotIn('name="image";', body)
         self.assertIn('name="output_format"\r\n\r\ngif\r\n', body)
         self.assertIn('name="frame_count"\r\n\r\n12\r\n', body)
         self.assertIn('name="frame_duration_ms"\r\n\r\n150\r\n', body)
